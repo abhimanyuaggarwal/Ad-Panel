@@ -125,6 +125,22 @@ verified by 117/117, the probe battery, and a 44-check end-to-end UAT (list filt
 search, both editors' full journeys, the inline config row, pods, the lookup, clears,
 save→review→publish, all three bulk acts, zero console errors, no native dialogs).
 
+**THE DEAD-CODE SWEEP (3 Sep, pre-push).** An exact audit (word-boundary references across
+all JS/HTML — onclick strings count) plus a 21-agent adversarial verification pass, then
+count-asserted removal: 478 CSS rules (283 orphaned classes from deleted eras — the
+wizard, the walk plan, the old config cards), five identifiers with zero references
+(`SUGGEST_SEQ`, `SU_DIRECT_OPEN`, `effectiveWalk`, `APP_PLATFORMS`, `getTemplate`), the
+comment-only views-behaviours.js and a vestigial empty block in the GAM sync route. The
+verification pass is what made it safe: it caught nine classes built dynamically
+(`p-${property}`, `t-${type}`) that a grep audit had wrongly condemned, and the removal
+uncovered one more pre-existing fused selector (`.rung-row.off .lookup input, … /*…*/
+.rung-standby`) — repaired, and all ten CSS files now pass a parse validator so that
+disease cannot hide again. Proof of harmlessness: a 2,602-element computed-style snapshot
+across seven screens is byte-identical before and after, plus 117/117 and the 44-check
+UAT. `docs/SCOPE.md` is the product's scope document — written for engineering and
+non-engineering readers, screenshots in `docs/img/`, covering the edges (seconds vs
+milliseconds, the GAM sync flow, the publish seam, every cap and refusal family).
+
 
 **THE BULK SHEET IS A CLEAN SLATE (3 Sep, user call).** The ad-behaviour sheet used to draw every
 control live with a value already standing in it — a Waterfall depth reading "Full" before anyone

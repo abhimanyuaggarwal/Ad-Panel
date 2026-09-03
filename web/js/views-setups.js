@@ -172,8 +172,6 @@ let SU_SLOT_OPEN = new Set();
 // Which rung's unit settings are open — one at a time, closed by any scope change.
 // Which of the mid-roll's break groups the editor is on. One group draws no chrome.
 let SU_MID_G = 0;
-// Direct is its own collapsed row above the placements.
-let SU_DIRECT_OPEN = false;
 
 function suSection() { return FORM.data.sections[SU_SEC] || FORM.data.sections[0]; }
 function suMidGroups() { return suSection().slots.midroll.groups; }

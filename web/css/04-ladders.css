@@ -3,22 +3,15 @@
    reproduce the original cascade byte for byte — later rules still win, so KEEP THE ORDER. */
 
 /* ---------- slot row: a switch plus a waterfall ---------- */
-.attach-grid.two { grid-template-columns: repeat(2, 1fr); }
-.slot-main { flex: 1; min-width: 0; }
 .slot-line { display: flex; align-items: center; gap: 12px; min-height: 34px; }
 .slot-line .toggle { flex: 0 0 auto; }
 .slot-line .toggle .track { width: 30px; height: 17px; flex: 0 0 30px; border-radius: 9px; }
 .slot-line .toggle .track::after { width: 13px; height: 13px; }
 .slot-line .toggle.on .track::after { left: 15px; }
-.slot-line .tlabel { font-size: 12px; width: 20px; }
 .slot-glimpse {
   flex: 1; min-width: 0; font-size: 12.5px; color: var(--ink);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.sg-more { color: var(--ink-faint); font-weight: 500; }
-.slot-worst { font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
-.slot-worst.heavy { color: var(--warn); background: var(--warn-soft); padding: 2px 7px; border-radius: 5px; font-weight: 650; }
-.slot-kept { font-size: 11px; color: var(--ink-faint); font-style: italic; white-space: nowrap; }
 .slot-row.slot-off .slot-glimpse { color: var(--ink-faint); }
 .slot-row.open { background: #fafbfd; border-radius: 8px; padding-left: 8px; margin-left: -8px; }
 /* THE GUTTER IS THE MAP (31 Aug): an open row is a stack — the header line, then one
@@ -36,9 +29,7 @@
 }
 .zone-c { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 9px; padding: 2px 0 6px; }
 .slot-edit { padding: 4px 0 10px; display: flex; flex-direction: column; gap: 9px; }
-.slot-mode { display: flex; align-items: center; gap: 10px; }
 .seg.small button { padding: 4px 10px; font-size: 11.5px; }
-.slot-fam { font-size: 11px; color: var(--ink-faint); }
 
 /* ---------- ladder rows: one primary, up to three waterfall rungs ---------- */
 .rung-list { display: flex; flex-direction: column; gap: 6px; }
@@ -50,11 +41,6 @@
 }
 .rung-n.primary { color: var(--accent); }
 .sg-empty { color: var(--ink-faint); font-size: 12px; }
-.sg-n { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
-.slot-glimpse .sg-more {
-  margin-left: 7px; font-size: 10.5px; font-weight: 700; letter-spacing: .3px;
-  text-transform: uppercase; color: var(--ink-faint);
-}
 .slot-glimpse .tmark { margin-right: 7px; vertical-align: -2px; }
 .sg-off {
   font-size: 10.5px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
@@ -73,20 +59,7 @@
 .slot-clear:hover { color: #b3261e; }
 .slot-clear.off { cursor: default; }
 .slot-row:hover .slot-clear.off { opacity: .4; }
-/* A collapsed section: one line that says what it runs. */
-.sec-card.shut .sec-card-head { border-bottom: 0; }
-.sec-sum { flex: 1; min-width: 0; font-size: 12px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sec-sum-sep { color: var(--ink-faint); margin: 0 2px; }
 
-.rung-pool {
-  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px;
-  padding: 6px 7px; border: 1px dashed #ccd6ef; border-radius: 8px; background: #f7f9ff;
-  box-sizing: border-box;
-}
-.pool-row { display: flex; align-items: center; gap: 4px; }
-.pool-row .rung-ctl, .pool-row .lookup { flex: 1; min-width: 0; }
-.pool-x { flex: none; width: 20px; height: 22px; }
-.pool-more { align-self: flex-start; margin-left: 2px; }
 
 /* The whole row opens the slot; the chevron is the affordance. Five identical "Edit"
    buttons per section were 52px each of the same word about a row that is obviously a
@@ -128,16 +101,6 @@
 .rung-acts button:disabled { opacity: .3; cursor: default; }
 .rung-acts .rung-x:hover:not(:disabled) { color: var(--bad); background: var(--bad-soft); }
 
-.wff-main { min-width: 0; }
-
-/* ---------- inline tag creation dialog ---------- */
-.tagnew { display: flex; flex-direction: column; gap: 12px; }
-.tagnew .suggest { width: 100%; }
-.tagnew input[type=text] {
-  width: 100%; padding: 8px 11px; border: 1px solid var(--line); border-radius: 8px;
-  font-size: 13px; font-family: inherit; color: var(--ink); outline: none;
-}
-.tagnew input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
 
 /* ---------- guided journey: one decision per screen ---------- */
 /* Wider than the plain dialog so a label column + its consequence fit on one line —
@@ -155,75 +118,9 @@
    container would clip them, so this variant grows instead of scrolling. */
 .dlg.step.ladder .dlg-body { max-height: none; overflow: visible; }
 
-/* The step-1 list is the tallest screen in the family, so it sets the frame every other
-   screen pads to. Once the inline outcome block was removed from the act screens (PM call,
-   20 Aug) those screens got much shorter, and a loose menu was leaving ~240px of dead white
-   under them. A denser menu is better on its own terms and it pulls the whole frame in. */
-.jgroup + .jgroup { margin-top: 11px; }
-.jgroup-t {
-  font-size: 10.5px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
-  color: var(--ink-faint);
-}
-/* The family rule rides along with the heading rather than repeating on every row. */
-.jgroup-t em {
-  font-style: normal; font-weight: 500; letter-spacing: 0; margin-left: 8px;
-  text-transform: none; font-size: 11px; color: var(--ink-faint); opacity: .8;
-}
-.jgroup-note { font-size: 11.5px; color: var(--ink-faint); margin: 3px 0 9px; }
-.jgroup-t + .jopt { margin-top: 7px; }
-.jopt {
-  display: flex; align-items: center; gap: 12px; padding: 8px 14px; border-radius: 10px;
-  border: 1.5px solid var(--line); cursor: pointer; background: #fff;
-  transition: border-color .12s, background .12s;
-}
-.jopt + .jopt { margin-top: 4px; }
-.jopt:hover { border-color: var(--accent); background: var(--accent-soft); }
-.jo-main { flex: 1; min-width: 0; }
-.jopt.compact { padding: 7px 14px; }
-.jopt.compact .jo-main { display: flex; align-items: baseline; gap: 14px; }
-.jopt.compact .jo-label { flex: 0 0 168px; }
-.jopt.compact .jo-sub { margin-top: 0; flex: 1; min-width: 0; }
+
 /* ---------- the unit table: fixed columns, one number per cell ---------- */
-/* Every row and the header share this grid, so a column reads top to bottom. */
-.jcols, .jopt.cols {
-  display: grid; grid-template-columns: 1fr 150px 14px; align-items: center; gap: 12px;
-}
-.jcols {
-  padding: 0 15.5px 6px; font-size: 10px; font-weight: 700; letter-spacing: .5px;
-  text-transform: uppercase; color: var(--ink-faint);
-}
-.jcols span { justify-self: start; }
-.jcols .has-why { border-bottom: 1px dotted #c8cede; cursor: help; }
-.jopt.cols { padding: 8px 14px; }
-.jo-cell { font-size: 12px; color: var(--ink-soft); display: flex; align-items: center; gap: 8px; }
-/* A proportion is read faster as a length than as a fraction; the fraction stays for
-   the exact count. Both are counted — nothing here is estimated. */
-.mbar {
-  flex: 0 0 42px; height: 5px; border-radius: 3px; background: var(--line); overflow: hidden;
-}
-.mbar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
-.mbar.zero i { background: transparent; }
-.mfrac { font-variant-numeric: tabular-nums; color: var(--ink-faint); }
-.mfrac b { color: var(--ink); font-weight: 650; }
-.mfrac.zero b { color: var(--ink-faint); font-weight: 600; }
 
-.jo-label { font-size: 13px; font-weight: 650; color: var(--ink); }
-.jo-sub { font-size: 11.5px; color: var(--ink-soft); margin-top: 3px; line-height: 1.45; }
-.jo-go { color: var(--ink-faint); font-size: 17px; line-height: 1; }
-.jopt:hover .jo-go { color: var(--accent); }
-/* A choice the panel would refuse greys out where it sits, carrying the reason. */
-.jopt.off { cursor: not-allowed; background: transparent; border-color: transparent; }
-.jopt.off:hover { border-color: transparent; background: transparent; }
-.jopt.off .jo-label { color: var(--ink-faint); font-weight: 600; }
-.jopt.off .jo-sub { color: var(--ink-faint); font-style: italic; }
-
-/* Spec-preview footer links — the way in to an object from wherever it is previewed. */
-.spec-links {
-  grid-column: 1 / -1; display: flex; align-items: center; gap: 8px;
-  margin-top: 2px; font-size: 12px; color: var(--ink-faint);
-}
-.spec-links a { color: var(--accent); font-weight: 600; cursor: pointer; }
-.spec-links a:hover { text-decoration: underline; }
 
 /* The ladder builder holds rung rows, which need more room than a choice list —
    a house rung alone carries a category, a name, and a creative id. Same width as
@@ -231,15 +128,12 @@
 .dlg.step.ladder .rung-n { flex: 0 0 92px; }
 /* The mixed-cohort row names the position it writes, so the label becomes the control. */
 .rung-n.pick { flex: 0 0 108px; }
-.rung-sw { flex: none; margin-right: 2px; }
 .rung-row.off { opacity: .68; }
-.rung-row.off .lookup input, .rung-row.off .rung-row.off 
 /* Switched off: the field stands down rather than disappearing, so the row keeps its
    shape and the reason is where the field was. */
-.rung-standby { flex: 1; min-width: 0; font-size: 12px; color: var(--ink-faint); font-style: italic; }
+.rung-row.off .lookup input { flex: 1; min-width: 0; font-size: 12px; color: var(--ink-faint); font-style: italic; }
 
 .rung-n.pick .select { width: 100%; }
-.dlg.step.ladder .dlg.step.ladder .dlg.step.ladder .rung-acts { opacity: 1; }
 
 /* ---------- lookup: type-to-find, same anatomy as the ad-unit search ---------- */
 .lookup { position: relative; flex: 1; min-width: 0; }

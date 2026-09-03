@@ -215,7 +215,6 @@ document.addEventListener('click', e => {
 // ---------- GAM suggest input (slots) ----------
 // Type an ad unit → typeahead from the synced directory; paste a full URL → manual.
 
-let SUGGEST_SEQ = 0;
 const SUGGEST_REGISTRY = {};
 
 function slotSourceBadge(v) {

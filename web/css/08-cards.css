@@ -3,69 +3,12 @@
    reproduce the original cascade byte for byte — later rules still win, so KEEP THE ORDER. */
 
 /* ---------- how it behaves: read-only facts from the ad setup ---------- */
-/* The integration shows the pacing its placement was given and links to where it is
-   set. Facts, two columns, no controls — the same deal the ladder already had. */
-.bhv-read { padding: 2px 0 6px; }
-.bhv-r {
-  display: grid; grid-template-columns: 148px minmax(0, 1fr); gap: 10px;
-  align-items: baseline; padding: 5px 2px; font-size: 12.5px;
-}
-.bhv-r + .bhv-r { border-top: 1px solid var(--line); }
-.bhv-k { color: var(--ink-soft); font-weight: 600; }
-.bhv-v { color: var(--ink); font-variant-numeric: tabular-nums; }
-.bhv-v.split { color: var(--ink-soft); font-size: 12px; }
+
 
 /* ---------- the Player card: seen before it is read ---------- */
-.pl-wrap { display: flex; gap: 26px; align-items: flex-start; }
-.pl-vis { flex: none; width: 268px; position: sticky; top: 12px; }
-.pl-fields { flex: 1; min-width: 0; }
-.pl-cap { font-size: 11.5px; color: var(--ink-faint); margin-top: 9px; line-height: 1.5; }
-
-.pmock { user-select: none; }
-.pm-frame {
-  position: relative; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden;
-  background: linear-gradient(160deg, #23262e 0%, #14161b 100%);
-  display: flex; flex-direction: column; box-shadow: 0 1px 3px rgba(20,22,27,.28);
-}
-.pm-frame.idle { background: linear-gradient(160deg, #2b2f38 0%, #191c22 100%); }
-.pm-chrome {
-  display: flex; align-items: center; gap: 6px; padding: 7px 8px;
-  background: rgba(0,0,0,.34);
-}
-.pm-ad {
-  font-size: 9px; font-weight: 800; letter-spacing: .6px; color: #12140f;
-  background: #f5c542; border-radius: 3px; padding: 2px 4px;
-}
-.pm-cd { font-size: 10px; font-weight: 650; color: #f2f4f8; }
-.pm-cd.off { color: #8b93a3; font-weight: 500; font-style: italic; }
-.pm-sp { flex: 1; }
-.pm-snd { font-size: 10px; font-weight: 650; color: #f2f4f8; }
-.pm-snd.muted { color: #a8b0bf; }
-.pm-body { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; }
-.pm-play { color: #f2f4f8; font-size: 26px; opacity: .82; }
-.pm-auto { font-size: 10.5px; color: #c3cad6; letter-spacing: .2px; }
-.pm-dock {
-  position: absolute; right: 7px; bottom: 6px; font-size: 9px; font-weight: 700;
-  color: #d8dee8; border: 1px dashed rgba(216,222,232,.45); border-radius: 4px; padding: 2px 4px;
-}
-.pm-ctl {
-  display: flex; align-items: center; gap: 7px; padding: 7px 8px; min-height: 26px;
-  background: rgba(0,0,0,.4);
-}
-.pm-btn { color: #eef1f6; font-size: 10px; }
-.pm-bar { flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,.24); position: relative; }
-.pm-bar i { position: absolute; inset: 0 62% 0 0; background: #e8ebf1; border-radius: 2px; }
-.pm-bar.noseek { background: rgba(255,255,255,.13); }
-.pm-bar.noseek i { background: #98a1b1; }
-.pm-nc { font-size: 9.5px; color: #8b93a3; font-style: italic; }
-.pm-end {
-  margin-top: 7px; font-size: 10px; font-weight: 700; letter-spacing: .3px;
-  text-transform: uppercase; color: var(--ink-faint);
-}
 
 @media (max-width: 1120px) {
   .pl-wrap { flex-direction: column; }
-  .pl-vis { position: static; width: 100%; max-width: 300px; }
 }
 
 /* Field-group rows carry longer labels than the ladder rows they share a grammar with
@@ -74,42 +17,6 @@
   grid-template-columns: 14px 168px minmax(0, 1fr) auto;
 }
 
-/* THE CREATION WIZARD (1 Sep, user call): New integration is a three-step modal —
-   Source › Details › Ad demand — the YouTube upload grammar. The stepper is the map;
-   a visited step is a door, a future one is only a name. Nothing exists until Create. */
-.dlg.wiz { width: 860px; max-height: calc(100vh - 80px); display: flex; flex-direction: column; }
-.dlg.wiz h3 { font-size: 18px; font-weight: 650; letter-spacing: -.1px; }
-.wiz-steps { display: flex; align-items: center; gap: 10px; padding: 2px 0 12px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
-.wstep { display: inline-flex; align-items: center; gap: 8px; background: none; border: 0; padding: 2px 4px;
-  font: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); cursor: pointer; }
-.wstep .wnum { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid #c9cfda; display: inline-flex;
-  align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--ink-faint); }
-.wstep.on { color: var(--ink); cursor: default; }
-.wstep.on .wnum { background: var(--ink); border-color: var(--ink); color: #fff; }
-.wstep.todo { color: var(--ink-faint); cursor: default; }
-.wsep { flex: 0 0 26px; height: 1px; background: var(--line); }
-.wiz-body { min-height: 400px; overflow-y: auto; }
-.wiz-choice { display: flex; gap: 11px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--line);
-  border-radius: 10px; cursor: pointer; margin-bottom: 8px; }
-.wiz-choice:hover { border-color: #d4d9e3; }
-.wiz-choice.on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
-.wiz-choice-t { font-size: 13px; font-weight: 650; }
-.wiz-choice-s { font-size: 12px; color: var(--ink-soft); margin-top: 2px; line-height: 1.45; }
-.rdot { flex: none; width: 15px; height: 15px; margin-top: 1px; border-radius: 50%; border: 1.5px solid #c9cfda; position: relative; }
-.rdot.on { border-color: var(--accent); }
-.rdot.on::after { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent); }
-.wiz-list { border: 1px solid var(--line); border-radius: 10px; margin: 2px 0 8px; max-height: 258px; overflow-y: auto; }
-.wiz-row { display: flex; align-items: center; gap: 9px; padding: 9px 12px; cursor: pointer; }
-.wiz-row + .wiz-row { border-top: 1px solid var(--line); }
-.wiz-row:hover { background: #f7f8fa; }
-.wiz-row.on { background: var(--accent-soft); }
-.wiz-row .rdot { margin-top: 0; }
-.wiz-row-name { font-size: 12.5px; font-weight: 600; white-space: nowrap; }
-.wiz-row-sub { font-size: 11.5px; color: var(--ink-faint); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wiz-row-sub:last-child { margin-left: auto; }
-.wiz-cols { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 20px; align-items: start; }
-.wiz-preview { border-left: 1px solid var(--line); padding-left: 20px; max-height: 356px; overflow-y: auto; }
-.dlg.wiz .dlg-foot { display: flex; align-items: center; gap: 10px; }
 
 /* THE DELIVERY COLUMN (1 Sep, user call): the settings rows used to run the zone's full
    width, leaving a bare tail after every control. They now live in one fixed settings
@@ -137,18 +44,8 @@
    the accent rail says "yours", the chip beside it offers the setup's value back. */
 .lr.rule.bent .lr-l { color: var(--accent-ink); }
 .lr.rule.bent { box-shadow: inset 2px 0 0 var(--accent); }
-.bent-chip {
-  font-size: 10.5px; font-weight: 700; letter-spacing: .2px; color: var(--accent-ink);
-  background: var(--accent-soft); border-radius: 4px; padding: 2px 5px; white-space: nowrap;
-}
 
-/* ---------- one view: a toggle per placement, on the unit row ---------- */
-.pt-set { display: inline-flex; align-items: center; gap: 14px; flex: none; }
-.pt { display: inline-flex; align-items: center; gap: 6px; }
-.pt-n {
-  font-size: 10.5px; font-weight: 700; letter-spacing: .2px; color: var(--ink-soft);
-  max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
+
 /* Inside an open row, each placement's detail is headed by its name — the only place
    the word "placement" needs to appear at all. */
 .pl-head {
@@ -158,36 +55,12 @@
 }
 .slot-edit > .pl-head:first-child { margin-top: 2px; }
 
-/* The player's per-placement fork lines: one row each, expanding in place. */
-.pl-fork {
-  display: flex; align-items: center; gap: 9px; padding: 11px 2px 11px 0;
-  border-top: 1px solid var(--line); font-size: 12.5px;
-}
-.pl-fk-n { font-weight: 650; color: var(--ink); }
-.pl-fields.sub { padding-left: 14px; box-shadow: inset 2px 0 0 var(--line); }
-
-/* Identity's player strip: four facts, no graphic. */
-.idp {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 7px;
-  margin-top: 15px; padding-top: 14px; border-top: 1px solid var(--line);
-}
-.idp-k {
-  font-size: 10.5px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
-  color: var(--ink-faint); margin-right: 3px;
-}
-.idp-p {
-  font-size: 11.5px; font-weight: 600; color: var(--ink-soft);
-  background: var(--bg-soft, #f4f6fa); border: 1px solid var(--line);
-  border-radius: 5px; padding: 3px 8px;
-}
-.idp-n { font-size: 11.5px; color: var(--ink-faint); }
 
 /* The remainder line carries two links; space them so they never read as one. */
 .slot-edit .zrow { display: flex; align-items: center; gap: 16px; padding: 8px 2px 2px; }
 
 /* Inside an open unit row: pick WHICH placement you are working on. Chips, not tabs —
    they exist only here, only when there is more than one placement. */
-.plc-pick { display: flex; gap: 6px; margin: 2px 0 10px; }
 .plc {
   border: 1px solid var(--line); background: #fff; border-radius: 6px;
   font: inherit; font-size: 11.5px; font-weight: 650; color: var(--ink-soft);
@@ -198,9 +71,7 @@
 .plc i { font-style: normal; font-weight: 500; color: var(--ink-faint); font-size: 10.5px; }
 
 /* The quick bar: one row of labeled dropdowns — pick, done. */
-/* A break's fields in the integration: the SAME rows the ops room draws, filtered to
-   what this surface may set. One renderer, one grammar, no second look to learn. */
-.bhv-rows { padding: 2px 0 4px; }
+
 /* A control that cannot apply right now stays in its row and greys — never vanishes. */
 .lr.rule.dim .lr-l { color: var(--ink-faint); }
 .lr.rule.dim { cursor: help; }
@@ -232,19 +103,6 @@
 .dlg-note { font-size: 12px; color: var(--ink-faint); margin: 12px 0 0; padding-top: 0; border-top: 0; }
 
 /* THE WALK PLAN — a list of companies, stated once, landing in every ad section. */
-
-.wp-steps { display: flex; flex-direction: column; gap: 6px; margin: 2px 0 12px; }
-.wp-step { display: flex; align-items: center; gap: 10px; }
-.wp-n { flex: 0 0 92px; font-size: 9.5px; font-weight: 700; letter-spacing: .2px; text-transform: uppercase; color: var(--ink-faint); text-align: right; }
-.wp-step .select { min-width: 150px; }
-.wp-x { border: 0; background: none; color: var(--ink-faint); cursor: pointer; font-size: 11px; padding: 2px 6px; }
-.wp-x:hover { color: var(--bad); }
-.wp-x.ghost { visibility: hidden; }
-.wp-add { border: 0; background: none; color: var(--accent); cursor: pointer; font-size: 12px; padding: 2px 0 2px 102px; text-align: left; }
-.wp-add:hover { text-decoration: underline; }
-.wp-stop { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--ink); cursor: pointer; padding: 2px 0 8px 102px; }
-.wp-note { font-size: 11.5px; color: var(--ink-faint); padding: 0 0 12px 102px; }
-.wp-head { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); border-top: 1px solid var(--line); padding: 12px 0 6px; }
 .cons-warn { color: var(--warn); font-size: 11.5px; margin-top: 2px; }
 .wp-fix { display: block; margin-top: 3px; font-size: 11.5px; white-space: nowrap; }
 /* The rung someone was sent here to fill. */
@@ -254,11 +112,7 @@
 .xa-head { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
   color: var(--ink-faint); padding: 2px 0 8px; }
 
-/* THE SCOPE ROW — one control, because a scope is one choice. */
-.sec-scope { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  border-bottom: 1px solid var(--line); padding: 0 0 12px; margin: 2px 0 14px; }
-.sec-scope .scope-eyebrow { padding: 0 2px 0 0; align-self: center; }
-.sec-scope .select { min-width: 190px; }
+
 /* One break, chosen above and shown alone. */
 /* THE FOUR BREAKS AS TABS (26 Aug, user call) — the ops room's own tab grammar, so
    both rooms pick a subject the same way. Each tab carries a state dot, which is what
@@ -272,11 +126,8 @@
 
 /* The break's own switch, in the same labelled-left-column rhythm as the rows under it:
    a two-word eyebrow says what the switch does, so it is never a bare unexplained toggle. */
-.brk-head { display: flex; align-items: center; gap: 12px; min-height: 30px; padding: 0 0 4px; }
-.brk-head .scope-eyebrow { padding: 0; align-self: center; min-width: 46px; }
 .brk .slot-edit { padding-top: 2px; }
 .brk.slot-off .slot-glimpse { color: var(--ink-faint); }
-.scope-count { font-size: 11.5px; color: var(--ink-faint); margin-left: auto; }
 /* The control on the left, what each section then runs on the right. */
 /* The partner chips and the "After [n] sec" pair both want one line, so the driving
    column takes the room the What-runs column can spare. */
@@ -298,9 +149,4 @@
 .tickbox.on { background: var(--accent); border-color: var(--accent); }
 .lr.rule.idle .lr-l, .lr.rule.idle .podl { color: var(--ink-faint); }
 .lr.rule.idle .seg, .lr.rule.idle .num-wrap, .lr.rule.idle .rule-text input { opacity: .6; }
-.mixed-chip { font-size: 10px; padding: 1px 7px; border-radius: 999px; background: var(--bg-soft, #f7f8fb);
-  color: var(--ink-faint); border: 1px solid var(--line); margin-left: 8px; white-space: nowrap; }
-
-.qk.grow { flex: 1; min-width: 200px; }
-.qk-note { white-space: nowrap; }
 

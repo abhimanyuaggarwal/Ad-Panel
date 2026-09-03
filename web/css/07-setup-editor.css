@@ -4,24 +4,10 @@
 
 /* ---------- pods (24 Aug): inline micro-label, fill-card title note, live counted note ---------- */
 .podl { font-size: 11px; color: var(--ink-faint); letter-spacing: .2px; white-space: nowrap; }
-.ft-note { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--ink-faint); }
-.pod-note { margin-top: 10px; font-size: 12px; color: var(--warn); background: var(--warn-soft); border-radius: 6px; padding: 7px 10px; line-height: 1.55; }
-.pod-note.none { display: none; }
-.pod-note.inb { margin: 2px 0 12px 30px; }
 
 /* ---------- two rooms (24 Aug): the strip, section field rows, setup chip ---------- */
-.end-seg { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; }
 .st-chip.t { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
-.eh-sub { font-weight: 500; color: var(--ink-faint); }
-.sec-card-body .hfield > label { flex: 0 0 128px; }
 
-/* ---------- levers (24 Aug evening): local ladder rows, strip expansion ---------- */
-.lname { flex: 1; min-width: 0; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rung-chip { font-size: 10px; padding: 1px 7px; border-radius: 999px; background: var(--warn-soft); color: var(--warn); white-space: nowrap; }
-.rung-chip.ops { background: var(--accent-soft); color: var(--ink-faint); border: 1px solid var(--line); }
-.strip-exp { margin: 2px 0 14px 160px; display: flex; flex-direction: column; gap: 8px; }
-.strip-exp .card-l { border: 1px solid var(--line); border-radius: 8px; padding: 2px 10px; background: var(--panel); }
-.slot-edit .card-l.rules { border: 1px solid var(--line); border-radius: 8px; padding: 2px 10px; }
 
 /* ---------- the one-scene ads card (24 Aug night): lens tabs, zones, quiet foot ---------- */
 .scope-tabs { display: flex; align-items: center; gap: 2px; border-bottom: 1px solid var(--line); margin: 2px 0 14px; }
@@ -39,11 +25,6 @@
 .stab.add { font-weight: 500; margin-left: auto; color: var(--accent); }
 .stab:disabled { opacity: .4; cursor: default; }
 .stab .bdot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); display: inline-block; }
-.sec-subhead { display: flex; align-items: center; gap: 8px; margin: -4px 0 12px; font-size: 12px; color: var(--ink-faint); }
-.sec-subhead input { width: 180px; font-size: 12.5px; font-weight: 600; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; }
-.ssh-fact b { color: var(--ink-soft); font-weight: 600; }
-.zone-t { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); margin: 12px 0 5px; }
-.slot-edit .zone-t:first-child { margin-top: 2px; }
 .zlink { border: 0; background: none; padding: 0; font-size: 11.5px; color: var(--accent); cursor: pointer; white-space: nowrap; }
 .zlink:hover { text-decoration: underline; }
 .zlink.danger { color: var(--bad); }
@@ -53,72 +34,20 @@
 /* ---------- custom player configs: one card per fork (3 Sep) ---------- */
 .pcc { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 10px; }
 .pcc:last-of-type { margin-bottom: 0; }
-.pcc-hd {
-  display: flex; align-items: center; gap: 10px; padding: 6px 12px;
-  background: var(--bg-soft, #f7f8fb); border-bottom: 1px solid var(--line);
-}
-.pcc-hd input {
-  width: 240px; padding: 5px 9px; border: 1px solid var(--line); border-radius: 7px;
-  font-size: 12.5px; font-weight: 600; background: #fff;
-}
-.pcc-b { padding: 12px 14px 14px; margin-bottom: 0 !important; }
 .pcc-empty { font-size: 11.5px; color: var(--ink-faint); padding: 2px 0 4px; }
 .num-wrap.dim { opacity: .5; }
 .zrow { padding: 4px 0 0; }
 .ads-fills { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.ads-foot { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 6px; }
-.af-row { display: flex; align-items: baseline; gap: 10px; padding: 6px 0; font-size: 12.5px; }
-.af-l { flex: 0 0 90px; font-weight: 600; color: var(--ink-soft); font-size: 12px; }
-.af-v { color: var(--ink-faint); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sg-dim { color: var(--ink-faint); font-size: 12px; }
 
-/* ---------- section preview, tab eye (24 Aug night) ---------- */
-.stab-eye { border: 0; background: none; cursor: pointer; color: var(--ink-faint); font-size: 11px; padding: 6px 2px 8px; margin-left: -6px; }
-.stab-eye:hover { color: var(--accent); }
-.pv-unit { padding: 8px 0; border-top: 1px solid var(--line-soft, var(--line)); }
-.pv-unit:first-child { border-top: 0; }
-.pv-unit.off { opacity: .5; }
-.pv-h { display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; }
-.pv-state { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-faint); }
-.pv-state.on { color: var(--good); }
-.pv-r { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 3px 0 0 14px; color: var(--ink-soft); }
-.pv-n { flex: 0 0 84px; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-faint); }
-.pv-r.dim { color: var(--ink-faint); font-style: italic; }
-.pv-foot { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 8px; font-size: 12px; color: var(--ink-soft); display: flex; flex-direction: column; gap: 4px; }
-.pv-fl { display: inline-block; width: 84px; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-faint); }
-
-/* ---------- inheritance chips in accordion heads / zone labels ---------- */
-.adv-sum { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
-.acc-sum-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.zone-t .st-chip { text-transform: none; letter-spacing: 0; font-weight: 500; margin-left: 4px; }
-.zone-t .zlink { text-transform: none; letter-spacing: 0; margin-left: 6px; }
 
 /* "Applies to" names what the row governs, so the union and its members can sit in one
    control without reading as the same kind of thing. */
 .scope-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); padding: 0 10px 9px 0; align-self: flex-end; }
-.scope-div { width: 1px; height: 14px; background: var(--line); margin: 0 8px 9px; align-self: flex-end; }
 
 /* The bulk sheet still folds at Waterfalls 3+ — many integrations, many depths. */
 .lr.tail .lr-l { font-weight: 750; }
 
-/* A fold row: its own summary on the line, its controls one click under it. The
-   integration page's Timing row is the only one. */
-.rung-row.fold-sum { cursor: pointer; margin-top: 4px; }
-.rung-row.fold-sum:hover { background: var(--bg-soft, #f7f8fb); }
-.fold-l {
-  font-size: 9.5px; font-weight: 700; letter-spacing: .2px; text-transform: uppercase;
-  color: var(--ink-soft); white-space: nowrap;
-}
-.fold-chev {
-  width: 14px; text-align: center; color: var(--ink-faint); font-size: 13px;
-  display: inline-block; transition: transform .12s; flex: none;
-  margin-left: -14px;
-}
-.fold-chev.open { transform: rotate(90deg); }
-
-/* The read-only ladder tells the two apart the same way the editor does: the row asked
-   first carries the weight, the fall under it does not. */
-.rvs-l.lead { font-weight: 650; color: var(--ink); }
 
 /* A UNIT TYPED IN BEFORE GAM CAUGHT UP (27 Aug). The synced directory is a convenience,
    not a gate — but a hand-typed unit is the one rung whose existence we cannot vouch for,
@@ -130,62 +59,16 @@
 /* The lookup row that adds one: same shape as a directory hit, a different word. */
 .lk-badge.manual { color: #8a6d1f; background: #fdf8e8; border-color: #f0e3bd; }
 
-/* A NON-DEFAULT REQUEST TEMPLATE (31 Aug) — a flag, not a label: it shows only where
-   the choice is news. Same quiet anatomy as the off-directory mark, a cooler hue. */
-.tplflag {
-  font-size: 10px; color: #4a5f8a; background: #f2f6fd; border: 1px solid #d8e2f4;
-  border-radius: 4px; padding: 1px 5px; white-space: nowrap; flex: none;
-}
 
 /* A BANNER'S OWN FACTS (31 Aug, AD-JSON-SCOPE) — an indented sub-panel under the
    display rung it belongs to. Type-based: it exists because the rung is a banner, never
    because of a value. Sleeked on user review: no box — a quiet left rail ties it to its
    rung, a muted label column, one decision per line, the clocks sharing the last line. */
-/* Re-cut 2 Sep (user call): the fold ran as a narrow strip beside dead space. It now
-   spans the ladder's width as a TWO-COLUMN grid of label+control pairs — the left
-   gutter works, a video unit's two facts sit on one line, a banner's five on three. */
-.banner-facts {
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px;
-  margin: 0 0 8px 34px; padding: 6px 12px 8px 14px;
-  border-left: 2px solid #d8e2f4;
-  font-size: 11.5px;
-}
-.banner-facts .bf-r { display: flex; align-items: center; gap: 10px; min-height: 32px; min-width: 0; }
-.banner-facts .bf-r.off { opacity: .45; }
-.banner-facts .bf-l { color: var(--muted, #667); font-size: 11px; flex: 0 0 118px; }
-.banner-facts .bf-j { color: var(--ink-faint, #99a); font-size: 11px; margin-left: 6px; white-space: nowrap; }
-.banner-facts .bf-j.off { opacity: .45; }
-/* Compact numbers: a two-digit clock does not need a 150px field. */
-.banner-facts .num-wrap { width: 74px; background: #fff; }
-.banner-facts .num-wrap input { padding: 4px 2px 4px 9px; font-size: 12px; }
-.banner-facts .num-wrap .unit { padding: 0 7px 0 2px; }
-/* ONE HEIGHT FOR EVERY CONTROL IN THE FOLD (3 Sep, user call — "the drop down is thick
-   while the tabs are of different size"). A select, a segmented control and a number box
-   are three different widgets; in a settings grid they have to read as one row of
-   answers, so they share a height and a corner radius here. */
-.banner-facts .select {
-  min-width: 168px; height: 32px; padding: 0 10px; border-radius: 7px;
-  display: flex; align-items: center;
-}
-.banner-facts .select .sel-label { font-size: 11.5px; padding: 0; }
-.banner-facts .seg.small { border-radius: 7px; padding: 3px; }
-.banner-facts .seg.small button { height: 26px; padding: 0 12px; }
-.banner-facts .num-wrap { height: 32px; border-radius: 7px; }
-.banner-facts .num-wrap input { height: 30px; }
-.banner-facts .seg.small button { padding: 3px 9px; }
+
 
 /* A breath between decision clusters in the settings list — rhythm, not headings. */
 .lr-gap { height: 12px; }
 
-/* The unit-settings chevron: the door on every filled rung. Quiet at rest, turned
-   when open — the same disclosure the slot rows speak. */
-.rung-gear {
-  border: 0; background: transparent; color: var(--ink-faint, #9aa); cursor: pointer;
-  font-size: 15px; padding: 2px 6px; flex: none; transition: transform .12s, color .12s;
-  font-family: inherit; line-height: 1;
-}
-.rung-gear:hover { color: var(--ink); }
-.rung-gear.open { transform: rotate(90deg); color: var(--accent, #3b6ff0); }
 
 /* THE PAGE NEVER SCROLLS SIDEWAYS: #main is a flex child, and flex children refuse to
    shrink below their content unless told (min-width: auto). Told. Inner text then
@@ -196,23 +79,7 @@
 /* The templates fold at the editor's foot: one line per template — name, who answers,
    the macro URL swallowing the slack, the counted fact, then the quiet acts. */
 .slot-row.tpl { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
-/* The URL must never widen the page: every flex ancestor may shrink. */
-.slot-row.tpl .slot-main { min-width: 0; }
-.tpl-line { min-width: 0; }
-.tpl-line {
-  display: flex; align-items: center; gap: 10px; cursor: pointer;
-  padding: 7px 6px; border-bottom: 1px solid var(--line); font-size: 12px; border-radius: 6px;
-}
-.tpl-line:hover { background: #f2f5fa; }
-.tpl-line:last-of-type { border-bottom: 0; }
-.tpl-line .tpl-name { font-weight: 650; color: var(--ink); flex: none; min-width: 118px; }
-.tpl-line .tpl-carries { flex: none; white-space: nowrap; margin-left: auto; }
-.tpl-line .tpl-chev { color: var(--ink-faint); font-size: 14px; flex: none; }
-.tpl-line .tpl-carries:empty + .tpl-chev { margin-left: auto; }
 
-/* A zone title may carry ONE quiet act at its right edge. */
-.zone-t.zt-row { display: flex; align-items: baseline; }
-.zone-t .zt-act { margin-left: auto; text-transform: none; letter-spacing: normal; font-size: 11.5px; }
 
 /* A destructive act at rest is quiet; it earns its colour on approach. */
 .zlink.quiet-danger { color: var(--muted, #889); }
@@ -239,8 +106,7 @@
 .grp-tabs { margin: 0 0 8px; }
 .grp-tabs .stab { font-size: 11.5px; padding: 3px 9px; }
 .grp-tabs .stab .sg-dim { font-weight: 400; }
-/* One group: the row still names the concept, but a lone tab is a fact, not a choice. */
-.grp-tabs .stab.lone, .grp-tabs .stab.lone:hover { border-color: transparent; background: transparent; cursor: default; }
+
 
 /* THE PARTNER CHIPS (27 Aug) — the whole "who is asked, in what order" decision as one
    strip. A dropdown could only hold "X only" / "X first"; chips hold the sentence. The
@@ -264,18 +130,6 @@
 .btn.sm { padding: 5px 12px; font-size: 12px; }
 .drive-reset[disabled] { opacity: .45; cursor: default; }
 
-/* DIRECT'S OWN LINE (1 Sep): not a break, so not a tab — one slim strip above the
-   tabs, its position on screen its position in the walk. Same anatomy in the bulk
-   sheet, where it carries the cohort meter instead of the walk. */
-.direct-line {
-  display: flex; align-items: center; gap: 10px;
-  padding: 7px 2px 9px; margin-bottom: 4px;
-  border-bottom: 1px solid var(--line);
-  font-size: 12px;
-}
-.direct-line .dl-label { font-size: 12px; font-weight: 600; color: var(--ink-soft); flex: none; min-width: 46px; }
-.direct-line.off .glimpse-walk, .direct-line.off .sg-dim { opacity: .55; }
-.direct-line.bulk { margin: 0 22px; padding: 8px 0; }
 
 /* The editor breathes a little less so the whole page fits the fold. */
 #main .detail { margin-bottom: 8px; }
@@ -361,18 +215,6 @@
 .pchip.dragging { opacity: .45; }
 .pchip.drop-above { box-shadow: inset 2px 0 0 0 var(--accent); }
 .pchip.drop-below { box-shadow: inset -2px 0 0 0 var(--accent); }
-.pchip-x {
-  border: 0; background: none; cursor: pointer; padding: 0 3px; line-height: 1;
-  font-size: 13px; color: var(--ink-faint);
-}
-.pchip-x:hover:not(:disabled) { color: var(--accent); }
-.pchip.on .pchip-x:hover:not(:disabled) { color: var(--bad); }
-.pchip-x:disabled { opacity: .25; cursor: default; }
-.pchip-sep {
-  font-size: 9.5px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
-  color: var(--ink-faint); margin: 0 2px 0 4px;
-}
-.pchip-reset { margin-left: 4px; font-size: 11.5px; }
 
 /* THE LADDER IN TWO PIECES (27 Aug) — one primary, then the fall. Until today a stale
    `.slot-edit .rung-n { flex: 0 0 20px }` (left behind by the deleted walk view) clipped
@@ -409,17 +251,7 @@
 .fall-n { font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
 .ladder-empty { font-size: 12.5px; color: var(--ink-faint); padding: 2px 0 6px; }
 
-/* A SWITCH THAT ISN'T YOURS — same shape, same column, visibly not yours to flip.
-   Ad ops own the ad setup's kill switch; this room reads it and cannot lift it. */
-.toggle.tiny.locked { cursor: help; position: relative; }
-.toggle.tiny.locked .track { background: transparent; border: 1px dashed var(--line); }
-.toggle.tiny.locked:hover .track { background: transparent; border-color: var(--ink-faint); }
-.toggle.tiny.locked .track::after { display: none; }
-.toggle.tiny.locked .lock {
-  position: absolute; left: 0; top: 0; width: 28px; height: 16px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 8.5px; font-style: normal; line-height: 1; opacity: .5;
-}
+
 /* An ops-killed row is dimmed like a locally-off one; the lock says which it is. */
 
 .glimpse-walk { display: inline-flex; align-items: center; gap: 6px; }

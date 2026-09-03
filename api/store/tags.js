@@ -79,7 +79,6 @@ export function deleteTemplate(id) {
   return obj;
 }
 
-export function getTemplate(id) { return mustGet(state.templates, id, 'request template'); }
 export function listTemplates() { return [...state.templates.values()]; }
 export function tagsUsingTemplate(id) { return listTags().filter(t => t.tplId === id); }
 

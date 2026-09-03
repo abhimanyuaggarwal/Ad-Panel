@@ -34,8 +34,6 @@
   color: var(--good); background: var(--good-soft); border-radius: 4px; padding: 1px 5px;
 }
 .v-n { margin-left: auto; font-size: 10.5px; color: var(--ink-faint); white-space: nowrap; }
-.v-sub { font-size: 9.5px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
-  color: var(--ink-faint); margin: 8px 0 3px; }
 .v-chev { font-size: 12px; color: var(--ink-faint); transition: transform .12s; }
 .v-item.open .v-chev { transform: rotate(90deg); }
 .v-who { font-size: 11px; color: var(--ink-faint); margin-top: 1px; }
@@ -121,7 +119,6 @@
 }
 .toggle.on .track, .toggle.on:hover .track { background: var(--accent); }
 .toggle.on .track::after { left: 16px; }
-.toggle .tlabel { font-size: 13px; font-weight: 600; color: var(--ink); }
 /* Rung scale. The switch is a SWITCH shape: three bordered pills in a row read as one
    undifferentiated block, a toggle beside a chip reads as a control beside a fact. */
 .toggle.tiny { gap: 0; flex: none; margin-right: 2px; }
@@ -143,15 +140,4 @@
 .chips-input input { border: 0; outline: none; flex: 1; min-width: 140px; font-size: 13.5px; font-family: inherit; padding: 4px 2px; }
 .field.err .chips-input { border-color: var(--bad); }
 
-/* attach picker cards */
-.pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
-.pick-card {
-  border: 1.5px solid var(--line); border-radius: 11px; padding: 12px 14px; cursor: pointer;
-  background: #fff; transition: border-color .12s, box-shadow .12s;
-}
-.pick-card:hover { border-color: #c9cfdb; box-shadow: var(--shadow-2); }
-.pick-card.on { border-color: var(--accent); background: var(--accent-soft); }
-.pick-card .pc-name { font-weight: 700; font-size: 13.5px; display: flex; justify-content: space-between; align-items: center; }
-.pick-card .pc-sum { font-size: 12px; color: var(--ink-soft); margin-top: 5px; line-height: 1.5; }
-.pick-card .pc-used { font-size: 11px; color: var(--ink-faint); margin-top: 6px; }
 

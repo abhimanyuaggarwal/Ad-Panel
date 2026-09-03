@@ -46,97 +46,25 @@
 
 /* Player setup as a tab: rows, one pick. */
 .bt-note { font-size: 12px; color: var(--ink-faint); margin: 2px 0 12px; }
-.jopt.picked { border-color: var(--accent); background: var(--accent-soft); }
-.jo-pick { color: var(--accent-ink); font-weight: 700; width: 16px; text-align: center; }
 
-/* The 21 Aug master-detail review (integrations on a left rail, one plan at a time) is
-   GONE — see THE CHANGE REVIEW at the foot of this file for what replaced it. What is
-   left here is the setup's read-only plan (`.rvs-*`), which that screen never owned. */
-.rvs-h { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
-.rvs-sub { font-size: 11.5px; font-weight: 500; color: var(--ink-faint); margin-left: 8px; }
-.rvs-t {
-  font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
-  color: var(--ink-faint); margin: 14px 0 6px; padding-top: 10px; border-top: 1px solid var(--line);
-}
-.rvs-t.warn { color: #92400e; }
-/* Slot blocks: the heading IS the boundary — accent-tinted, so pre-roll's plan and
-   mid-roll's plan cannot run together. */
-.rvs-block + .rvs-block { margin-top: 4px; }
-.rvs-t.slot { color: var(--accent-ink); border-top-color: var(--line); }
-.rvs-l.dim2 { color: var(--ink-faint); font-size: 11.5px; padding-top: 8px; }
-
-/* The settings modal's full spec sits under the editable fields. */
-.set-spec { margin-top: 6px; }
-.set-spec .spec-row { padding: 3px 0; }
-.rvs-l { font-size: 12.5px; color: var(--ink); padding: 3px 0; }
-.rvs-l.dim { color: var(--ink-faint); }
-.rvs-l.warn { color: #92400e; }
-.rvs-need { margin: 8px 0 12px; }
-.rvs-need + .rvs-need { margin-top: 12px; }
-.rvs-need-l { font-size: 11px; font-weight: 650; color: var(--ink-soft); margin-bottom: 5px; }
-.rv-picked {
-  display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600;
-  color: var(--accent-ink);
-}
-.rv-x {
-  border: 0; background: transparent; color: var(--ink-faint); cursor: pointer;
-  font-size: 11px; font-family: inherit; padding: 2px;
-}
-.rv-x:hover { color: var(--ink); }
 
 /* Joined rule fields — "first break at [240] sec, then every [480]" reads as a sentence. */
 .rj { font-size: 12px; color: var(--ink-soft); margin: 0 4px; }
 .rj.off, .rj-off { opacity: .4; }
-.hfield-c .num-wrap { display: inline-flex; }
-.rules-share { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 11px; }
-.dlg-foot-note { flex: 1; font-size: 11px; color: var(--ink-faint); text-align: left; }
 /* The confirm is now the only place the outcome is stated, so its rows carry the same
    emphasis the inline preview used to: dim for "nothing to do", warn for "check this". */
 .dlg-body li.dim { color: var(--ink-faint); }
 .dlg-body li.warn { color: var(--warn-ink, #92400e); }
 .dlg-body li.warn > b { color: var(--warn-ink, #92400e); }
 .dlg.step.rules .dlg-foot { align-items: center; }
-.lr-set { color: var(--accent-ink); font-weight: 650; }
-.lr-edit { min-width: 0; display: flex; }
-.lr-edit .rung-ctl { flex: 1; min-width: 0; }
-.lr-edit input { padding: 4px 10px; font-size: 12px; }
-.lr-acts { display: flex; gap: 2px; justify-content: flex-end; }
-.lr-acts button { width: 20px; height: 22px; }
-.lr-acts button {
-  width: 22px; height: 22px; border: 1px solid var(--line); background: #fff;
-  border-radius: 5px; color: var(--ink-soft); font-size: 11px; line-height: 1;
-  cursor: pointer; font-family: inherit;
-}
-.lr-acts button:hover { border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
-
-/* The outcome list moved into the confirm (PM call, 20 Aug), so all that survives here is
-   the placeholder the copy screen shows before an integration is picked. The `.oc-r` grid
-   and its dim/warn variants went with it — the confirm renders <li>s. */
-.outcome.empty {
-  border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 12px;
-  padding-top: 14px;
-}
-
-.unit-tags { padding: 2px 0; }
 
 
 /* Nav labels must stay on one line — the icon and count were squeezing them. */
 #nav a { gap: 8px; padding: 7px 9px; font-size: 12.5px; }
 .nav-ico { flex: 0 0 14px; font-size: 10.5px; }
 .nav-t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#nav a.nav-child .nav-t { font-size: 12px; }
 
 /* ---- video / display split, made structural rather than an invisible rule ---- */
-.slot-group {
-  display: flex; align-items: baseline; gap: 8px; padding: 12px 0 5px;
-  border-top: 1px solid var(--line-soft); margin-top: 6px;
-}
-.slot-list > .slot-group:first-child { border-top: 0; margin-top: 0; padding-top: 2px; }
-.sg-t {
-  font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
-  color: var(--ink-soft);
-}
-.sg-h { font-size: 11px; color: var(--ink-faint); }
 .uchip-split {
   display: inline-block; width: 1px; align-self: stretch; margin: 0 5px;
   background: var(--line); border-radius: 1px;

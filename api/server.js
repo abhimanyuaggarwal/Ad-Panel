@@ -650,8 +650,6 @@ app.get('/panel/gam/units', handle((req, res) => {
 
 app.post('/panel/gam/sync', handle((req, res) => {
   const { added, lastSync } = store.gamSync();
-  if (added.length) {
-  }
   res.json({ added: added.length, units: added, lastSync });
 }));
 

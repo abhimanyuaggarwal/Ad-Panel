@@ -456,8 +456,4 @@ export function groupWalks(secDef, drive, type) {
   return slotGroupDefs(secDef.slots[type]).map(g => driveWalkRungs(g.rungs, g.behaviour, drive, type));
 }
 
-// One function, so the number that warns is the number that serves.
-export function effectiveWalk(secDef, drive, type) {
-  return driveWalk(secDef, drive, type).walk;
-}
 

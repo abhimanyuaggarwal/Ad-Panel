@@ -141,33 +141,10 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
 .bqf-c { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; row-gap: 6px; }
 .bqf-s { display: flex; align-items: center; gap: 6px; justify-content: flex-end; white-space: nowrap; }
 .bqf-today { font-size: 11.5px; color: var(--ink-faint); }
-.bqf-foot { display: flex; justify-content: space-between; padding-top: 12px; }
 
 /* The player sheet's queue rows keep the shared anatomy. */
 .bqs { margin: 0 0 2px; }
-.bqs-h { display: flex; align-items: center; gap: 7px; padding: 0 6px 6px; }
-.bqs-t {
-  font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
-  color: var(--accent-ink);
-}
-.bqs-n {
-  font-size: 9.5px; font-weight: 700; padding: 0 6px; border-radius: 9px;
-  background: var(--accent-soft); color: var(--accent-ink);
-}
 .bqs-gap { flex: 1; }
-.bqs-row { position: relative; display: flex; align-items: center; flex-wrap: wrap; }
-.bqs-main {
-  flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 9px;
-  border: 0; background: none; font: inherit; text-align: left; cursor: pointer;
-  padding: 7px 8px 7px 12px; border-radius: 0 7px 7px 0;
-  box-shadow: inset 2px 0 0 var(--accent);
-}
-.bqs-main:hover { background: var(--accent-soft); }
-.bqs-f { flex: 0 0 auto; font-size: 12.5px; font-weight: 600; color: var(--ink); }
-.bqs-v { flex: 1; min-width: 0; text-align: right; font-size: 12.5px; color: var(--ink); }
-.bqs-v code { font-family: inherit; font-size: 12.5px; color: var(--ink-faint); background: none; padding: 0; }
-.bqs-v b { font-weight: 650; color: var(--ink); }
-.bqs-arr { font-style: normal; color: #c3c9d4; margin: 0 7px; }
 .bqs-x {
   flex: 0 0 auto; width: 22px; height: 22px; border: 0; border-radius: 6px; cursor: pointer;
   background: none; color: var(--line); font-size: 15px; line-height: 1;
@@ -189,13 +166,6 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
   flex: 0 0 200px; overflow-y: auto; border-right: 1px solid var(--line);
   padding: 2px 12px 2px 2px; align-self: stretch; min-height: 0;
 }
-.pbr-g + .pbr-g { margin-top: 12px; }
-.pbr-gh {
-  display: flex; align-items: baseline; gap: 7px; padding: 0 8px 5px;
-  font-size: 11px; font-weight: 700; color: var(--ink);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.pbr-gn { font-size: 10px; font-weight: 500; color: var(--ink-faint); }
 .pbr-row {
   display: flex; align-items: center; gap: 7px; width: 100%;
   border: 0; background: none; font: inherit; text-align: left; cursor: pointer;
@@ -205,7 +175,6 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
 .pbr-row.sel { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
 .pbr-row.dirty:not(.sel) { box-shadow: inset 2px 0 0 var(--accent); }
 .pbr-n { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pbr-n.dflt { color: var(--ink-soft); }
 .pbr-count {
   flex: 0 0 auto; min-width: 18px; padding: 1px 6px; border-radius: 9px;
   background: var(--accent); color: #fff; font-size: 10.5px; font-weight: 700; text-align: center;
@@ -218,7 +187,6 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
   font-size: 13px; font-weight: 650; color: var(--ink); white-space: nowrap;
   border-bottom: 1px solid var(--line); margin-bottom: 6px;
 }
-.pbd-note { font-size: 11px; font-weight: 500; color: var(--ink-faint); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .pbd-r { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid #eef0f5; }
 .pbd-r:last-child { border-bottom: 0; }
 .pbd-l { flex: 0 0 150px; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); }
@@ -255,18 +223,6 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
 .dlg.pb { height: 529px; }
 .dlg.pb .dlg-body { flex: 1 1 auto; min-height: 0; max-height: none; }
 
-/* ---------- the setup wizard's own rows (3 Sep) ---------- */
-.suw-sub { margin: -6px 0 12px 30px; max-width: 240px; }
-.suw-pl { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-bottom: 1px solid #eef0f5; }
-.suw-pl:last-of-type { border-bottom: 0; }
-.suw-pl input { flex: 0 0 260px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 7px; font-size: 12.5px; }
-.suw-pl-n { flex: 0 0 150px; font-size: 12.5px; font-weight: 600; color: var(--ink); }
-.suw-pl.ro .suw-pl-n { color: var(--ink-soft); }
-.suw-dr { display: flex; align-items: flex-end; gap: 22px; padding: 9px 4px; border-bottom: 1px solid #eef0f5; }
-.suw-dr:last-of-type { border-bottom: 0; }
-.suw-dr .suw-pl-n { padding-bottom: 7px; }
-.suw-cell { display: flex; flex-direction: column; gap: 5px; min-width: 230px; }
-.suw-cell label { font-size: 10.5px; font-weight: 650; letter-spacing: .03em; color: var(--ink-faint); text-transform: uppercase; }
 
 /* ---------- AD DELIVERY, NOTHING MAPPED: CARDS IN THE SECTION (3 Sep) ---------- */
 .setup-pick { padding: 6px 0 2px; }
@@ -290,20 +246,9 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
 .frow.pfacts .num-wrap { flex: 0 0 auto; width: 96px; height: 38px; }
 .frow.pfacts .num-wrap input { padding-left: 10px; height: 36px; }
 
-/* A config's name is a short label, never a full-width bar (the Fallback-media lesson). */
-.frow.pc-idrow { gap: 18px 16px; }
-.frow.pc-idrow .field { flex: 0 0 340px; align-items: stretch; }
-.frow.pc-idrow .field input[type=text] { width: 100%; }
-.frow.pc-idrow .field.pc-rm { flex: 0 0 auto; }
 
-/* Custom configs are TABS now — the strip is the section's own, one size down from the
-   break tabs, and Remove sits at the end of the name row rather than in a header band. */
-.pc-tabs { margin: 2px 0 16px; }
-.pc-tabs .stab { font-size: 12.5px; }
 /* The one destructive act sits beside the name it removes, on the input's own baseline —
    not adrift mid-row, and not pinned to a card edge a metre from its subject. */
-.field.pc-rm { justify-content: flex-end; min-width: 0; flex: 0 0 auto; }
-.field.pc-rm .zlink { padding: 9px 0; }
 .pcc-empty { display: flex; align-items: baseline; gap: 10px; font-size: 12.5px; color: var(--ink-faint); padding: 2px 0 2px; }
 
 /* Break positions: a list of times, wider than a count and narrower than a name. */
@@ -326,7 +271,6 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
   font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
   color: var(--accent-ink);
 }
-.pbd-gh .pbd-note { font-size: 10.5px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--ink-faint); }
 .pbd-gh .bdot { margin-left: auto; }
 .pbd-g .pbd-r { padding-left: 12px; padding-right: 12px; }
 .pbd-g .pbd-r:last-child { border-bottom: 0; }

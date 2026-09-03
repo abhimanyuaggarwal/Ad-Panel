@@ -101,18 +101,6 @@
 .lk-empty { padding: 10px 12px; font-size: 12.5px; color: var(--ink-soft); }
 .rung-ctl { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
 
-/* lower rungs left alone because they differ across the cohort */
-.rung-keep {
-  display: flex; align-items: center; gap: 10px; margin-top: 9px; padding: 9px 12px;
-  border: 1px dashed var(--line); border-radius: 9px; font-size: 11.5px; color: var(--ink-faint);
-}
-.rung-keep span { flex: 1; min-width: 0; }
-.rung-keep button {
-  border: 0; background: transparent; color: var(--accent); font-weight: 650; font-size: 11.5px;
-  font-family: inherit; cursor: pointer; padding: 0; flex: none; white-space: nowrap;
-}
-.rung-keep button:hover { text-decoration: underline; }
-.unit-body { margin-top: 4px; }
 
 /* =====================================================================
    Visual refresh — depth, hierarchy, and a semantic colour language.
@@ -145,10 +133,6 @@ body { background: var(--bg); -webkit-font-smoothing: antialiased; }
 
 /* ---- the nav: iconed, with a real active state (in the header band since 2 Sep) ---- */
 .brand { letter-spacing: -.2px; }
-.nav-group {
-  margin: 16px 0 5px; padding: 0 14px; font-size: 9.5px; font-weight: 700;
-  letter-spacing: .8px; text-transform: uppercase; color: rgba(255,255,255,.32);
-}
 #nav a {
   display: flex; align-items: center; gap: 10px; position: relative;
   border-radius: 8px; margin: 1px 6px; padding: 8px 10px;
@@ -247,22 +231,7 @@ tr.rowlink:hover td:first-child::before {
 
 /* ---- the bulk screen's tag block ---- */
 /* ---------- step 2: the same two facts, each with its control alongside ---------- */
-/* Deliberately the same label, order and cell rendering as the step-1 table, so
-   arriving here confirms the row that was clicked instead of restating it. */
-.ustats {
-  border: 1px solid var(--line); border-radius: 10px; background: #fafbfd;
-  padding: 4px 14px; margin-bottom: 16px;
-}
-.ustat { display: grid; grid-template-columns: 74px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 40px; }
-.ustat + .ustat { border-top: 1px solid var(--line); }
-.us-l {
-  font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
-  color: var(--ink-faint);
-}
-.us-v { font-size: 12px; color: var(--ink-soft); display: flex; align-items: center; gap: 8px; min-width: 0; }
-.us-c { display: flex; align-items: center; justify-content: flex-end; white-space: nowrap; }
-/* Why the fraction is not the whole cohort, said where the switch is. */
-.us-warn { font-size: 11.5px; font-weight: 500; color: #8a6d1f; }
+
 
 /* The sheet: every row on the bulk tab — LIVE, the ladder, the display unit, the
    behaviour fields — shares ONE grid: grip · label · middle · controls on the right.
@@ -280,38 +249,17 @@ tr.rowlink:hover td:first-child::before {
   background: #f6f7fa; margin: 0 -14px; padding: 0 16px;
   border-bottom: 1px solid var(--line); height: 46px;
 }
-.lr.head .lr-l.strong { font-size: 13px; }
 .lr.head + .lr, .lr.head + div > .lr:first-child { border-top: 0; }
-.lr.head .lr-mid { font-size: 11.5px; }
-.card-l .lr:not(.head) .lr-l { padding-left: 12px; }
 .lr-l {
   font-size: 12.5px; font-weight: 600; color: var(--ink); white-space: nowrap;
 }
-.lr-l.strong { font-weight: 700; }
-.lr-mid {
-  display: flex; align-items: center; gap: 8px; min-width: 0;
-  font-size: 12px; color: var(--ink-faint);
-  overflow: hidden; white-space: nowrap;
-}
 .lr-ctl { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
-.lr-dash { color: var(--ink-faint); padding-right: 26px; }
 .lr.vacant .lr-l { color: var(--ink-faint); }
 .lr.touched { background: var(--accent-soft); border-radius: 7px; }
 .lr.off { opacity: .38; pointer-events: none; }
-.lr-x {
-  border: 1px solid var(--line); background: #fff; color: var(--ink-faint); cursor: pointer;
-  font-size: 11px; font-family: inherit; width: 22px; height: 22px; border-radius: 5px;
-}
-.lr-x:hover { color: var(--ink); border-color: var(--accent); }
-.lr-runs { font-size: 11px; color: var(--ink-soft); margin-right: 2px; }
 
 /* Cards: the ladder under its master switch, the behaviour under its header. The flat
    full-width table was the "dry" (PM design review, 21 Aug); grouping is the warmth. */
-.card-l {
-  border: 1px solid var(--line); border-radius: 10px; padding: 0 14px 2px;
-  background: #fff; overflow: hidden;
-}
-.card-l + .card-l { margin-top: 14px; }
 .card-dim { opacity: .45; }
 .card-dim .lr { pointer-events: none; }
 
@@ -322,49 +270,15 @@ tr.rowlink:hover td:first-child::before {
   white-space: nowrap;
 }
 .lr.vacant .st-chip { display: none; }
-.lr-note { font-size: 11.5px; color: var(--ink-faint); margin-left: 8px; }
 
-/* Waterfall N: a name, not a number, so no grip and no position to argue with. */
-.lr.pool { border-top: 1px solid var(--line); }
-.lr.pool .lr-l { color: var(--accent-ink); }
-.lr.pool.vacant .lr-l { color: var(--ink-faint); }
-
-/* The display unit: the one row that is not a position, so it sits below the ladder under
-   its own rule rather than pretending to be a fifth rung. Its move targets are on the row
-   itself — one click, no menu to open, nothing to break against the left edge. */
-.lr.disp .lr-l { color: var(--accent-ink); }
-.lr.disp.vacant .lr-l { color: var(--ink-faint); }
 
 /* A rotation has no order, so no positions, no grips and no numbers — and nothing to write,
    since a common banner across many integrations is the act that never makes sense. */
 .ladder.rot .lr { grid-template-columns: 96px minmax(0, 1fr); }
-.lr-x {
-  width: 22px; height: 22px; border: 1px solid transparent; background: transparent;
-  border-radius: 5px; color: var(--ink-faint); font-size: 12px; cursor: pointer; font-family: inherit;
-}
-.lr-x:hover { border-color: var(--line); color: var(--ink); background: #fff; }
-.rot-foot { display: flex; align-items: center; gap: 10px; margin-top: 9px; min-height: 26px; }
 
 /* The display master switch: its own strip between the cards — not a rung, not "after
    the end of the chain". It acts by TYPE, wherever each integration keeps its banner. */
-/* Same grid as the ladder rows plus the card's own padding, so "Display unit" starts at
-   exactly the same x as "Waterfall 1" above it. */
-.disp-strip {
-  margin-top: 10px; padding: 4px 16px; height: 46px;
-  border: 1px dashed var(--line); border-radius: 10px;
-}
-.disp-strip .lr-l { color: var(--accent-ink); padding-left: 12px; }
-.disp-strip.touched { background: var(--accent-soft); border-style: solid; }
-.disp-strip + .card-l { margin-top: 10px; }
-.strip-move { display: flex; align-items: center; gap: 4px; margin-right: 6px; }
-.strip-move-l { font-size: 11px; color: var(--ink-faint); margin-right: 2px; }
-.strip-move button {
-  min-width: 27px; height: 24px; border: 1px solid var(--line); background: #fff;
-  border-radius: 6px; font: inherit; font-size: 11px; font-weight: 650;
-  color: var(--ink-soft); cursor: pointer;
-}
-.strip-move button:hover { border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
-.strip-move button.on { border-color: var(--accent); background: var(--accent); color: #fff; }
+
 
 /* ---------- the slot's behaviour fields — a form, controls in one column ---------- */
 /* The switches above cluster right (they are all the same width); the behaviour controls

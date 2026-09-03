@@ -21,7 +21,6 @@ export const PROPERTIES = ['TOI', 'ET', 'NBT'];
 export const PROPERTY_SCOPES = ['All', 'TOI', 'ET', 'NBT']; // shared objects can be brand-scoped or shared
 export const PLATFORMS = ['mweb', 'desktop', 'android', 'ios'];
 export const WEB_PLATFORMS = ['mweb', 'desktop'];
-export const APP_PLATFORMS = ['android', 'ios'];
 
 // On / Off / Auto (3 Sep, user call — was none/muted/sound). Whether the player
 // autoplays is one decision; how LOUD it is, is another — the player's one
