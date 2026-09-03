@@ -330,7 +330,7 @@ const BULK_SLOT_ACTIONS = ['slotOn', 'slotOff'];
 // replacement: how ads behave lives in the ad setup, where ONE edit already reaches
 // every attached integration. Bulk-writing it per integration would be undoing the
 // thing that made the ops room worth having.
-const BULK_PLAYER_FIELDS = ['autoplay', 'startVolume', 'playbackMode', 'fallbackMediaId',
+const BULK_PLAYER_FIELDS = ['autoplay', 'passiveVolume', 'playbackMode', 'fallbackMediaId',
   // The mini player call (31 Aug) — the one playback fact that is the player's.
   'expandInMini',
   // The DEFAULT playback mode (2 Sep) — custom configs are edited per surface through

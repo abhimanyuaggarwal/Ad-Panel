@@ -1,0 +1,186 @@
+// store/state.js — the in-memory maps, the vocabulary constants, deterministic ids, and reset.
+// Split from store.js (3 Sep, docs/STORE-SPLIT.md): a MOVE, not a rewrite — units
+// relocated whole, bodies untouched. store.js re-exports everything, so the HTTP
+// surface, the tests and the mock world see the exact same module they always did.
+
+// panel/api/store.js — in-memory state + rules for the Integrations Panel.
+//
+// TWO ROOMS (24 Aug rework, AD-SETUP-SCOPE.md). The one rule, in three parts:
+//   AD OPS supply WHAT can fill    — the Ad Setup (ladders of tags), their own room
+//   the INTEGRATION says WHETHER   — its slot switches, per section
+//   its own RULES say HOW          — ad rules + player setup live INSIDE the integration
+//
+// Player setups and ad rules are no longer identities: no list, no name, no used-by.
+// They are field groups inside each section (Default must carry both; other sections
+// may say "Same as Default" by carrying null). Their old shapes survive as creation
+// PRESETS — a preset stamps values once and is forgotten, never linked.
+//
+// Three objects: integration (key) · ad setup · ad tag.
+
+export const PROPERTIES = ['TOI', 'ET', 'NBT'];
+export const PROPERTY_SCOPES = ['All', 'TOI', 'ET', 'NBT']; // shared objects can be brand-scoped or shared
+export const PLATFORMS = ['mweb', 'desktop', 'android', 'ios'];
+export const WEB_PLATFORMS = ['mweb', 'desktop'];
+export const APP_PLATFORMS = ['android', 'ios'];
+
+// On / Off / Auto (3 Sep, user call — was none/muted/sound). Whether the player
+// autoplays is one decision; how LOUD it is, is another — the player's one
+// `passiveVolume` (0–100, set in Details), never a rider on the autoplay answer.
+export const AUTOPLAY = ['on', 'off', 'auto'];
+export const PLAYBACK_MODES = ['inline', 'inline_redirect', 'youtube'];
+// A config's PLAYBACK MODE (2 Sep, user call — replacing the day-old engagement mode):
+// the player runs the placement actively or passively. The user's vocabulary, verbatim.
+export const PLAYBACK_KINDS = ['active', 'passive'];
+// How an AD starts on this slot — one decision, three answers (25 Aug, user call): it
+// moved out of the player and onto the slot, because it is the ad that is loud, and
+// because a surface wants to flip it per break without touching anything else.
+// GONE 25 Aug (user call — the panel configures ADS, not the whole player): preload,
+// cellular quality cap, controls/seek, out-of-view docking, end-of-video, ad countdown,
+// "Ad 1 of N", ad click target, pause ads, seek-past-a-break. Removed from the model,
+// not hidden: the publisher's player owns them.
+// Pre-roll is a TIMING choice only — "off" moved to the integration's slot switch.
+export const PREROLL_TIMING = ['start', 'deferred'];
+// How long the VIEWER waits before content starts, whether or not the ad chain has
+// finished: right away (content never blocks on ads), after the chain (the default —
+// ads get their full window), or after a fixed wait that cuts the chain off.
+export const PREROLL_WAIT = ['immediate', 'chain', 'timed'];
+export const MIDROLL_MODES = ['cuepoints', 'interval'];
+// Pods (24 Aug, POD-SCOPE.md): where the next slot's walk starts (the ladder is
+// preference order, not a per-ad price ranking — the UI says "first choice"), and
+// whether a banner may only end the break or sit anywhere in it. The budget pair
+// (breakSec/overrun) was cut 31 Aug with the squeeze-back — see DEAD_BEHAVIOUR_FIELDS.
+export const POD_NEXT_AD = ['top', 'next'];
+export const POD_BANNER = ['last', 'any'];
+// `status` (active/paused) is GONE (27 Aug, user call). It was the one field that
+// reached a viewer without going through the publish plane, and everything it did is
+// what Unpublish does — see THE PUBLISH PLANE at the foot of this file. A payload still
+// carrying it is refused by name.
+
+// THE SQUEEZE-BACK IS GONE (31 Aug, user call). A banner over playing content is a
+// break's display fallback (a rung); the idle player's rotation is Out-stream. The
+// slot is removed, not hidden — a payload still carrying one is refused by name.
+export const SLOT_TYPES = ['preroll', 'midroll', 'postroll', 'outstream'];
+// Every tag is either a video tag or a display tag; the family decides what fits where.
+export const TAG_TYPES = ['video', 'display'];
+// THREE providers (27 Aug, user call): IMA and GPT are the two client libraries on the
+// GAM account; CAN is the endpoint you paste. SLike was removed — a fourth name that
+// behaved exactly like CAN (a pasted VAST URL answering with video) bought nothing.
+export const TAG_PROVIDERS = ['ima', 'gpt', 'can'];
+// Which providers are addressed by a pasted endpoint rather than picked from a directory.
+export const URL_PROVIDERS = ['can'];
+// Providers whose value is a GAM ad unit from the synced directory — IMA and GPT are the
+// two client libraries calling the same GAM account.
+export const DIRECTORY_PROVIDERS = ['ima', 'gpt'];
+// The TYPE is implied by the protocol wherever it can be (25 Aug, ops-ease): an IMA
+// request is a VAST call and answers with video; a GPT slot is a banner slot and
+// answers with display. Only CAN serves both, so only CAN asks. Config-time knowledge,
+// not a guess about responses.
+export const PROVIDER_TYPE = { ima: 'video', gpt: 'display', can: null };
+// The provider's word, so a refusal from any call site reads the same as the UI.
+export const PROVIDER_WORD = { ima: 'IMA', gpt: 'GPT', can: 'CAN' };
+// What an ad unit looks like: the network code, then the path GAM was given. Typed by
+// hand this is the ONE thing worth checking — the directory can be stale, the shape
+// cannot be wrong.
+export const AD_UNIT_PATH = /^\/\d{3,}(\/[A-Za-z0-9._~-]+)+\/?$/;
+export const AD_UNIT_EXAMPLE = '/7176/toi/mweb/videoshow/preroll';
+// FOUR ad slots (user call, 20 Aug). The separate `display` slot is gone: a display ad is
+// not a placement of its own, it is what a break falls back to — so a display tag is a
+// RUNG inside pre/mid/post, at any position. The squeeze-back slot (once `lband`) was
+// REMOVED 31 Aug (user call): a banner over playing content is a break's fallback rung,
+// and the idle player's rotation is Out-stream.
+export const SLOT_FAMILY = {
+  preroll: 'video', midroll: 'video', postroll: 'video',
+  outstream: 'display',
+};
+// A break can fall back to a banner, so a video slot takes display tags too. A
+// squeeze-back has nothing to fall back to, so it does not take video tags.
+export const SLOT_ALSO_TAKES = { preroll: 'display', midroll: 'display', postroll: 'display' };
+// A break is a LADDER: ordered, tried one after another until something fills. A
+// squeeze-back is a ROTATION: several banners that take turns, with the turn-taking set
+// in the ad rules rather than by their order. Same rungs array, different meaning — so
+// the rules that only make sense for a ladder (a terminal, a pool) do not apply.
+// OUT-STREAM (31 Aug, AD-JSON-SCOPE): the squeeze-back's anatomy, outside playback —
+// banners while nothing is playing. A rotation by construction.
+export const SLOT_KIND = {
+  preroll: 'ladder', midroll: 'ladder', postroll: 'ladder',
+  outstream: 'rotation',
+};
+// WHERE ON THE PAGE a banner the panel serves lands (31 Aug, AD-JSON-SCOPE). A fixed
+// vocabulary from the player team — a typed position is a dark ad nobody discovers
+// until a revenue report — and each position carries its own sizes PLAYER-SIDE (the
+// user's call: no sizes in the panel).
+export const DISPLAY_SLOTS = ['player_bottom', 'player_top', 'l_50'];
+export const DISPLAY_SLOT_WORD = { player_bottom: 'Player bottom', player_top: 'Player top', l_50: 'L-band 50' };
+// Does the video stop while this banner plays? Yes / No / the player's own size decides
+// (31 Aug, user call: no pixel threshold in the panel — the player owns "small").
+export const PAUSE_MODES = ['yes', 'no', 'size'];
+export const PAUSE_WORD = { yes: 'Yes', no: 'No', size: 'Auto' };
+// A MID-ROLL IS BREAK GROUPS (31 Aug, user call): up to 3, each with its own cadence
+// and its own ladder. One group is today's mid-roll, and draws no group chrome.
+export const MAX_MIDROLL_GROUPS = 3;
+// REQUEST TEMPLATE MACROS (31 Aug — reverses the 20 Aug "no interface" call, on the
+// user's word). The vocabulary is the PLAYER TEAM's: the panel validates against it,
+// fail closed, so ops can pick a template but never break a URL.
+export const TEMPLATE_MACROS = ['CACHEBUSTER', 'REFERRER_URL', 'PAGE_URL', 'TIMESTAMP', 'DESCRIPTION_URL'];
+export const ROTATION_MAX = 5;
+export const MAX_SECTIONS = 5;
+export const MAX_RUNGS = 10; // 1 primary + 9 waterfall rungs (user call, 25 Aug — was 4)
+// A full pass down the ladder asks this many servers in a row — past this the player visibly stalls.
+export const WORST_CASE_WARN_MS = 6000;
+
+export const state = {
+  keys: new Map(),
+  setups: new Map(),
+  tags: new Map(),
+  templates: new Map(),
+  gamUnits: [],
+  gamPending: [],
+  gamLastSync: null,
+  // THE PUBLISH PLANE (27 Aug). Two planes, one object: the DRAFT is what the panel
+  // edits and Save writes; the PUBLISHED snapshot is the only thing the player's API
+  // ever reads. `versions` is append-only per object — history is never rewritten, so
+  // restoring an old version is a new version, exactly like a spreadsheet's.
+  versions: new Map(), // objectId → [{ v, ts, actor, snapshot, changes, restoredFrom }]
+  live: new Map(),     // objectId → { v, snapshot }  (absent = never published / taken down)
+  counters: { key: 0, setup: 0, tag: 0, template: 0 },
+  rngSeed: 20260817,
+};
+
+// Deterministic RNG — key strings never shift on reset (counted, never invented).
+function rng() {
+  state.rngSeed = (state.rngSeed * 1103515245 + 12345) & 0x7fffffff;
+  return state.rngSeed / 0x7fffffff;
+}
+
+const ALNUM = 'abcdefghjkmnpqrstuvwxyz23456789'; // no 0/O/1/l/i — keys get read aloud
+export function keyString(property, platform) {
+  let suffix = '';
+  for (let i = 0; i < 6; i++) suffix += ALNUM[Math.floor(rng() * ALNUM.length)];
+  return `sak_${property.toLowerCase()}_${platform}_${suffix}`;
+}
+
+export function resetState(seed = 20260817) {
+  state.keys.clear();
+  state.setups.clear();
+  state.tags.clear();
+  state.templates.clear();
+  state.gamUnits = [];
+  state.gamPending = [];
+  state.gamLastSync = null;
+  state.versions.clear();
+  state.live.clear();
+  state.counters = { key: 0, setup: 0, tag: 0, template: 0 };
+  state.rngSeed = seed;
+}
+
+// ---------- validation helpers ----------
+
+class Refusal extends Error {
+  constructor(status, code, message, details) {
+    super(message);
+    this.status = status;
+    this.code = code;
+    this.details = details;
+  }
+}
+export { Refusal };

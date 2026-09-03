@@ -18,15 +18,15 @@ import { BASE_UNITS, PENDING_UNITS } from './gamunits.js';
 export const PLAYER_PRESETS = [
   {
     name: 'MiniTV',
-    values: { autoplay: 'muted', startVolume: 60, playbackMode: 'inline', fallbackMediaId: 'med_minitv_default' },
+    values: { autoplay: 'auto', passiveVolume: 60, playbackMode: 'inline', fallbackMediaId: 'med_minitv_default' },
   },
   {
     name: 'ArticleShow',
-    values: { autoplay: 'muted', startVolume: 80, playbackMode: 'inline', fallbackMediaId: 'med_article_default' },
+    values: { autoplay: 'auto', passiveVolume: 80, playbackMode: 'inline', fallbackMediaId: 'med_article_default' },
   },
   {
     name: 'VideoShow',
-    values: { autoplay: 'sound', startVolume: 100, playbackMode: 'inline', fallbackMediaId: 'med_videoshow_default' },
+    values: { autoplay: 'on', passiveVolume: 100, playbackMode: 'inline', fallbackMediaId: 'med_videoshow_default' },
   },
 ];
 
@@ -285,7 +285,7 @@ export function resetWorld(opts = {}) {
     // One seeded custom config (2 Sep) so the fork is visible on day one: the shorts
     // feed runs passive, MiniTV held small, autoplay muted — the rest follows default.
     playerConfigs: [
-      { name: 'Shorts feed', playback: 'passive', expandInMini: false, autoplay: 'muted', startVolume: 60 },
+      { name: 'shorts', playback: 'passive', expandInMini: false, autoplay: 'off' },
     ],
     sections: [
       {

@@ -48,7 +48,7 @@ function eq(a, b, msg) {
 }
 
 // Minimal valid inline field groups for new integrations in tests.
-const PLAYER_MIN = { autoplay: 'muted', playbackMode: 'inline' };
+const PLAYER_MIN = { autoplay: 'auto', playbackMode: 'inline' };
 
 // A valid DRAFT: paused, nothing attached, nothing on — the state a new surface starts in.
 const VALID_KEY = () => ({
@@ -121,7 +121,7 @@ await test('the scale scenario is additive and keeps the promise: one setup per 
 
 await test('an integration carries ONE player; how ads behave comes from the setup', async () => {
   const k = (await req('GET', '/panel/keys/key_6')).body.key;
-  eq(k.player.autoplay, 'sound', 'the player is the integration\'s, at key level');
+  eq(k.player.autoplay, 'on', 'the player is the integration\'s, at key level');
   eq(k.player.countdown, undefined, 'the trimmed fields are gone from the model, not hidden');
   eq(k.sections[0].player, undefined, 'and nothing about the player lives on a placement');
   eq(k.setupName, 'NBT VideoShow demand', 'one setup');
@@ -724,15 +724,15 @@ await test('a whole-setup save carrying a cut field is refused too — every doo
 });
 
 await test('player edits diff field by field, and show up as unpublished work', async () => {
-  const r = await req('PATCH', '/panel/keys/key_1/player', { startVolume: 55 });
+  const r = await req('PATCH', '/panel/keys/key_1/player', { passiveVolume: 55 });
   eq(r.status, 200, 'saved');
-  assert(r.body.changes.some(c => c.field === 'startVolume' && c.to === 55), 'field-level diff');
+  assert(r.body.changes.some(c => c.field === 'passiveVolume' && c.to === 55), 'field-level diff');
   // The global activity log was CUT (27 Aug, user call) — the per-object version history
   // answers it better, and the one thing the log did uniquely nobody was reaching.
   eq((await req('GET', '/panel/activity')).status, 404, 'the log and its route are gone');
   const pend = (await req('GET', '/panel/keys/key_1/versions')).body.unpublished;
-  assert(pend.some(c => c.field === 'startVolume'), `the save shows as unpublished work (got ${JSON.stringify(pend)})`);
-  eq((await req('PATCH', '/panel/keys/key_1/sections/0/player', { startVolume: 60 })).status, 404,
+  assert(pend.some(c => c.field === 'passiveVolume'), `the save shows as unpublished work (got ${JSON.stringify(pend)})`);
+  eq((await req('PATCH', '/panel/keys/key_1/sections/0/player', { passiveVolume: 60 })).status, 404,
     'the per-section player route went with the per-section player');
 });
 
@@ -1023,14 +1023,14 @@ await test('emptying a live integration edits the DRAFT; publishing it is what f
 await test('bulk player fields land on each integration — one player each, no forks to track', async () => {
   const r = await req('POST', '/panel/keys/bulk', {
     ids: ['key_1', 'key_6'], action: 'playerFields',
-    value: { fields: { autoplay: 'muted', startVolume: 40 } },
+    value: { fields: { autoplay: 'auto', passiveVolume: 40 } },
   });
   eq(r.status, 200, 'applied');
   eq(r.body.changed, 2, 'both integrations changed');
   for (const id of ['key_1', 'key_6']) {
     const k = (await req('GET', `/panel/keys/${id}`)).body.key;
-    eq(k.player.autoplay, 'muted', `${id} player updated`);
-    eq(k.player.startVolume, 40, `${id} volume updated`);
+    eq(k.player.autoplay, 'auto', `${id} player updated`);
+    eq(k.player.passiveVolume, 40, `${id} volume updated`);
   }
 });
 
@@ -1110,20 +1110,20 @@ await test('Save writes the draft; only Publish reaches the player', async () =>
   eq(before.live, true, 'on air');
   eq(before.unpublishedCount, 0, 'clean');
   const live0 = (await req('GET', `/panel/live/${before.key}`)).body;
-  eq(live0.player.startVolume, 100, 'what the player gets today');
+  eq(live0.player.passiveVolume, 100, 'what the player gets today');
 
-  await req('PATCH', '/panel/keys/key_1/player', { startVolume: 42 });
+  await req('PATCH', '/panel/keys/key_1/player', { passiveVolume: 42 });
   const dirty = (await req('GET', '/panel/keys/key_1')).body.key;
   eq(dirty.unpublishedCount, 1, 'the draft moved, counted');
   eq(dirty.liveVersion, 1, 'the live version did not');
-  eq((await req('GET', `/panel/live/${before.key}`)).body.player.startVolume, 100,
+  eq((await req('GET', `/panel/live/${before.key}`)).body.player.passiveVolume, 100,
     'and the player still gets the published value — a save is not a release');
 
   const pub = await req('POST', '/panel/keys/key_1/publish');
   eq(pub.status, 200, 'published');
   eq(pub.body.version.v, 2, 'version 2');
-  assert(pub.body.version.changes.some(c => c.field === 'startVolume' && c.to === 42), 'the version says what it did');
-  eq((await req('GET', `/panel/live/${before.key}`)).body.player.startVolume, 42, 'now the player has it');
+  assert(pub.body.version.changes.some(c => c.field === 'passiveVolume' && c.to === 42), 'the version says what it did');
+  eq((await req('GET', `/panel/live/${before.key}`)).body.player.passiveVolume, 42, 'now the player has it');
   eq((await req('GET', '/panel/keys/key_1')).body.key.unpublishedCount, 0, 'and the draft is clean again');
 });
 
@@ -1598,18 +1598,25 @@ await test('the global activity log is gone — every history is a version histo
 // per-placement facts (playback mode, MiniTV expansion, autoplay behaviour + volume).
 // A player asks for a config by name; everything else follows the default.
 
-await test('custom player configs: named, unique, bounded — refused by name otherwise', async () => {
-  const base = { playerConfigs: [{ name: 'Shorts feed', playback: 'passive' }] };
-  eq((await req('PATCH', '/panel/keys/key_1', base)).status, 200, 'a named fork lands');
+await test('custom player configs: single-word keys, unique, bounded — refused by name otherwise', async () => {
+  const base = { playerConfigs: [{ name: 'shorts', playback: 'passive' }] };
+  eq((await req('PATCH', '/panel/keys/key_1', base)).status, 200, 'a keyed fork lands');
 
   let r = await req('PATCH', '/panel/keys/key_1', { playerConfigs: [{ playback: 'passive' }] });
-  eq(r.status, 400, 'no name, no config');
-  assert(r.body.errors.some(e => e.field === 'playerConfigs' && e.message.includes('by name')),
-    `says why the name matters (got ${JSON.stringify(r.body.errors)})`);
+  eq(r.status, 400, 'no key, no config');
+  assert(r.body.errors.some(e => e.field === 'playerConfigs' && e.message.includes('by key')),
+    `says why the key matters (got ${JSON.stringify(r.body.errors)})`);
+
+  r = await req('PATCH', '/panel/keys/key_1', { playerConfigs: [{ name: 'shorts feed', playback: 'passive' }] });
+  eq(r.status, 400, 'a key is one word — spaces refused');
+  assert(r.body.errors.some(e => e.message.includes('ONE word')), 'and the rule is named');
+
+  r = await req('PATCH', '/panel/keys/key_1', { playerConfigs: [{ name: 'shorts', autoplay: 'on', passiveVolume: 50 }] });
+  eq(r.status, 400, 'a fork carries no volume — the player has ONE Passive volume');
 
   r = await req('PATCH', '/panel/keys/key_1', { playerConfigs: [
-    { name: 'Shorts feed', playback: 'passive' }, { name: 'shorts feed', playback: 'active' }] });
-  eq(r.status, 400, 'two configs, one name — refused');
+    { name: 'shorts', playback: 'passive' }, { name: 'Shorts', playback: 'active' }] });
+  eq(r.status, 400, 'two configs, one key — refused');
 
   r = await req('PATCH', '/panel/keys/key_1', { playerConfigs: [{ name: 'X', playback: 'floating' }] });
   eq(r.status, 400, 'a playback mode outside the vocabulary is refused');
@@ -1624,27 +1631,27 @@ await test('custom configs ride the publish plane and land in the player’s JSO
   const k = (await req('GET', '/panel/keys/key_1')).body.key;
   const live0 = (await req('GET', `/panel/live/${k.key}`)).body;
   eq(live0.playerConfigs.length, 1, 'the seeded fork is live');
-  eq(live0.playerConfigs[0].name, 'Shorts feed', 'by name');
+  eq(live0.playerConfigs[0].name, 'shorts', 'by key');
   eq(live0.playerConfigs[0].playback, 'passive', 'with its own playback mode');
   eq(live0.player.playback, 'active', 'while the default player runs active');
-  eq(live0.playerConfigs[0].autoplay, 'muted', 'and carries its own autoplay behaviour');
+  eq(live0.playerConfigs[0].autoplay, 'off', 'and carries its own autoplay behaviour');
 
   await req('PATCH', '/panel/keys/key_1', { playerConfigs: [
-    { ...k.playerConfigs[0], startVolume: 25 },
-    { name: 'Live blog', playback: 'passive' },
+    { ...k.playerConfigs[0], autoplay: 'on' },
+    { name: 'live_blog', playback: 'passive' },
   ] });
   const live1 = (await req('GET', `/panel/live/${k.key}`)).body;
   eq(live1.playerConfigs.length, 1, 'a saved fork is a draft — the player still gets one');
 
   const pub = await req('POST', '/panel/keys/key_1/publish');
   eq(pub.status, 200, 'published');
-  assert(pub.body.version.changes.some(c => c.where === 'Player configs' && c.field === 'Live blog' && c.to === 'added'),
+  assert(pub.body.version.changes.some(c => c.where === 'Player configs' && c.field === 'live_blog' && c.to === 'added'),
     `a new fork is one line in the rail (got ${JSON.stringify(pub.body.version.changes)})`);
-  assert(pub.body.version.changes.some(c => c.where === 'Player configs · Shorts feed' && c.field === 'startVolume'),
+  assert(pub.body.version.changes.some(c => c.where === 'Player configs · shorts' && c.field === 'autoplay'),
     'a moved field is named where it lives');
   const live2 = (await req('GET', `/panel/live/${k.key}`)).body;
   eq(live2.playerConfigs.length, 2, 'now the player has both');
-  eq(live2.playerConfigs.find(c => c.name === 'Shorts feed').startVolume, 25, 'with the moved volume');
+  eq(live2.playerConfigs.find(c => c.name === 'shorts').autoplay, 'on', 'with the moved autoplay');
 });
 
 await test('no custom configs: the JSON does not grow the field, and ids hold across saves', async () => {
@@ -1656,7 +1663,7 @@ await test('no custom configs: the JSON does not grow the field, and ids hold ac
   const k1 = (await req('GET', '/panel/keys/key_1')).body.key;
   const id0 = k1.playerConfigs[0].id;
   const r = await req('PATCH', '/panel/keys/key_1', { playerConfigs: [
-    { ...k1.playerConfigs[0], name: 'Shorts rail' }] });
+    { ...k1.playerConfigs[0], name: 'shorts_rail' }] });
   eq(r.body.key.playerConfigs[0].id, id0, 'a rename is a rename — the id holds');
 });
 
