@@ -1,0 +1,157 @@
+/* 02-publish-rail.css — the publish plane: rail, versions, restore dialog.
+   Split from app.css (3 Sep, pure partition): the ten files load in numeric order and
+   reproduce the original cascade byte for byte — later rules still win, so KEEP THE ORDER. */
+
+/* ---------- THE VERSION RAIL (27 Aug) ----------
+   Three questions in one column: what is waiting, what went out and when, and what it
+   did. The filter is a segment rather than a select, because with three states the
+   options cost less room than the control that would hide them. */
+.rail-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.rail .rail-head .fieldset-title { margin-bottom: 0; line-height: 1; padding-top: 1px; }
+.vfilter button { padding: 3px 7px; font-size: 10.5px; }
+
+.v-item { position: relative; padding: 0 0 12px 16px; }
+.v-item::before {
+  content: ''; position: absolute; left: 3px; top: 14px; bottom: 0; width: 1px; background: var(--line);
+}
+.v-item:last-child::before { display: none; }
+.v-dot {
+  position: absolute; left: 0; top: 5px; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--ink-faint);
+}
+/* Published is filled, saved-not-published is hollow: the difference between something
+   that happened to viewers and something that only happened to us. */
+.v-item.pending .v-dot { background: #fff; border: 1.5px solid #d9b64e; top: 4px; }
+.v-item.islive .v-dot { background: var(--good); box-shadow: 0 0 0 3px var(--good-soft); }
+.v-item.offair .v-dot { background: transparent; border: 1.5px dashed var(--line); top: 4px; }
+
+.v-head { display: flex; align-items: baseline; gap: 6px; cursor: pointer; }
+.v-head:hover .v-t { color: var(--accent); }
+.v-t { font-size: 12.5px; font-weight: 650; color: var(--ink); }
+.v-from { font-weight: 500; color: var(--ink-faint); font-size: 11px; }
+.v-live {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
+  color: var(--good); background: var(--good-soft); border-radius: 4px; padding: 1px 5px;
+}
+.v-n { margin-left: auto; font-size: 10.5px; color: var(--ink-faint); white-space: nowrap; }
+.v-sub { font-size: 9.5px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
+  color: var(--ink-faint); margin: 8px 0 3px; }
+.v-chev { font-size: 12px; color: var(--ink-faint); transition: transform .12s; }
+.v-item.open .v-chev { transform: rotate(90deg); }
+.v-who { font-size: 11px; color: var(--ink-faint); margin-top: 1px; }
+.v-item.pending .v-t { color: #8a6d1f; }
+
+.v-changes { margin: 7px 0 2px; display: flex; flex-direction: column; gap: 4px; }
+.vc { font-size: 11.5px; color: var(--ink-soft); line-height: 1.45; }
+.vc code { font-size: 11px; background: var(--bg-soft, #f4f5f9); border-radius: 3px; padding: 0 4px; }
+.vc-where { display: block; font-size: 9.5px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: var(--ink-faint); }
+.vc-to { font-weight: 600; color: var(--ink); }
+.v-restore { font-size: 11.5px; }
+.dlg .cons .vc { padding: 3px 0; }
+
+/* THE RESTORE DIALOG — a decision, so it says where you are, where you are going, what
+   moves, and what you lose. In that order, because that is the order they are asked. */
+.rst-hop {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  padding: 10px 12px; border-radius: 9px; background: var(--bg-soft, #f7f8fb); margin-bottom: 14px;
+}
+.rst-a, .rst-b { display: flex; flex-direction: column; font-size: 10px; font-weight: 700;
+  letter-spacing: .3px; text-transform: uppercase; color: var(--ink-faint); }
+.rst-a b, .rst-b b { font-size: 15px; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--ink); }
+.rst-b b { color: var(--accent); }
+.rst-arrow { color: var(--ink-faint); font-size: 15px; align-self: center; }
+.rst-when { margin-left: auto; align-self: center; font-size: 11.5px; color: var(--ink-faint); }
+.rst-t { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-faint); margin-bottom: 5px; }
+.rst-list { max-height: 220px; overflow-y: auto; }
+.rst-warn {
+  margin-top: 14px; padding: 10px 12px; border-radius: 9px; font-size: 12.5px; line-height: 1.5;
+  color: #8a6d1f; background: #fdf8e8; border: 1px solid #f0e3bd;
+}
+.rst-warn b { display: block; margin-bottom: 2px; }
+.rst-lost { margin-top: 7px; max-height: 120px; overflow-y: auto; }
+.rst-lost .vc { color: #8a6d1f; }
+.rst-lost .vc code { background: #f6eed6; }
+.rail .fieldset-title { margin-bottom: 12px; }
+.tl-empty { font-size: 12.5px; color: var(--ink-faint); }
+@media (max-width: 1100px) { .rail { display: none; } }
+.fieldset { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 15px 20px 16px; margin-bottom: 12px; }
+.fieldset > legend, .fieldset-title { font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 14px; }
+.frow { display: flex; flex-wrap: wrap; gap: 18px 28px; margin-bottom: 14px; }
+.frow:last-child { margin-bottom: 0; }
+/* Controls own their width — the field column never stretches them, and hints
+   wrap inside a capped width instead of widening the box. */
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 150px; align-items: flex-start; transition: opacity .18s; }
+.field.grow { flex: 1; align-items: stretch; }
+.field.off { opacity: .38; pointer-events: none; }
+.field .hint, .field .field-err { max-width: 230px; }
+.field.grow .hint, .field.grow .field-err { max-width: none; }
+.field > label { font-size: 12.5px; font-weight: 600; color: var(--ink-soft); }
+.field input[type=text] {
+  width: 260px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; font-size: 13.5px;
+  font-family: inherit; color: var(--ink); outline: none; background: #fff;
+  transition: border-color .12s, box-shadow .12s;
+}
+.field.grow input[type=text] { width: 100%; }
+.field input[type=text]:hover { border-color: #d4d9e3; }
+.field input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+.field .hint { font-size: 11.5px; color: var(--ink-faint); }
+.field.err input[type=text] { border-color: var(--bad); }
+.field-err { font-size: 12px; color: var(--bad); }
+.num-wrap {
+  display: inline-flex; align-items: center; width: 150px; border: 1px solid var(--line); border-radius: 9px;
+  background: #fff; overflow: hidden; transition: border-color .12s, box-shadow .12s;
+}
+.num-wrap:hover { border-color: #d4d9e3; }
+.num-wrap input { border: 0; outline: none; padding: 9px 4px 9px 12px; font-size: 13.5px; flex: 1; width: auto; min-width: 0; font-family: inherit; color: var(--ink); font-variant-numeric: tabular-nums; }
+.num-wrap .unit { font-size: 11px; color: var(--ink-faint); padding: 0 11px 0 2px; letter-spacing: .3px; }
+.num-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+.field.err .num-wrap { border-color: var(--bad); }
+
+/* toggle */
+.toggle { display: inline-flex; align-items: center; gap: 9px; cursor: pointer; user-select: none; }
+.toggle .track {
+  width: 34px; height: 20px; border-radius: 11px; background: #d5dae4; position: relative;
+  transition: background .18s; flex: 0 0 34px;
+}
+.toggle:hover .track { background: #c6ccd9; }
+.toggle .track::after {
+  content: ""; position: absolute; width: 16px; height: 16px; border-radius: 50%; background: #fff;
+  top: 2px; left: 2px; transition: left .18s cubic-bezier(.3, .9, .4, 1.1); box-shadow: 0 1px 3px rgba(16,24,43,.28);
+}
+.toggle.on .track, .toggle.on:hover .track { background: var(--accent); }
+.toggle.on .track::after { left: 16px; }
+.toggle .tlabel { font-size: 13px; font-weight: 600; color: var(--ink); }
+/* Rung scale. The switch is a SWITCH shape: three bordered pills in a row read as one
+   undifferentiated block, a toggle beside a chip reads as a control beside a fact. */
+.toggle.tiny { gap: 0; flex: none; margin-right: 2px; }
+.toggle.tiny .track { width: 28px; height: 16px; border-radius: 9px; flex: 0 0 28px; }
+.toggle.tiny .track::after { width: 12px; height: 12px; }
+.toggle.tiny.on .track::after { left: 14px; }
+
+/* chips input (domains) */
+.chips-input {
+  display: flex; flex-wrap: wrap; gap: 6px; width: 100%; border: 1px solid var(--line); border-radius: 9px;
+  padding: 6px 8px; background: #fff; min-height: 40px; align-items: center;
+  transition: border-color .12s, box-shadow .12s;
+}
+.chips-input:hover { border-color: #d4d9e3; }
+.chips-input:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+.chips-input .chip { display: inline-flex; align-items: center; gap: 5px; }
+.chips-input .chip b { cursor: pointer; font-weight: 700; opacity: .6; }
+.chips-input .chip b:hover { opacity: 1; }
+.chips-input input { border: 0; outline: none; flex: 1; min-width: 140px; font-size: 13.5px; font-family: inherit; padding: 4px 2px; }
+.field.err .chips-input { border-color: var(--bad); }
+
+/* attach picker cards */
+.pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.pick-card {
+  border: 1.5px solid var(--line); border-radius: 11px; padding: 12px 14px; cursor: pointer;
+  background: #fff; transition: border-color .12s, box-shadow .12s;
+}
+.pick-card:hover { border-color: #c9cfdb; box-shadow: var(--shadow-2); }
+.pick-card.on { border-color: var(--accent); background: var(--accent-soft); }
+.pick-card .pc-name { font-weight: 700; font-size: 13.5px; display: flex; justify-content: space-between; align-items: center; }
+.pick-card .pc-sum { font-size: 12px; color: var(--ink-soft); margin-top: 5px; line-height: 1.5; }
+.pick-card .pc-used { font-size: 11px; color: var(--ink-faint); margin-top: 6px; }
+

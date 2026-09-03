@@ -13,7 +13,7 @@ function esc(s) {
 const LABELS = {
   property: { TOI: 'TOI', ET: 'ET', NBT: 'NBT' },
   platform: { mweb: 'Mweb', desktop: 'Desktop', android: 'Android', ios: 'iOS' },
-  autoplay: { none: 'Off', muted: 'Muted', sound: 'Unmuted' },
+  autoplay: { on: 'On', off: 'Off', auto: 'Auto' },
   playbackMode: { inline: 'Inline', inline_redirect: 'Inline + redirect', youtube: 'YouTube' },
   // A config's playback mode (2 Sep) — the user's vocabulary, verbatim.
   playback: { active: 'Active', passive: 'Passive' },
@@ -234,48 +234,6 @@ function ask(opts) {
   });
 }
 
-// askName -> Promise<string | null>. Our own prompt: one field, Enter submits, the OK
-// button stays dead until something is typed.
-/**
- * The house one-field prompt (never window.prompt).
- * @param {{title: string, body?: string, placeholder?: string, okLabel?: string}} opts
- * @returns {Promise<string|null>}  trimmed name, or null on cancel/empty
- */
-function askName(opts) {
-  return new Promise(resolve => {
-    const root = document.getElementById('dialog-root');
-    root.innerHTML = `
-      <div class="dlg-veil">
-        <div class="dlg">
-          <h3>${esc(opts.title)}</h3>
-          <div class="dlg-body">
-            ${opts.body ? `<div class="dlg-note" style="margin:0 0 10px">${esc(opts.body)}</div>` : ''}
-            <input class="ask-name" value="${esc(opts.value || '')}" placeholder="${esc(opts.placeholder || '')}">
-          </div>
-          <div class="dlg-foot">
-            <button class="btn ghost" data-act="no">Cancel</button>
-            <button class="btn" data-act="yes" disabled>${esc(opts.okLabel || 'Add')}</button>
-          </div>
-        </div>
-      </div>`;
-    const input = root.querySelector('.ask-name');
-    const ok = root.querySelector('[data-act=yes]');
-    const done = v => { root.innerHTML = ''; resolve(v); };
-    const sync = () => { ok.disabled = !input.value.trim(); };
-    input.oninput = sync;
-    input.onkeydown = e => {
-      if (e.key === 'Enter' && input.value.trim()) done(input.value.trim());
-      if (e.key === 'Escape') done(null);
-    };
-    ok.onclick = () => done(input.value.trim());
-    root.querySelector('[data-act=no]').onclick = () => done(null);
-    root.querySelector('.dlg-veil').onclick = e => {
-      if (e.target.classList.contains('dlg-veil')) done(null);
-    };
-    sync();
-    input.focus();
-  });
-}
 
 // pickDialog(title, [{v, label, sub}]) -> Promise<value | null>. Our own picker.
 function pickDialog(title, options) {
@@ -356,7 +314,7 @@ const FIELD_NAMES = {
   category: 'Category', mediaId: 'Creative',
   playerBehaviourId: 'Player setup', monetizationPolicyId: 'Ad rules',
   autoplay: 'Autoplay behaviour', playbackMode: 'Playback', redirectUrl: 'Redirect URL',
-  startVolume: 'Start volume', fallbackMediaId: 'Fallback media',
+  passiveVolume: 'Passive volume', fallbackMediaId: 'Fallback media',
   endOfVideo: 'End of video', upnextCountdown: 'Up-next countdown',
   preload: 'Preload', qualityCapCellular: 'Cellular quality cap',
   controls: 'Controls', seekAllowed: 'Seeking', offView: 'Scrolled out of view', dockDismissible: 'Docked player dismissible',

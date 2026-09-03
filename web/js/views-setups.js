@@ -113,7 +113,7 @@ async function viewSetupForm(id) {
     const seed = SETUP_CREATE_SEED;
     SETUP_CREATE_SEED = null;
     if (seed) {
-      // From a copy: the shape and every delivery answer, with the ladders emptied.
+      // From a copy: the whole setup — shape, ladders, deals, delivery answers.
       data = {
         name: `${seed.name} copy`, property: seed.property, copiedFrom: seed.name,
         sections: setupSeedSections(seed, meta),
@@ -712,6 +712,112 @@ async function suRemoveSection() {
 // THE CLOSED ROW IS QUIET (31 Aug, user call — the fact bylines were noise). The one
 // fact that must never hide is EMPTINESS: a slot with nothing to run still says so,
 // because dark-until-noticed is the harmful option. Everything else lives inside.
+// ---------- clearing a break, and clearing the setup (3 Sep, user call) ----------
+// CLEAR means the demand: every ad unit in the break — the indirect ladder and the direct
+// deal — and on a mid-roll the extra pods, which collapse back to Pod 1. Delivery settings
+// stay: they are how the break behaves, not what it asks. Counted before the confirm and
+// named inside it, so nobody clears more than they meant to.
+function suSlotUnits(sec, t) {
+  const s = (sec.slots || {})[t];
+  if (!s) return { units: 0, pods: 0 };
+  const filled = a => (a || []).filter(r => r && r.tagId).length;
+  if (t === 'midroll') {
+    const gs = s.groups || [];
+    return {
+      units: gs.reduce((a, g) => a + filled(g.rungs) + filled(g.direct && g.direct.rungs), 0),
+      pods: Math.max(0, gs.length - 1),
+    };
+  }
+  return { units: filled(s.rungs) + filled(s.direct && s.direct.rungs), pods: 0 };
+}
+
+function suEmptySlot(sec, t) {
+  const s = (sec.slots || {})[t];
+  if (!s) return;
+  if (s.direct) s.direct = { rungs: [] };
+  if (t === 'midroll') {
+    const keep = s.groups[0];
+    keep.rungs = [];
+    keep.direct = { rungs: [] };
+    s.groups.length = 1;
+  } else {
+    s.rungs = [];
+  }
+}
+
+function suUnitWords(units, pods) {
+  const u = `${units} ad unit${units === 1 ? '' : 's'}`;
+  return pods ? `${u} across ${pods + 1} pods` : u;
+}
+
+// The break's own Clear, in the right-hand gutter — it shows itself when the row is
+// yours (the ad unit's gear grammar, 3 Sep), and greys where it sits when there is
+// nothing to clear rather than disappearing and leaving a person hunting for it.
+function suSlotClearHtml(t) {
+  const { units, pods } = suSlotUnits(suSection(), t);
+  if (!units && !pods) return `<span class="slot-clear off" title="Nothing to clear — this break has no ad unit">Clear</span>`;
+  return `<button type="button" class="slot-clear" onclick="event.stopPropagation(); suClearSlot('${t}')"
+    title="Empty this break — ${esc(suUnitWords(units, pods))}; delivery settings stay">Clear</button>`;
+}
+
+async function suClearSlot(t) {
+  const sec = suSection();
+  const { units, pods } = suSlotUnits(sec, t);
+  if (!units && !pods) return;
+  const name = label('slotType', t);
+  const ok = await ask({
+    title: `Clear ${name.toLowerCase()} in “${sec.name}”?`,
+    body: `Removes ${suUnitWords(units, pods)}${pods
+      ? `, and ${pods === 1 ? 'pod 2 goes with its cadence' : `pods 2–${pods + 1} go with their cadence`}` : ''}. `
+      + 'Delivery settings stay, and nothing leaves the page until you save.',
+    okLabel: 'Clear', danger: true,
+  });
+  if (!ok) return;
+  suEmptySlot(sec, t);
+  SU_MID_G = 0;
+  SU_RUNG_OPEN = null;
+  clearErr('sections');
+  FORM.rerender();
+  toast(`${name} cleared in “${sec.name}” — save to keep it`);
+}
+
+// The whole setup at once, from the ⋯ menu: every break of every placement. The
+// placements, their names and every delivery setting stand — only the demand goes.
+async function suClearAllSlots() {
+  const d = FORM.data;
+  let units = 0, pods = 0, breaks = 0;
+  for (const sec of d.sections || []) {
+    for (const t of KL_META.slotTypes) {
+      const c = suSlotUnits(sec, t);
+      if (c.units || c.pods) breaks++;
+      units += c.units;
+      pods += c.pods;
+    }
+  }
+  if (!units && !pods) return;
+  const secN = (d.sections || []).length;
+  const ok = await ask({
+    title: 'Clear every ad unit in this setup?',
+    body: `Removes ${units} ad unit${units === 1 ? '' : 's'} from ${breaks} break${breaks === 1 ? '' : 's'}`
+      + `${secN > 1 ? ` across ${secN} placements (${(d.sections || []).map(s => s.name).join(', ')})` : ''}`
+      + `${pods ? `, and ${pods} extra pod${pods === 1 ? '' : 's'} go with their cadence` : ''}. `
+      + 'The placements and every delivery setting stay, and nothing leaves the page until you save.',
+    okLabel: 'Clear all', danger: true,
+  });
+  if (!ok) return;
+  for (const sec of d.sections || []) for (const t of KL_META.slotTypes) suEmptySlot(sec, t);
+  SU_MID_G = 0;
+  SU_RUNG_OPEN = null;
+  clearErr('sections');
+  FORM.rerender();
+  toast(`Cleared ${units} ad unit${units === 1 ? '' : 's'} — save to keep it`);
+}
+
+function suAnyUnits() {
+  return (FORM.data.sections || []).some(sec =>
+    KL_META.slotTypes.some(t => { const c = suSlotUnits(sec, t); return c.units || c.pods; }));
+}
+
 function suSlotGlimpse(t) {
   const gs = t === 'midroll' ? suMidGroups() : [suSlot(t)];
   const n = gs.reduce((a, g) => a + (g.rungs || []).filter(r => r.tagId).length, 0);
@@ -876,7 +982,7 @@ function suSlotRowHtml(t, meta) {
           ${divNote}
           <span class="slot-chev ${open ? 'open' : ''}" title="${open ? 'Close' : 'The ladder and how this break behaves live here'}">›</span>
         </div>
-        <span class="slot-menu-ph"></span>
+        <span class="slot-menu-ph">${suSlotClearHtml(t)}</span>
       </div>`;
   if (!open) return `<div class="slot-row">${head}</div>`;
 
@@ -970,6 +1076,7 @@ function renderSetupForm(meta) {
 
   const n = editing ? (PUB?.unpublished || []).length : 0;
   const live = editing ? PUB?.liveVersion != null : false;
+  const anyUnits = suAnyUnits();
   main.innerHTML = `
     <div class="ehead ${editing ? 'with-rail' : ''}">
       ${KEY_RETURN
@@ -978,21 +1085,24 @@ function renderSetupForm(meta) {
       ${propBadge(d.property)}
       <h1>${editing ? esc(SETUP_ORIGINAL.name) : 'New ad setup'}</h1>
       ${KEY_RETURN && !editing ? `<span class="podl">for “${esc(KEY_RETURN.name)}” — mapped there on Create</span>` : ''}
-      ${editing ? pubStateChipHtml() : d.copiedFrom ? `<span class="podl">copied from “${esc(d.copiedFrom)}” — ad units are entered here</span>` : ''}
+      ${editing ? pubStateChipHtml() : d.copiedFrom ? `<span class="podl">copied from “${esc(d.copiedFrom)}” — its own from here</span>` : ''}
       <span class="eh-gap"></span>
       ${editing ? `
         <button class="btn ghost" onclick="saveSetupClicked()">Save</button>
         <button class="btn ${n ? '' : 'ghost'}" ${n ? '' : 'disabled title="Nothing to publish — what is on air is what you see"'}
-          onclick="publishClicked()">${live ? 'Publish' : 'Publish — go on air'}${n ? ` (${n})` : ''}</button>
-        <div class="eh-more ${SU_MORE_OPEN ? 'open' : ''}">
-          <button type="button" class="btn ghost eh-more-btn" onclick="suMoreToggle(event)" title="More actions">⋯</button>
-          <div class="eh-menu">
-            <div class="eh-item danger ${used > 0 ? 'dim' : ''}" ${used > 0
-              ? `title="“${esc(SETUP_ORIGINAL.usedByNames.join(', '))}” fills from it — detach it first"`
-              : 'onclick="suMoreToggle(); deleteSetupClicked()"'}>Delete</div>
-          </div>
-        </div>`
+          onclick="publishClicked()">${live ? 'Publish' : 'Publish — go on air'}${n ? ` (${n})` : ''}</button>`
       : `<button class="btn" onclick="saveSetupClicked()">Create ad setup</button>`}
+      <div class="eh-more ${SU_MORE_OPEN ? 'open' : ''}">
+        <button type="button" class="btn ghost eh-more-btn" onclick="suMoreToggle(event)" title="More actions">⋯</button>
+        <div class="eh-menu">
+          <div class="eh-item ${anyUnits ? '' : 'dim'}" ${anyUnits
+            ? 'onclick="suMoreToggle(); suClearAllSlots()"'
+            : 'title="Nothing to clear — no break in this setup has an ad unit"'}>Clear all ad units</div>
+          ${editing ? `<div class="eh-item danger ${used > 0 ? 'dim' : ''}" ${used > 0
+            ? `title="“${esc(SETUP_ORIGINAL.usedByNames.join(', '))}” fills from it — detach it first"`
+            : 'onclick="suMoreToggle(); deleteSetupClicked()"'}>Delete</div>` : ''}
+        </div>
+      </div>
     </div>
     <div class="detail">
     <div class="form">
@@ -1090,9 +1200,11 @@ async function saveSetupClicked() {
         await returnToKey(res.setup.id);
         return;
       }
-      toast(`“${res.setup.name}” created — its ad units are added here`);
-      // Land IN the editor, not back on the list: a copy has empty ladders and the very
-      // next act is filling them.
+      toast(FORM.data.copiedFrom
+        ? `“${res.setup.name}” created — a copy of “${FORM.data.copiedFrom}”, its own from here`
+        : `“${res.setup.name}” created — its ad units are added here`);
+      // Land IN the editor, not back on the list: what happens next — filling the ladders,
+      // or tuning the ones the copy brought — happens on this page.
       location.hash = `#setups/${res.setup.id}`;
       return;
     }

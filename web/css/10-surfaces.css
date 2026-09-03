@@ -1,0 +1,275 @@
+/* 10-surfaces.css — the 3 Sep cuts: lists, template strip, placement tabs, config table, unit fold, fills strip, map cards.
+   Split from app.css (3 Sep, pure partition): the ten files load in numeric order and
+   reproduce the original cascade byte for byte — later rules still win, so KEEP THE ORDER. */
+
+/* ---------- THE TWO LISTS, SQUARED UP (3 Sep, user call) ---------- */
+/* The name column used to take whatever was left, so Property drifted to the middle of
+   a wide screen and the two lists lined up differently. Both tables now pin the same
+   three widths and let the last column absorb the slack. */
+/* The setups name column carries the width of the keys list's checkbox column too, so
+   Property lands on the same x when you move between the two screens.
+   EVERY column takes a share (3 Sep, user call): when only some columns were sized, the
+   last one absorbed all the slack and the table ended in ~550px of dead space that read
+   as broken. The two name columns and Property stay pinned (that is what puts Property
+   beside the name); the rest is proportional, so the row reaches the card's right edge
+   at any width, and the trailing metadata column is right-aligned to close it off. */
+.card table.t-keys th:nth-child(2) { width: 300px; }
+.card table.t-setups th:nth-child(1) { width: 343px; }
+.card table.t-keys th:nth-child(3), .card table.t-setups th:nth-child(2) { width: 128px; }
+.card table.t-keys th:nth-child(4) { width: 13%; }
+.card table.t-keys th:nth-child(5) { width: 22%; }
+.card table.t-setups th:nth-child(3) { width: 22%; }
+.card table.t-setups th:nth-child(4) { width: 20%; }
+.card table.t-keys th:last-child, .card table.t-setups th:last-child,
+.card table.t-keys td:last-child, .card table.t-setups td:last-child { text-align: right; }
+
+/* THE BREAKS FILTER: a grid, not a list of every combination. One row per break, three
+   answers each, and a Clear that puts them all back to Any. */
+.fpill-menu.fp-grid { padding: 8px; min-width: 250px; }
+.fp-grow { display: flex; align-items: center; gap: 10px; padding: 4px 4px; }
+.fp-gl { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); white-space: nowrap; }
+.fp-gseg { flex: 0 0 auto; }
+.fp-gseg button { font-size: 11px; padding: 3px 9px; }
+.fp-gfoot { display: flex; justify-content: flex-end; padding: 6px 4px 2px; margin-top: 4px; border-top: 1px solid var(--line); }
+
+/* ---------- REQUEST TEMPLATES: A STRIP, NOT A FIFTH BREAK (3 Sep) ---------- */
+/* At the bottom, wearing a break row's clothing, they were invisible. At the top, as a
+   label and a few named chips, they are what they are: shared plumbing, one click from
+   its editor, with no open/closed state to be in. */
+/* THE TEMPLATES STRIP STEPS BACK (3 Sep, user call). It was a tinted, bordered box
+   while PLACEMENTS — the page's actual structure — was a pale eyebrow, so the shared
+   plumbing shouted and the structure whispered. It is a quiet line now: same eyebrow
+   weight as every other section label, no box, no fill. */
+.tpl-strip {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 0 2px 14px; margin: 2px 0 0;
+}
+.tpl-strip-l {
+  flex: 0 0 auto; font-size: 10px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+.tpl-chips { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.tpl-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 5px;
+  border: 1px solid var(--line); border-radius: 20px; background: var(--card, #fff);
+  font: inherit; font-size: 12px; color: var(--ink); cursor: pointer;
+}
+.tpl-chip:hover { border-color: var(--accent); box-shadow: var(--shadow-1, 0 1px 3px rgba(16,24,43,.08)); }
+.tpl-chip-n { font-weight: 600; }
+.tpl-chip-c {
+  font-size: 10.5px; font-weight: 700; color: var(--ink-faint);
+  background: #eef0f4; border-radius: 8px; padding: 0 6px;
+}
+.tpl-strip .sg-empty { font-size: 12px; }
+
+/* ---------- PODS, ROW FACTS AND THE TEMPLATE FORM (3 Sep) ---------- */
+/* The pods strip stands even at one pod — that is what makes "everything is in pod 1"
+   visible — and it scopes every zone under it, so it spans the slot's full width. */
+/* PODS sits in the zone gutter, so it lines up with DIRECT and INDIRECT under it. */
+.pod-tabs { margin: 2px 0 10px; padding-left: 0; }
+.pod-tabs .scope-eyebrow { padding-right: 10px; }
+
+/* The two facts a person compares straight down a ladder, stated on the row itself. */
+.rung-facts { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; white-space: nowrap; padding: 0 4px; }
+.rf { font-size: 11.5px; color: var(--ink-faint); }
+.rf-sep { font-size: 11.5px; color: #c3c9d4; }
+
+/* The template form: the name takes the row, the provider is a fixed narrow column, and
+   the URL gets a row of its own instead of squeezing beside them. */
+.frow.tpl-form { margin-bottom: 12px; gap: 12px 14px; }
+.frow.tpl-form:last-of-type { margin-bottom: 0; }
+.frow.tpl-form .field.grow input[type=text] { width: 100%; }
+.field.tpl-prov { flex: 0 0 150px; min-width: 0; align-items: stretch; }
+.frow.tpl-form .field.grow { min-width: 0; }
+/* The select and the text input sit on one line, so they share one height. */
+/* The house select carries a 210px min-width for page rows; inside a 440px dialog its
+   field is 150px, so it must be allowed to fit the column it was given — without this
+   the Provider control spilled out through the dialog's right edge. */
+.frow.tpl-form .select { height: 36px; display: flex; align-items: center; min-width: 0; width: 100%; }
+.tpl-foot { display: flex; align-items: baseline; gap: 12px; margin-top: 14px; padding-top: 11px; border-top: 1px solid var(--line); }
+.tpl-foot .podl { margin-left: auto; }
+
+/* "+ Add placement" sat mid-row because it claimed the auto margin and the GAM sync
+   line then sat further right. The add belongs beside the last tab; the sync is the
+   thing that belongs at the far edge. */
+.pl-tabs .stab.add { margin-left: 6px; }
+.pl-tabs .gam-sync { margin-left: auto; }
+
+
+/* ---------- THE PLACEMENT NAME LIVES IN ITS TAB (3 Sep, user call) ---------- */
+/* The tab you are standing on is its own input, so renaming needs no dialog and the
+   byline under it had nothing left to say. It keeps the active tab's exact geometry —
+   weight, indicator, height — so nothing jumps when selection moves. */
+.stab.pl-live {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 7px 6px 8px 12px; border-bottom: 2px solid var(--accent); margin-bottom: -1px;
+  border-radius: 6px 6px 0 0;
+}
+.pl-name {
+  border: 0; background: none; outline: none; padding: 0;
+  font: inherit; font-size: 12.5px; font-weight: 700; color: var(--ink);
+  width: auto; min-width: 5ch; max-width: 22ch;
+  field-sizing: content; /* where supported, the tab breathes as you type */
+}
+.pl-name::placeholder { color: var(--ink-faint); font-weight: 500; }
+.pl-x {
+  border: 0; background: none; cursor: pointer; color: var(--ink-faint);
+  font-size: 14px; line-height: 1; padding: 2px 4px; border-radius: 5px;
+}
+.pl-x:hover { color: var(--bad); background: #fdf0f0; }
+
+/* ---------- CUSTOM CONFIGS AS A TABLE (3 Sep, user call — second cut) ---------- */
+/* The KEY is the row's identity, the three facts are its contents — said with geometry:
+   the key owns a fixed left column, mono on a quiet tint, a vertical rule dividing it
+   from the facts; the facts sit under ONE heading row, so labels never repeat per row
+   and a bare key can never read as an unlabelled fourth control. */
+.pcfg-t { --pcfg-cols: 176px minmax(150px, 1fr) minmax(120px, 1fr) minmax(160px, 1fr) 28px; }
+.pcfg-h {
+  display: grid; grid-template-columns: var(--pcfg-cols); gap: 18px; align-items: end;
+  padding: 0 0 6px; border-bottom: 1px solid var(--line); margin-bottom: 2px;
+  font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.pcfg-r {
+  display: grid; grid-template-columns: var(--pcfg-cols); gap: 18px; align-items: center;
+  padding: 7px 0;
+}
+.pcfg-r + .pcfg-r { border-top: 1px solid #eef0f5; }
+/* A row waiting for its key: the ladder's own "this one is yours to fill" mark. */
+.pcfg-r.wants .pcfg-key { border-color: var(--accent); background: #fff; }
+/* The add sits at the FOOT, where the row it makes will appear — a real button in the
+   ladder's add-row grammar, not a pale link floating up in the section title. */
+.pcc-foot { display: flex; padding-top: 12px; }
+.pcc-add { padding: 6px 14px; font-size: 12px; }
+.pcc-add[disabled] { opacity: .45; cursor: not-allowed; }
+.pcc-add[disabled]:hover { color: var(--ink-soft); border-color: #d5dae4; }
+/* The identity column: its right rule runs through header and rows alike. */
+.pcfg-id { border-right: 1px solid var(--line); padding-right: 18px; min-width: 0; display: flex; }
+.pcfg-h .pcfg-id { border-right-color: transparent; }
+.pcfg-key {
+  width: 100%; min-width: 0;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--bg-soft, #f7f8fb);
+  padding: 7px 10px; font-size: 12.5px;
+}
+.pcfg-key:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px var(--ring); outline: 0; }
+.pcfg-c { display: flex; align-items: center; min-width: 0; }
+.pcfg-x {
+  border: 0; background: none; cursor: pointer; color: var(--ink-faint);
+  font-size: 15px; line-height: 1; padding: 4px 6px; border-radius: 6px;
+  justify-self: end; opacity: 0; transition: opacity .12s;
+}
+.pcfg-r:hover .pcfg-x, .pcfg-x:focus-visible { opacity: 1; }
+.pcfg-x:hover { color: var(--bad); background: #fdf0f0; }
+
+/* PLACEMENTS is the structure: it names the strip from above, in the ink the templates
+   line gave up, and the first tab starts on the card's own left edge. */
+.pl-head {
+  font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-soft); padding: 0 0 7px 2px;
+}
+.pl-tabs { margin-top: 0; }
+.pl-tabs .stab:first-child { margin-left: 0; }
+
+/* ---------- UNIT SETTINGS, BELOW THE FOLD (3 Sep, user call — settled) ---------- */
+/* The door is a GEAR that shows itself when the row is yours — hover, or the caret in
+   the unit's field — and stays lit while its panel is open. Same reveal the remove ✕
+   beside it has always used, so the row's two actions arrive together. */
+.unit-settings {
+  border: 0; background: none; cursor: pointer; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 6px; color: var(--ink-faint);
+  opacity: 0; transition: opacity .12s, color .12s, background .12s;
+}
+.rung-row:hover .unit-settings, .rung-row:focus-within .unit-settings,
+.unit-settings:focus-visible, .unit-settings.open { opacity: 1; }
+.unit-settings:hover { background: var(--accent-soft); color: var(--accent); }
+.unit-settings.open { color: var(--accent); }
+
+/* The panel speaks the Delivery-settings rows' own language — a label column and one
+   control per line, one height — inside a bounded card that starts where the unit's
+   name starts. It describes ONE unit, so the label column is the permanent label the
+   table taught us values need. */
+.unit-panel {
+  margin: 4px 0 10px 126px; padding: 5px 16px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--bg-soft, #f7f8fb);
+}
+.up-r { display: flex; align-items: center; gap: 12px; min-height: 37px; }
+.up-r.off { opacity: .45; }
+.up-l { flex: 0 0 150px; font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+.up-c { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.up-c .select { background: #fff; }
+.up-c .num-wrap { background: #fff; }
+
+
+/* ---------- THE BULK SHEET IS A CLEAN SLATE (3 Sep, user call) ---------- */
+/* A lever at rest is a label and the cohort's counted today — the control only exists
+   once the lever is chosen, and it appears UNSET. Nothing ever looks pre-decided. */
+.bqf-r.closed { cursor: pointer; }
+.bqf-r.closed:hover { background: var(--bg-soft, #f7f8fb); }
+.bqf-r.closed .bqf-today { justify-self: start; }
+.bqf-set {
+  justify-self: end; font-size: 11px; font-weight: 650; color: var(--accent);
+  opacity: 0; transition: opacity .12s; padding: 2px 4px;
+}
+.bqf-r.closed:hover .bqf-set { opacity: 1; }
+.bqf-r.open .bqf-s { display: inline-flex; align-items: center; gap: 8px; justify-self: end; }
+.bqf-r.open .bqs-x.on { opacity: .6; }
+/* A set row reads its own change back — the one-step sheet's honesty. */
+.bqf-was { font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
+.bqf-r.open:hover .bqs-x.on { opacity: 1; }
+
+
+/* ---------- DETAILS SHORT-ANSWER ROW + THE FILLS-FROM STRIP (3 Sep, user calls) ---------- */
+/* Playback, Fallback media and Passive volume at their natural widths, side by side;
+   the three forkable facts then own the row below (.pfacts, an even share each). */
+.prow2 .field { flex: 0 0 auto; }
+.prow2 .field input[type=text] { width: 300px; }
+.prow2 .rule-text { flex: 0 0 280px; }
+.prow2 .num-wrap { flex: 0 0 auto; width: 96px; height: 38px; }
+.prow2 .num-wrap input { padding-left: 10px; height: 36px; }
+
+/* The mapped ad setup is the page's headline relationship, so it rides the TITLE ROW at
+   the right edge — an eyebrow, the setup as a PROMINENT chip that opens it, the meta
+   quiet beside it, change last. On its own line it read as a second heading. */
+.fills-strip { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.fieldset-title-row .fills-strip { margin-left: auto; }
+.fills-strip .fs-l {
+  flex: 0 0 auto; font-size: 10px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+.fs-setup {
+  display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+  border: 1px solid var(--accent-soft, #dbe4fb); border-radius: 9px;
+  background: var(--accent-soft, #eef2fd); color: var(--accent-ink, #1c4fd6);
+  padding: 7px 12px; font: inherit; font-size: 13px; font-weight: 650; letter-spacing: -.1px;
+  transition: border-color .12s, box-shadow .12s;
+}
+.fs-setup:hover { border-color: var(--accent); box-shadow: var(--shadow-1, 0 1px 3px rgba(16,24,43,.08)); }
+.fs-setup .fs-arr { font-style: normal; font-size: 12px; opacity: .7; }
+
+
+/* ---------- THE MAP CARD'S TWO ACTS (3 Sep, user call — second cut) ---------- */
+/* They live in the card's top-right corner, where an "in use / free" pill used to sit
+   saying what the foot already says in words. Absolutely placed and faded in on hover,
+   so the title never reflows and nothing moves under the cursor; a short white ramp
+   carries them over the tail of a long name instead of colliding with it. */
+.sc-card { position: relative; }
+.sc-acts {
+  position: absolute; top: 11px; right: 14px;
+  display: flex; align-items: center; gap: 7px;
+  opacity: 0; pointer-events: none; transition: opacity .12s;
+  padding-left: 34px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0, #fff 32px);
+}
+.dlg-card:hover .sc-acts, .dlg-card:focus-within .sc-acts { opacity: 1; pointer-events: auto; }
+.sc-act {
+  flex: 0 0 auto; font: inherit; font-size: 11px; font-weight: 650; letter-spacing: -.05px;
+  white-space: nowrap; cursor: pointer; padding: 4px 10px; border-radius: 7px;
+  border: 1px solid var(--line); background: #fff; color: var(--ink-soft);
+  transition: border-color .12s, color .12s, background .12s;
+}
+.sc-act:hover { border-color: var(--accent); color: var(--accent); }
+.sc-act.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.sc-act.primary:hover { background: var(--accent-ink, #1c4fd6); border-color: var(--accent-ink, #1c4fd6); color: #fff; }
+.sc-act:focus-visible { outline: 0; box-shadow: 0 0 0 3px var(--ring); }

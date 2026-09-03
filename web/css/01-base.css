@@ -1,0 +1,344 @@
+/* 01-base.css — everything global: tokens, the header band's ancestors, tables, buttons, forms, chips, the filter bar.
+   Split from app.css (3 Sep, pure partition): the ten files load in numeric order and
+   reproduce the original cascade byte for byte — later rules still win, so KEEP THE ORDER. */
+
+/* StreamAds API Key Panel */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f5f6f8;
+  --panel: #ffffff;
+  --ink: #1a2233;
+  --ink-soft: #5b6474;
+  --ink-faint: #8a92a3;
+  --line: #e6e9f0;
+  --accent: #2456e6;
+  --accent-soft: #eaf0ff;
+  --ring: rgba(36, 86, 230, .14);
+  --shadow-1: 0 1px 2px rgba(16, 24, 43, .05);
+  --shadow-2: 0 4px 14px rgba(16, 24, 43, .08);
+  --good: #1e8e4e;
+  --good-soft: #e6f5ec;
+  --warn: #b26a00;
+  --warn-soft: #fdf3e2;
+  --bad: #c23434;
+  --bad-soft: #fbeaea;
+  --radius: 10px;
+  font-size: 15px;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+.shell { display: flex; min-height: 100vh; }
+
+/* ---------- brand + scope (the sidebar they used to sit in is gone — see THE HEADER
+   BAND at the foot of this file) ---------- */
+.brand { font-size: 17px; font-weight: 700; color: #fff; letter-spacing: .2px; }
+/* global scope switcher — workspace-switcher pattern */
+#prop-global { position: relative; padding: 0 14px 12px; }
+.ps-btn {
+  display: flex; align-items: center; gap: 9px; width: 100%; cursor: pointer; font-family: inherit;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 9px;
+  padding: 8px 10px; color: #fff; text-align: left; transition: background .12s, border-color .12s;
+}
+.ps-btn:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.24); }
+#prop-global.open .ps-btn { border-color: #6d8df0; background: rgba(88,124,255,.18); }
+.ps-name { flex: 1; font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ps-chev { font-size: 9px; color: #8b96ad; flex: 0 0 auto; }
+.ps-menu {
+  display: none; position: absolute; left: 14px; right: 14px; top: calc(100% - 4px); z-index: 40;
+  background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-2);
+  padding: 5px; max-height: 300px; overflow-y: auto;
+}
+#prop-global.open .ps-menu { display: block; }
+.ps-opt {
+  display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 7px;
+  font-size: 12.5px; font-weight: 600; color: var(--ink); cursor: pointer; white-space: nowrap;
+}
+.ps-opt:hover { background: var(--accent-soft); }
+.ps-opt.on { color: var(--accent); }
+
+#nav { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; }
+#nav a {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 12px; border-radius: 8px;
+  color: #aeb8cc; text-decoration: none; font-size: 13.5px; font-weight: 500;
+}
+#nav a.nav-child {
+  margin-left: 14px; padding: 7px 12px 7px 14px; font-size: 12.5px;
+  border-left: 2px solid rgba(255,255,255,.1); border-radius: 0 8px 8px 0;
+}
+#nav a.nav-child.on { border-left-color: #6d8df0; }
+#nav a:hover { background: rgba(255,255,255,.06); color: #fff; }
+#nav a.on { background: rgba(88,124,255,.22); color: #fff; }
+.nav-count { font-size: 11.5px; color: #7c88a3; background: rgba(255,255,255,.08); border-radius: 10px; padding: 1px 8px; }
+#nav a.on .nav-count { color: #cdd8ff; }
+
+/* ---------- route transition ---------- */
+#nav-progress {
+  position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 80;
+  opacity: 0; transition: opacity .15s;
+}
+#nav-progress.on { opacity: 1; }
+.np-fill { height: 100%; width: 0; background: var(--accent); border-radius: 0 2px 2px 0; }
+#nav-progress.on .np-fill { animation: npGrow 900ms cubic-bezier(.15,.85,.3,1) forwards; }
+#nav-progress.done { opacity: 0; transition: opacity .2s .08s; }
+#nav-progress.done .np-fill { width: 100% !important; animation: none; transition: width .18s ease-out; }
+@keyframes npGrow { 0% { width: 0 } 40% { width: 55% } 100% { width: 82% } }
+
+main.view-in { animation: viewIn .18s ease-out; }
+@keyframes viewIn { from { opacity: 0 } to { opacity: 1 } }
+@media (prefers-reduced-motion: reduce) {
+  main.view-in { animation: none; }
+  #nav-progress.on .np-fill { animation: none; width: 82%; }
+}
+
+/* editor header — one line: back · name · status · key string. FIXED under the band
+   (2 Sep, user call): the name and Save/Publish never scroll away on either editor.
+   Full-bleed inside main (negative margins swallow main's padding), its own background
+   and hairline so content passes beneath it, under the topbar (50) and over the page. */
+.ehead {
+  display: flex; align-items: center; gap: 12px;
+  position: sticky; top: 56px; z-index: 40;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+  margin: -24px -26px 14px; padding: 14px 26px;
+}
+/* On editor pages the header shares the page with the version rail: its actions stop
+   at the FORM column's edge (above Details, over the Platform dropdown), never over
+   the rail. 260px rail + 30px gap. */
+.ehead.with-rail { padding-right: 290px; }
+.eh-back {
+  flex: 0 0 auto; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink-soft);
+  text-decoration: none; font-size: 14px; transition: border-color .12s, color .12s;
+}
+.eh-back:hover { border-color: var(--accent); color: var(--accent); }
+.ehead h1 { font-size: 18px; font-weight: 650; letter-spacing: -.1px; }
+.ehead .stat { cursor: default; }
+.eh-gap { flex: 1; }
+
+/* ---------- main ---------- */
+main { flex: 1; padding: 26px 34px 60px; max-width: 1320px; }
+.page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 16px; }
+.page-head h1 { font-size: 21px; font-weight: 700; letter-spacing: -.2px; }
+.kh-title { display: flex; align-items: center; gap: 10px; }
+.kh-meta { display: flex; align-items: center; gap: 8px; margin-top: 7px; font-size: 12.5px; color: var(--ink-faint); }
+.kh-dot { color: #d0d5df; }
+.page-sub { color: var(--ink-soft); font-size: 13px; margin-top: 4px; }
+.crumb { font-size: 13px; color: var(--ink-faint); margin-bottom: 6px; }
+.crumb a { color: var(--accent); text-decoration: none; }
+
+/* ---------- filter bar: search + filter pills ---------- */
+.filter-bar {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  margin-bottom: 14px;
+}
+.search {
+  width: 340px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 20px;
+  font-size: 13px; background: #fff; color: var(--ink); outline: none;
+  box-shadow: var(--shadow-1); transition: border-color .12s, box-shadow .12s;
+}
+.search:hover { border-color: #d4d9e3; }
+.search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+.fpill { position: relative; }
+.fpill-btn {
+  border: 1px solid var(--line); background: #fff; border-radius: 20px; padding: 7px 11px;
+  font-size: 12.5px; font-weight: 600; color: var(--ink-soft); cursor: pointer; font-family: inherit;
+  box-shadow: var(--shadow-1); transition: border-color .12s, color .12s, background .12s;
+  white-space: nowrap;
+}
+.fpill-btn:hover { border-color: #c9cfdb; color: var(--ink); }
+.fpill.on .fpill-btn { background: var(--accent-soft); border-color: #c4d4ff; color: var(--accent); font-weight: 700; }
+.fpill.open .fpill-btn { border-color: var(--accent); }
+.fp-chev { font-size: 9px; opacity: .65; margin-left: 2px; }
+.fpill-menu {
+  display: none; position: absolute; left: 0; top: calc(100% + 6px); z-index: 30; min-width: 180px;
+  background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-2); padding: 5px;
+  max-height: 280px; overflow-y: auto;
+}
+.fpill.open .fpill-menu { display: block; }
+
+/* ---------- segmented control ---------- */
+.seg { display: inline-flex; background: #edeff5; border-radius: 9px; padding: 3px; gap: 2px; }
+.seg button {
+  border: 0; background: transparent; padding: 6px 13px; border-radius: 7px;
+  font-size: 12.5px; font-weight: 600; color: var(--ink-soft); cursor: pointer; font-family: inherit;
+  white-space: nowrap; transition: color .12s, background .12s;
+}
+.seg button:hover:not(.on) { color: var(--ink); }
+.seg button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(16,24,43,.14); }
+.seg button:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ---------- bulk selection ---------- */
+th.chk, td.chk { width: 36px; text-align: center; }
+input[type=checkbox] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; vertical-align: middle; }
+.bulk-bar {
+  display: flex; gap: 8px; align-items: center; background: #fdf8e8;
+  border: 1px solid #f0e3bd; border-radius: 10px; padding: 8px 14px; margin-bottom: 12px;
+  font-size: 13px; font-weight: 700; color: var(--ink);
+}
+/* The verb once, its objects as buttons (2 Sep): "Change · Ad behaviour · Player
+   behaviour" — never two buttons both starting with "Change". */
+.bulk-verb { font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-right: 2px; }
+/* Facet count on a filter option, and the greyed state when it would return nothing. */
+.fpill-menu .sel-opt { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.fp-count { font-size: 11px; font-weight: 650; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.fpill-menu .sel-opt.off { cursor: not-allowed; color: var(--ink-faint); opacity: .55; }
+.fpill-menu .sel-opt.off:hover { background: transparent; }
+
+.pick-list .sel-opt { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; }
+.pick-sub { font-size: 11.5px; font-weight: 500; color: var(--ink-faint); }
+
+/* two-step card picker — fixed frame so steps never resize the modal */
+/* The attach picker is reached from the same list as every other bulk act, so it wears the
+   same frame. It used to be 700x560 while the step dialogs were 680x670 — a pre-existing
+   inconsistency that only became obvious once one list led to both. */
+/* The card choosers are 860 wide — the house sheet width (3 Sep): at 680 a setup card
+   was 308px, too narrow to hold its own name beside the acts in its corner. */
+.dlg.wide {
+  width: 860px; height: min(656px, calc(100vh - 80px));
+  display: flex; flex-direction: column;
+}
+.dlg.wide .dlg-body { flex: 1; overflow-y: auto; margin-bottom: 16px; padding-right: 2px; }
+/* Single-step card dialogs (the new-integration chooser) size to their cards — the
+   fixed height is for two-step pickers, whose size must not jump between steps. */
+.dlg.wide.autoh { height: auto; max-height: min(656px, calc(100vh - 80px)); }
+.dlg-kicker { font-size: 12px; font-weight: 500; color: var(--ink-faint); margin-left: 8px; }
+.dlg-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 2px; align-items: start; }
+.dlg-card {
+  border: 1.5px solid var(--line); border-radius: 12px; padding: 14px 16px 13px; cursor: pointer;
+  background: #fff; transition: border-color .12s, box-shadow .12s, transform .08s;
+}
+.dlg-card:hover { border-color: var(--accent); box-shadow: var(--shadow-2); transform: translateY(-1px); }
+.dc-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+.dc-title { font-size: 14.5px; font-weight: 700; letter-spacing: -.1px; }
+.dc-reach {
+  flex: 0 0 auto; font-size: 10px; font-weight: 700; letter-spacing: .3px;
+  background: #eef0f4; color: var(--ink-soft); padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+}
+.dc-sum { font-size: 12px; color: var(--ink-soft); line-height: 1.6; }
+.dlg-card.create { border-style: dashed; background: #fbfcfe; }
+.dlg-card.create:hover { border-color: var(--accent); background: #fff; }
+.dc-plus {
+  width: 26px; height: 26px; border-radius: 50%; background: var(--accent-soft); color: var(--accent);
+  display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700;
+  margin-bottom: 7px;
+}
+.dlg-card.create .dc-title { color: var(--accent); font-size: 13.5px; margin-bottom: 4px; display: block; }
+
+/* spec preview — tinted group panels give the parent/child hierarchy */
+.spec { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+.spec-group {
+  background: #f7f9fc; border: 1px solid #edf0f6; border-radius: 11px; padding: 12px 15px 9px;
+}
+.spec > .spec-group:only-child { grid-column: 1 / -1; }
+.spec-title {
+  font-size: 10px; font-weight: 800; letter-spacing: .9px; text-transform: uppercase;
+  color: var(--accent); margin: 0 0 7px;
+}
+.spec-row {
+  display: flex; justify-content: space-between; gap: 16px; font-size: 12.5px;
+  padding: 4.5px 0;
+}
+.spec-row span { color: var(--ink-soft); font-weight: 450; flex: 0 0 auto; }
+.spec-row b { font-weight: 650; color: var(--ink); text-align: right; }
+.dlg-note { margin-top: 14px; padding-top: 11px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
+
+/* ---------- table — flat console grid, not a card ---------- */
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+  text-align: left; font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none;
+  color: var(--ink-soft); padding: 9px 14px; border-bottom: 1px solid var(--line); background: transparent;
+  white-space: nowrap;
+}
+td { padding: 9px 14px; border-bottom: 1px solid #eef0f5; vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: #f5f7fa; }
+.rowlink { cursor: pointer; }
+.cell-main { font-weight: 600; color: #1c4fd6; font-size: 13px; }
+/* STATUS LEFT THE TABLES (3 Sep, user call — a column reading "On air" on nine rows in
+   ten was noise): the exceptions ride the name as small chips — Off air, and the
+   unpublished count — and a row with neither is on air and clean, which is the norm
+   and needs no ink. The On air filter still queries all three states. */
+.cell-main .stat.sm { font-size: 9.5px; padding: 1px 7px; margin-left: 7px; vertical-align: 1.5px; }
+.cell-sub { font-size: 12px; color: var(--ink-faint); margin-top: 1px; }
+.cell-plain { color: var(--ink-soft); }
+.empty { padding: 42px; text-align: center; color: var(--ink-faint); font-size: 13.5px; }
+/* property monogram badge */
+.pbadge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 6px; flex: 0 0 22px;
+  font-size: 8.5px; font-weight: 800; letter-spacing: .2px; color: #fff;
+}
+.pbadge.p-toi { background: #b3261e; }
+.pbadge.p-et { background: #5b3ba5; }
+.pbadge.p-nbt { background: #e07c00; }
+.pbadge.p-all { background: #8a92a3; font-size: 12px; }
+.prop-cell { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); white-space: nowrap; }
+
+/* status as dot + word, not a pill */
+.stat { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.stat::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.stat.live { color: var(--good); }
+.stat.off { color: var(--ink-faint); cursor: default; }
+/* Saved, not published. Amber because it is neither wrong nor finished — the one state
+   the panel wants you to notice and resolve. */
+.stat.pending {
+  color: #8a6d1f; background: #fdf8e8; border: 1px solid #f0e3bd;
+  border-radius: 5px; padding: 1px 7px; font-size: 11.5px; cursor: default;
+}
+.stat.pending::before { display: none; }
+
+/* ---------- chips, pills, dots ---------- */
+.pill { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 9px; border-radius: 20px; white-space: nowrap; }
+.pill.live { background: var(--good-soft); color: var(--good); }
+.pill.paused { background: #ececef; color: var(--ink-soft); }
+.chip { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); margin: 1px 3px 1px 0; }
+.chip.grey { background: #eef0f3; color: var(--ink-soft); }
+.keystr {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; color: var(--ink-faint);
+  cursor: pointer; white-space: nowrap; border-bottom: 1px dashed transparent;
+}
+.keystr:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ---------- buttons ---------- */
+.btn {
+  border: 0; border-radius: 9px; padding: 9px 16px; font-size: 13.5px; font-weight: 600;
+  cursor: pointer; font-family: inherit; background: var(--accent); color: #fff;
+  box-shadow: 0 1px 3px rgba(36, 86, 230, .3); transition: filter .12s, box-shadow .12s, transform .06s;
+}
+.btn:hover { filter: brightness(1.07); box-shadow: 0 2px 6px rgba(36, 86, 230, .35); }
+.btn:active { transform: translateY(1px); box-shadow: 0 1px 2px rgba(36, 86, 230, .3); }
+.btn.ghost, .btn.danger { box-shadow: none; }
+.btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink-soft); }
+.btn.ghost:hover { border-color: var(--ink-faint); color: var(--ink); filter: none; }
+.btn.danger { background: transparent; border: 1px solid #eecccc; color: var(--bad); }
+.btn.danger:hover { background: var(--bad-soft); filter: none; }
+.btn.small { padding: 6px 12px; font-size: 12.5px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ---------- forms ---------- */
+.form { max-width: 860px; }
+.detail { display: flex; gap: 30px; align-items: flex-start; }
+.detail .form { flex: 1; min-width: 0; }
+.fieldset { box-shadow: var(--shadow-1); border-radius: 12px; }
+
+/* ---------- history rail ---------- */
+/* Fixed width, pinned to the RIGHT edge (2 Sep): the form caps at its readable width,
+   so when the sidebar folds the slack opens BETWEEN form and rail — never to the right
+   of the history, which must sit where the header's buttons sit at every rail state.
+   ALIGNED WITH THE FIXED HEADER (2 Sep, user call): the rail rides up into the header
+   band (negative top margin) and sticks at the same offset it rests at, so "Version
+   history" and its All/Published tab sit on the page name's own line and never move.
+   z-index above the band so the head row draws over its background. */
+.rail {
+  width: 260px; flex: 0 0 260px; margin-left: auto; margin-top: -64px;
+  position: sticky; top: 71px; padding-top: 4px; z-index: 41;
+}
+/* The band's hairline crosses the rail column — the gap under the rail's head row is
+   sized so the line passes between the head and the first version, never through one. */
+.rail .rail-head { margin-bottom: 32px; }
+

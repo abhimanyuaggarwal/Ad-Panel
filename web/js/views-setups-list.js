@@ -55,10 +55,11 @@ function setupSummary(s) {
 // given is the shape you keep tuning. The cards wear the listing's own columns, because
 // that is where a person already learned to read an ad setup.
 //
-// A COPY BRINGS EVERYTHING BUT THE AD UNITS (user call): placements, delivery settings,
-// cadence and break-group structure come along; every ladder arrives EMPTY. Ad units are
-// bought and trafficked per surface — inheriting another setup's would quietly point new
-// inventory at someone else's units, which is the one mistake this panel must not make.
+// A COPY BRINGS EVERYTHING (3 Sep, user call — it used to arrive with empty ladders):
+// placements, delivery settings, cadence, pods AND the ad units. A copy you have to
+// re-traffic by hand is not a copy, and the panel already treats the same units running
+// on two surfaces as normal — the ad setup is what a surface asks, not what it owns.
+// It stays a PHOTOCOPY: tuning the new setup moves nothing on the source.
 let SETUP_CREATE_SEED = null;
 // Set by the integration page's blank card: the new setup starts named for the surface
 // it will fill, in that surface's property.
@@ -75,7 +76,7 @@ async function newSetupChooser() {
     .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
   const card = s => `
     <div class="dlg-card" data-id="${s.id}" onclick="chooseSetupCopy('${s.id}')"
-      title="A photocopy of its shape — nothing changes on “${esc(s.name)}”">
+      title="A photocopy — placements, ad units, deals and settings; nothing changes on “${esc(s.name)}”">
       <div class="dc-top"><span class="dc-title">${esc(s.name)}</span>
         <span class="dc-reach">${esc(s.usedBy ? 'in use' : 'free')}</span></div>
       <div class="dc-sum">${propBadge(s.property)} <span>${esc((s.usedByNames || [])[0] || 'not mapped yet')}</span></div>
@@ -125,18 +126,22 @@ async function chooseSetupCopy(id) {
   }
 }
 
-// The source's shape, with every ladder emptied. Behaviour objects are photocopied (the
+// The source, whole: shape, ladders, deals and behaviour — every object deep-copied (the
 // house rule: a copy, never a link), so tuning this setup later moves nothing else.
+// _orig: -1 marks each placement as new, so the counted chips never claim a saved past.
 function setupSeedSections(src, meta) {
+  const clone = v => JSON.parse(JSON.stringify(v || []));
   return (src.sections || []).map((sec, i) => ({
     name: sec.name, isDefault: i === 0, _orig: -1,
     slots: Object.fromEntries(meta.slotTypes.map(t => {
       const s = sec.slots[t] || {};
       const bhv = g => JSON.parse(JSON.stringify((g || s).behaviour || {}));
-      const direct = slotKind(t) === 'ladder' ? { rungs: [] } : null;
+      const direct = slotKind(t) === 'ladder' ? { rungs: clone(s.direct && s.direct.rungs) } : null;
       return [t, t === 'midroll'
-        ? { direct, groups: (s.groups && s.groups.length ? s.groups : [s]).map(g => ({ rungs: [], behaviour: bhv(g), direct: { rungs: [] } })) }
-        : { rungs: [], behaviour: bhv(), direct }];
+        ? { direct, groups: (s.groups && s.groups.length ? s.groups : [s]).map(g => ({
+            rungs: clone(g.rungs), behaviour: bhv(g), direct: { rungs: clone(g.direct && g.direct.rungs) },
+          })) }
+        : { rungs: clone(s.rungs), behaviour: bhv(), direct }];
     })),
   }));
 }
@@ -159,8 +164,11 @@ function setupCreateChangeList() {
       toText: n ? `${n} ad source${n === 1 ? '' : 's'}` : 'no ad units yet' });
   }
   if (d.copiedFrom) {
+    const n = (d.sections || []).reduce((a, sec) =>
+      a + KL_META.slotTypes.reduce((b, t) => b + suSeedRungCount(sec, t), 0), 0);
     rows.push({ where: 'Placements', field: 'units', label: 'Ad units', fromText: '—',
-      toText: 'entered here — never inherited', note: 'delivery settings and cadence came from the copy' });
+      toText: n ? `${n} copied — this setup's own` : 'none to copy',
+      note: `“${d.copiedFrom}” keeps its own — nothing here changes it` });
   }
   return rows;
 }

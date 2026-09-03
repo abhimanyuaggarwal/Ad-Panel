@@ -620,7 +620,7 @@ function pbSet(ki, ci, f, v) {
 
 function pbNum(el, ki, ci) {
   PB_TEXT[`${ki}:${ci}`] = el.value;
-  pbCfg(PB_DRAFT.keys[ki], ci).startVolume = Number(el.value);
+  pbCfg(PB_DRAFT.keys[ki], ci).passiveVolume = Number(el.value);
   pbSyncFoot();
 }
 
@@ -628,7 +628,7 @@ function pbNum(el, ki, ci) {
 // count read the same list.
 function pbChanges() {
   const out = [];
-  const word = (f, v) => (f === 'startVolume' ? `${v}%` : label(f, v));
+  const word = (f, v) => (f === 'passiveVolume' ? `${v}%` : label(f, v));
   for (const k of PB_DRAFT.keys) {
     const pairs = [[-1, 'Default', k.player, k.orig.player]];
     k.playerConfigs.forEach((c, i) => {
@@ -636,8 +636,8 @@ function pbChanges() {
       if (o) pairs.push([i, c.name, c, o]);
     });
     for (const [ci, cfgName, cur, orig] of pairs) {
-      for (const f of ['playback', 'expandInMini', 'autoplay', 'startVolume']) {
-        if (f === 'startVolume' && cur.autoplay !== 'sound' && orig.autoplay !== 'sound') continue;
+      // A fork carries three facts; the default carries the player's Passive volume too.
+      for (const f of ci < 0 ? ['playback', 'expandInMini', 'autoplay', 'passiveVolume'] : ['playback', 'expandInMini', 'autoplay']) {
         if (JSON.stringify(cur[f]) !== JSON.stringify(orig[f])) {
           out.push({
             where: `${k.name} · ${cfgName}`, field: f,
@@ -699,24 +699,17 @@ function pbRailHtml() {
 // dialog changed size. Now a moved field says so in its own row: an accent bar, the
 // value it held, and an × that puts it back. The rail counts them per surface, and
 // Review still reads every one before anything lands.
-function pbWasWord(f, v) { return f === 'startVolume' ? `${v}%` : label(f, v); }
+function pbWasWord(f, v) { return f === 'passiveVolume' ? `${v}%` : label(f, v); }
 
 function pbConfigBlockHtml(ki, ci) {
   const k = PB_DRAFT.keys[ki];
   const c = pbCfg(k, ci);
   const meta = KL_META;
   const orig = ci < 0 ? k.orig.player : k.orig.playerConfigs.find(x => x.id === c.id);
-  const vol = PB_TEXT[`${ki}:${ci}`] ?? (c.startVolume ?? '');
+  const vol = PB_TEXT[`${ki}:${ci}`] ?? (c.passiveVolume ?? '');
   const moved = f => !!orig && JSON.stringify(c[f]) !== JSON.stringify(orig[f]);
-  // The volume rides the autoplay row, so the row answers for both.
-  const rowMoved = f => (f === 'autoplay'
-    ? moved('autoplay') || (moved('startVolume') && (c.autoplay === 'sound' || orig?.autoplay === 'sound'))
-    : moved(f));
-  const wasWord = f => (f === 'autoplay'
-    ? [moved('autoplay') ? pbWasWord('autoplay', orig.autoplay) : '',
-       moved('startVolume') && (c.autoplay === 'sound' || orig.autoplay === 'sound') ? pbWasWord('startVolume', orig.startVolume) : '']
-      .filter(Boolean).join(' · ')
-    : pbWasWord(f, orig[f]));
+  const rowMoved = f => moved(f);
+  const wasWord = f => pbWasWord(f, orig[f]);
   const frow = (f, lbl, ctl, why) => {
     const m = rowMoved(f);
     return `
@@ -733,8 +726,10 @@ function pbConfigBlockHtml(ki, ci) {
       ${frow('playback', 'Playback mode', accSeg(c.playback ?? 'active', meta.playbackKinds, meta.playbackKinds.map(o => label('playback', o)), o => `pbSet(${ki}, ${ci}, 'playback', '${o}')`))}
       ${frow('expandInMini', 'Expand MiniTV for ads', accSeg(c.expandInMini ?? true, [true, false], ['True', 'False'], o => `pbSet(${ki}, ${ci}, 'expandInMini', ${o})`),
         'Whether the MiniTV expands while an ad runs')}
-      ${frow('autoplay', 'Autoplay behaviour', `${accSeg(c.autoplay ?? 'muted', meta.autoplay, meta.autoplay.map(o => label('autoplay', o)), o => `pbSet(${ki}, ${ci}, 'autoplay', '${o}')`)}
-        ${(c.autoplay ?? 'muted') === 'sound' ? `<div class="num-wrap sm"><input value="${esc(vol)}" inputmode="numeric" oninput="pbNum(this, ${ki}, ${ci})"><span class="unit">%</span></div>` : ''}`)}
+      ${frow('autoplay', 'Autoplay behaviour', accSeg(c.autoplay ?? 'auto', meta.autoplay, meta.autoplay.map(o => label('autoplay', o)), o => `pbSet(${ki}, ${ci}, 'autoplay', '${o}')`),
+        'Whether the player starts on its own — Auto lets the player decide')}
+      ${ci < 0 ? frow('passiveVolume', 'Passive volume', `<div class="num-wrap sm"><input value="${esc(vol)}" placeholder="100" inputmode="numeric" oninput="pbNum(this, ${ki}, ${ci})"><span class="unit">%</span></div>`,
+        'The player’s one volume while it runs passively — configs never carry their own') : ''}
     </div>`;
 }
 
@@ -757,8 +752,7 @@ function pbDropField(ki, ci, f) {
   const orig = ci < 0 ? k.orig.player : k.orig.playerConfigs.find(x => x.id === cur.id);
   if (!orig) return;
   cur[f] = JSON.parse(JSON.stringify(orig[f]));
-  if (f === 'autoplay') { cur.startVolume = orig.startVolume; delete PB_TEXT[`${ki}:${ci}`]; }
-  if (f === 'startVolume') delete PB_TEXT[`${ki}:${ci}`];
+  if (f === 'passiveVolume') delete PB_TEXT[`${ki}:${ci}`];
   renderPBScreen();
 }
 
@@ -850,7 +844,8 @@ function dcTodayWord(f) {
     let w;
     if (f === 'playback') w = label('playback', p.playback ?? 'active');
     else if (f === 'expandInMini') w = (p.expandInMini ?? true) ? 'True' : 'False';
-    else w = `${label('autoplay', p.autoplay ?? 'muted')}${(p.autoplay ?? 'muted') === 'sound' ? ` · ${p.startVolume ?? 80}%` : ''}`;
+    else if (f === 'passiveVolume') w = `${p.passiveVolume ?? 100}%`;
+    else w = label('autoplay', p.autoplay ?? 'auto');
     if (!words.includes(w)) words.push(w);
   }
   if (words.length === 1) return words[0];
@@ -863,7 +858,7 @@ function dcOpen(f) { DC_DRAFT.open.add(f); renderDCScreen(); }
 function dcUnset(f) {
   DC_DRAFT.open.delete(f);
   delete DC_DRAFT.fields[f];
-  if (f === 'autoplay') { delete DC_DRAFT.fields.startVolume; delete DC_TEXT.vol; }
+  if (f === 'passiveVolume') delete DC_TEXT.vol;
   renderDCScreen();
 }
 
@@ -873,7 +868,7 @@ function dcSet(f, v) {
 }
 
 function dcVol(el) {
-  DC_DRAFT.fields.startVolume = Number(el.value);
+  DC_DRAFT.fields.passiveVolume = Number(el.value);
   DC_TEXT.vol = el.value; // typing never repaints — the caret rule
 }
 
@@ -904,7 +899,7 @@ function renderDCScreen() {
   if (!DC_DRAFT) return;
   const meta = KL_META;
   const f = DC_DRAFT.fields;
-  const n = Object.keys(f).filter(x => x !== 'startVolume').length;
+  const n = Object.keys(f).length;
   const keys = selectedKeys();
   document.getElementById('dialog-root').innerHTML = `
     <div class="dlg-veil"><div class="dlg bulk">
@@ -913,8 +908,10 @@ function renderDCScreen() {
         ${dcRowHtml('playback', 'Playback mode', () => accSeg(f.playback, meta.playbackKinds, meta.playbackKinds.map(o => label('playback', o)), o => `dcSet('playback', '${o}')`))}
         ${dcRowHtml('expandInMini', 'Expand MiniTV for ads', () => accSeg(f.expandInMini, [true, false], ['True', 'False'], o => `dcSet('expandInMini', ${o})`),
           'Whether the MiniTV expands while an ad runs')}
-        ${dcRowHtml('autoplay', 'Autoplay behaviour', () => `${accSeg(f.autoplay, meta.autoplay, meta.autoplay.map(o => label('autoplay', o)), o => `dcSet('autoplay', '${o}')`)}
-          ${f.autoplay === 'sound' ? `<div class="num-wrap sm"><input value="${esc(DC_TEXT.vol ?? (f.startVolume ?? ''))}" placeholder="80" inputmode="numeric" oninput="dcVol(this)"><span class="unit">%</span></div>` : ''}`)}
+        ${dcRowHtml('autoplay', 'Autoplay behaviour', () => accSeg(f.autoplay, meta.autoplay, meta.autoplay.map(o => label('autoplay', o)), o => `dcSet('autoplay', '${o}')`),
+          'Whether the player starts on its own — Auto lets the player decide')}
+        ${dcRowHtml('passiveVolume', 'Passive volume', () => `<div class="num-wrap sm"><input value="${esc(DC_TEXT.vol ?? (f.passiveVolume ?? ''))}" placeholder="100" inputmode="numeric" oninput="dcVol(this)"><span class="unit">%</span></div>`,
+          'The player’s one volume while it runs passively')}
       </div>
       <div class="dlg-foot">
         <span class="rvw-count">${n ? `${n} change${n === 1 ? '' : 's'} · ${keys.length} integration${keys.length > 1 ? 's' : ''}` : ''}</span>
@@ -926,10 +923,8 @@ function renderDCScreen() {
 
 async function dcApply() {
   const f = DC_DRAFT.fields;
-  if (!Object.keys(f).filter(x => x !== 'startVolume').length) return;
+  if (!Object.keys(f).length) return;
   const fields = { ...f };
-  if (fields.autoplay === 'sound') fields.startVolume = fields.startVolume ?? 80;
-  else delete fields.startVolume;
   closeDCScreen();
   await bulkApplyDirect('playerFields', { fields }, 'Default player behaviour');
   await refreshKeysList();

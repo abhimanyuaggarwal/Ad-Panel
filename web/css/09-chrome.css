@@ -1,0 +1,334 @@
+/* 09-chrome.css — the header band, THE CHANGE REVIEW, the clean-slate rows, master-detail.
+   Split from app.css (3 Sep, pure partition): the ten files load in numeric order and
+   reproduce the original cascade byte for byte — later rules still win, so KEEP THE ORDER. */
+
+/* ---------- THE HEADER BAND (2 Sep, user call — the sidebar is gone) ---------- */
+/* Two rooms never justified a 232px column: a collapsed rail only moved the empty space
+   around, so the nav moved into a header band and the page got its full width back.
+   Brand · the two rooms · scope · New integration, in one line; the content below fills
+   the page and centres past a very wide screen. */
+.shell { flex-direction: column; }
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: #10182b; color: #d5dbe8;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.tb-in { display: flex; align-items: center; gap: 18px; padding: 0 26px; height: 56px; max-width: 1760px; margin: 0 auto; }
+.tb-gap { flex: 1; }
+.topbar .brand { padding: 0; display: flex; align-items: center; gap: 8px; font-size: 15.5px; white-space: nowrap; }
+/* The mark rides transparent on the band — an inline SVG, never a boxed image. */
+.brand-mark { width: 22px; height: 22px; flex: 0 0 22px; display: block; }
+/* The band carries no primary act: each room's own is in its page head (New integration
+   / New ad setup), where it stays correct without the header having to track the route. */
+
+/* The rooms as header tabs: the same rail vocabulary (icon, name, count, accent for the
+   room you are in) turned on its side, with the accent as an underline. */
+.topbar #nav { flex-direction: row; gap: 2px; padding: 0; }
+.topbar #nav a {
+  margin: 0; padding: 0 12px; height: 56px; gap: 8px; border-radius: 0;
+  font-size: 13px; font-weight: 600; border-bottom: 2px solid transparent;
+}
+.topbar #nav a::before { display: none; }
+.topbar #nav a:hover { background: rgba(255,255,255,.05); }
+.topbar #nav a.on { background: transparent; border-bottom-color: var(--accent); color: #fff; }
+.topbar .nav-t { flex: 0 0 auto; }
+
+/* The scope switcher keeps its dark-on-dark shape; only its box changes. */
+.topbar #prop-global { padding: 0; flex: 0 0 auto; min-width: 172px; }
+.topbar .ps-btn { padding: 6px 10px; }
+.topbar .ps-menu { left: auto; right: 0; min-width: 220px; top: calc(100% + 6px); }
+
+/* The page fills what the sidebar used to take. The form no longer caps at 860px on the
+   detail pages — it grows into the row the history rail leaves, which is what "the
+   sections fill the page" means; the rail itself never moves. */
+main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; }
+.detail .form { max-width: none; }
+@media (max-width: 700px) {
+  .tb-in { gap: 10px; padding: 0 14px; }
+}
+
+/* ---------- THE CHANGE REVIEW (2 Sep, user call) ---------- */
+/* One screen, three doors (bulk Apply, Save, Publish). A change is a WHAT and a
+   FROM→TO, grouped by WHERE, so "what did I change on the mid-roll" is answered by
+   looking rather than by reading. Fixed width, body scrolls: a two-change review and a
+   thirty-change review are the same object at two heights. */
+/* STEP 2 IS THE SAME OBJECT AS STEP 1 (2 Sep review): the review wears the bulk sheet's
+   exact footprint — same width, same body height — so confirming does not feel like a
+   different dialog arriving. The body holds its height whether it lists two changes or
+   thirty; only past that does it scroll. */
+.dlg.rvw { width: 860px; max-height: calc(100vh - 80px); display: flex; flex-direction: column; }
+/* 340 (the sheet's body) + 71 for the tab strip and its margin, which the review has no
+   equivalent of — so the two dialogs measure the same from the outside. */
+.rvw-body {
+  flex: 1; min-height: 411px; max-height: calc(100vh - 260px);
+  overflow-y: auto; margin-bottom: 10px !important; padding-right: 2px;
+}
+/* EACH GROUP IS A BOUNDED OBJECT (2 Sep, UX pass): flat hairlines running edge to edge
+   made Pre-roll and Mid-roll one continuous grey mass — the eye had to read the
+   headings to find the seams. Now a group is a bordered block with a tinted header
+   band (standard table anatomy, far lighter than a filled card), so the breaks chunk
+   by shape before a single word is read. Row rules inside are a shade lighter than
+   the group's own border, keeping the hierarchy: group first, row second. */
+.rvw-g { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+.rvw-gh {
+  display: flex; align-items: center; gap: 7px; padding: 6px 12px;
+  background: var(--bg-soft, #f7f8fb); border-bottom: 1px solid var(--line);
+  font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--accent-ink);
+}
+.rvw-gn { font-weight: 600; letter-spacing: 0; color: var(--ink-faint); }
+.rvw-row {
+  display: grid; grid-template-columns: minmax(140px, 220px) minmax(0, 1fr) auto;
+  gap: 10px; align-items: baseline; padding: 8px 12px;
+  border-bottom: 1px solid #eef0f5;
+}
+.rvw-g .rvw-row:last-child { border-bottom: 0; }
+.rvw-f { font-size: 12.5px; font-weight: 600; color: var(--ink-soft); }
+.rvw-v { font-size: 12.5px; color: var(--ink); min-width: 0; }
+.rvw-v code { font-family: inherit; font-size: 12.5px; color: var(--ink-faint); background: none; padding: 0; }
+.rvw-v b { font-weight: 650; }
+.rvw-arr { font-style: normal; color: #c3c9d4; margin: 0 7px; }
+.rvw-m { font-size: 11px; color: var(--ink-faint); text-align: right; white-space: nowrap; }
+/* The count sits at the foot's left, opposite the two acts — the confirm dialog's own
+   "how much am I agreeing to" without a sentence to read. */
+.rvw-count { flex: 1; font-size: 11.5px; font-weight: 600; color: var(--ink-faint); }
+.dlg.rvw .dlg-foot { align-items: center; }
+
+/* ---------- ONE FIXED LIST, CHANGE-STATE IN PLACE (3 Sep, fifth cut) ---------- */
+/* The two-list era (Pending changes / Other settings) is over: a touched field used to
+   TELEPORT between the halves — the one thing this panel never lets a control do. Now
+   the tab is a single settings list wearing the integration page's own anatomy: label ·
+   live control · the row's state. A changed row says so in place — accent bar, a quiet
+   "was …", an × that puts it back. `.bqs-*` survivors below are shared with the player
+   sheet's cross-config queue, which really is a queue (it navigates). */
+/* TWO CARDS (3 Sep, sixth cut): form left, the live Pending-changes card right — the
+   review's own bounded anatomy, so step 1's card IS step 2 growing. The card owns the
+   right column at a fixed width and scrolls inside itself; the space holds still
+   whether it lists nothing or twelve changes. */
+.bulk-split { display: flex; gap: 22px; align-items: flex-start; height: 100%; }
+.bulk-fields { flex: 1; min-width: 0; }
+.bqp { flex: 0 0 268px; min-height: 0; max-height: 100%; align-self: stretch; }
+/* One card, the review's face: tinted header band, hairline rows. The × keeps quiet
+   until the row is hovered — a revert is an act you reach for, not furniture. */
+.bqp-card {
+  border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+  display: flex; flex-direction: column; max-height: 100%;
+}
+.bqp-hd {
+  display: flex; align-items: center; gap: 8px; padding: 7px 12px;
+  background: var(--bg-soft, #f7f8fb); border-bottom: 1px solid var(--line);
+  font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.bqp-r { padding: 8px 12px 9px; border-bottom: 1px solid #eef0f5; }
+.bqp-r:last-child { border-bottom: 0; }
+.bqp-top { display: flex; align-items: center; gap: 6px; }
+.bqp-f { flex: 1; min-width: 0; font-size: 12px; font-weight: 600; color: var(--ink); }
+.bqp-top .bqs-x { opacity: 0; width: 18px; height: 18px; font-size: 13px; }
+.bqp-r:hover .bqs-x { opacity: 1; }
+.bqp-vc { font-size: 11.5px; color: var(--ink-faint); margin-top: 2px; }
+.bqp-vc b { font-weight: 650; color: var(--ink); }
+.bqp-vc .rvw-arr { margin: 0 6px; }
+.bqp-empty { padding: 12px; font-size: 11.5px; color: var(--ink-faint); }
+.bqf-r {
+  display: grid; grid-template-columns: 158px minmax(0, 1fr) auto;
+  gap: 10px; align-items: center; padding: 8px 8px 8px 12px;
+  border-bottom: 1px solid #eef0f5;
+}
+.bqf-r:last-of-type { border-bottom: 0; }
+.bqf-r.queued { box-shadow: inset 2px 0 0 var(--accent); background: #fbfcff; }
+.bqf-r.off-dim { opacity: .45; pointer-events: none; }
+.bqf-l { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+.bqf-c { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; row-gap: 6px; }
+.bqf-s { display: flex; align-items: center; gap: 6px; justify-content: flex-end; white-space: nowrap; }
+.bqf-today { font-size: 11.5px; color: var(--ink-faint); }
+.bqf-foot { display: flex; justify-content: space-between; padding-top: 12px; }
+
+/* The player sheet's queue rows keep the shared anatomy. */
+.bqs { margin: 0 0 2px; }
+.bqs-h { display: flex; align-items: center; gap: 7px; padding: 0 6px 6px; }
+.bqs-t {
+  font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--accent-ink);
+}
+.bqs-n {
+  font-size: 9.5px; font-weight: 700; padding: 0 6px; border-radius: 9px;
+  background: var(--accent-soft); color: var(--accent-ink);
+}
+.bqs-gap { flex: 1; }
+.bqs-row { position: relative; display: flex; align-items: center; flex-wrap: wrap; }
+.bqs-main {
+  flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 9px;
+  border: 0; background: none; font: inherit; text-align: left; cursor: pointer;
+  padding: 7px 8px 7px 12px; border-radius: 0 7px 7px 0;
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.bqs-main:hover { background: var(--accent-soft); }
+.bqs-f { flex: 0 0 auto; font-size: 12.5px; font-weight: 600; color: var(--ink); }
+.bqs-v { flex: 1; min-width: 0; text-align: right; font-size: 12.5px; color: var(--ink); }
+.bqs-v code { font-family: inherit; font-size: 12.5px; color: var(--ink-faint); background: none; padding: 0; }
+.bqs-v b { font-weight: 650; color: var(--ink); }
+.bqs-arr { font-style: normal; color: #c3c9d4; margin: 0 7px; }
+.bqs-x {
+  flex: 0 0 auto; width: 22px; height: 22px; border: 0; border-radius: 6px; cursor: pointer;
+  background: none; color: var(--line); font-size: 15px; line-height: 1;
+}
+.bqs-row:hover .bqs-x, .bqf-r:hover .bqs-x { color: var(--ink-faint); }
+.bqs-x:hover { background: var(--bad-soft); color: var(--bad); }
+
+
+/* ---------- CHANGE PLAYER BEHAVIOUR (3 Sep, third cut: master-detail) ---------- */
+/* A column per field cannot scale past three; a rail-and-form can scale forever. Left:
+   every selected integration's configs, grouped, the changed ones dotted and barred.
+   Right: the selected config's whole form — a new fact is one more row, never a new
+   column. The same anatomy the panel already reads (two-col, group headers, .lr rows). */
+.pb-body { display: flex; flex-direction: column; overflow: hidden; }
+/* The queue strip sits above the split; the split takes what is left and scrolls
+   inside itself, so the dialog never grows past the shared footprint. */
+.pb-split { flex: 1; min-height: 0; display: flex; gap: 0; }
+.pbr {
+  flex: 0 0 200px; overflow-y: auto; border-right: 1px solid var(--line);
+  padding: 2px 12px 2px 2px; align-self: stretch; min-height: 0;
+}
+.pbr-g + .pbr-g { margin-top: 12px; }
+.pbr-gh {
+  display: flex; align-items: baseline; gap: 7px; padding: 0 8px 5px;
+  font-size: 11px; font-weight: 700; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pbr-gn { font-size: 10px; font-weight: 500; color: var(--ink-faint); }
+.pbr-row {
+  display: flex; align-items: center; gap: 7px; width: 100%;
+  border: 0; background: none; font: inherit; text-align: left; cursor: pointer;
+  padding: 6px 8px 6px 12px; border-radius: 7px;
+}
+.pbr-row:hover { background: var(--accent-soft); }
+.pbr-row.sel { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+.pbr-row.dirty:not(.sel) { box-shadow: inset 2px 0 0 var(--accent); }
+.pbr-n { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pbr-n.dflt { color: var(--ink-soft); }
+.pbr-count {
+  flex: 0 0 auto; min-width: 18px; padding: 1px 6px; border-radius: 9px;
+  background: var(--accent); color: #fff; font-size: 10.5px; font-weight: 700; text-align: center;
+}
+.pbr-row.sel .pbr-count { background: var(--accent); }
+
+.pbd { flex: 1; min-width: 0; padding: 2px 4px 2px 16px; overflow-y: auto; }
+.pbd-h {
+  display: flex; align-items: baseline; gap: 8px; padding: 4px 0 12px;
+  font-size: 13px; font-weight: 650; color: var(--ink); white-space: nowrap;
+  border-bottom: 1px solid var(--line); margin-bottom: 6px;
+}
+.pbd-note { font-size: 11px; font-weight: 500; color: var(--ink-faint); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.pbd-r { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid #eef0f5; }
+.pbd-r:last-child { border-bottom: 0; }
+.pbd-l { flex: 0 0 150px; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); }
+.pbd-c { display: flex; align-items: center; gap: 8px; min-width: 0; }
+/* The change, where it was made: an accent bar in the block's own gutter, the value it
+   held, and an × that puts it back. Nothing appears above the form, so nothing moves. */
+.pbd-r.moved { box-shadow: inset 2px 0 0 var(--accent); }
+.pbd-s {
+  margin-left: auto; display: flex; align-items: center; justify-content: flex-end;
+  gap: 6px; flex: 0 0 112px; min-width: 0;
+}
+.pbd-was {
+  font-size: 11px; color: var(--ink-faint); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+.pbd-x {
+  border: 0; background: none; cursor: pointer; color: var(--ink-faint);
+  font-size: 15px; line-height: 1; padding: 2px 4px; border-radius: 5px; opacity: 0;
+}
+.pbd-r:hover .pbd-x, .pbd-x:focus-visible { opacity: 1; }
+.pbd-x:hover { color: var(--bad); background: #fdf0f0; }
+
+.num-wrap.sm { width: 68px; flex: 0 0 68px; }
+.num-wrap.sm input { width: 40px; }
+/* No strip of its own at all since the master-detail cut — the body makes up the whole
+   difference so all three dialogs measure the same 860×529. */
+/* FIXED, NEVER RESIZING (3 Sep, user call): a dialog that changes size as you work
+   moves everything under the cursor — and this one grew a row taller when a volume box
+   appeared and shrank by a third on a surface with fewer configs. The DIALOG carries the
+   height (the same 860×529 every other sheet measures); the body takes what is left and
+   the rail and detail scroll inside it. `.dlg.bulk .dlg-body` sets `flex: 1`, whose
+   `flex-basis: 0%` overrides any height set here — so the size has to live on the box
+   above, and the body's floor and ceiling are released. */
+.dlg.pb { height: 529px; }
+.dlg.pb .dlg-body { flex: 1 1 auto; min-height: 0; max-height: none; }
+
+/* ---------- the setup wizard's own rows (3 Sep) ---------- */
+.suw-sub { margin: -6px 0 12px 30px; max-width: 240px; }
+.suw-pl { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-bottom: 1px solid #eef0f5; }
+.suw-pl:last-of-type { border-bottom: 0; }
+.suw-pl input { flex: 0 0 260px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 7px; font-size: 12.5px; }
+.suw-pl-n { flex: 0 0 150px; font-size: 12.5px; font-weight: 600; color: var(--ink); }
+.suw-pl.ro .suw-pl-n { color: var(--ink-soft); }
+.suw-dr { display: flex; align-items: flex-end; gap: 22px; padding: 9px 4px; border-bottom: 1px solid #eef0f5; }
+.suw-dr:last-of-type { border-bottom: 0; }
+.suw-dr .suw-pl-n { padding-bottom: 7px; }
+.suw-cell { display: flex; flex-direction: column; gap: 5px; min-width: 230px; }
+.suw-cell label { font-size: 10.5px; font-weight: 650; letter-spacing: .03em; color: var(--ink-faint); text-transform: uppercase; }
+
+/* ---------- AD DELIVERY, NOTHING MAPPED: CARDS IN THE SECTION (3 Sep) ---------- */
+.setup-pick { padding: 6px 0 2px; }
+/* Three across, not four (3 Sep): a card carries a name AND two acts in its corner, and
+   at 330px the acts had to sit on top of the name to fit. */
+.setup-pick .dlg-cards.sp-cards { grid-template-columns: repeat(auto-fill, minmax(430px, 1fr)); padding: 0; }
+.sc-foot { display: flex; align-items: baseline; gap: 8px; margin-top: 9px; min-width: 0; }
+.sc-foot .podl { margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- THE PLAYER'S OWN GRID (3 Sep, user call) ---------- */
+/* The three player facts used to bunch into the left third of the card with dead space
+   beside them, under a 240px select and a 1100px text box. Every player field now takes
+   an even share of its row, so the block lands on the same grid the identity rows use. */
+.frow.pfacts { gap: 18px 28px; }
+.frow.pfacts > .field { flex: 1 1 0; min-width: 210px; align-items: flex-start; }
+.frow.pfacts > .field .fctl { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
+/* Since the volume left the autoplay row (3 Sep), the four facts share the row evenly,
+   and the volume box is a plain compact number field like every other. */
+/* Inside a column-flex .field the basis is HEIGHT — so the box sizes itself and only
+   the width is pinned. */
+.frow.pfacts .num-wrap { flex: 0 0 auto; width: 96px; height: 38px; }
+.frow.pfacts .num-wrap input { padding-left: 10px; height: 36px; }
+
+/* A config's name is a short label, never a full-width bar (the Fallback-media lesson). */
+.frow.pc-idrow { gap: 18px 16px; }
+.frow.pc-idrow .field { flex: 0 0 340px; align-items: stretch; }
+.frow.pc-idrow .field input[type=text] { width: 100%; }
+.frow.pc-idrow .field.pc-rm { flex: 0 0 auto; }
+
+/* Custom configs are TABS now — the strip is the section's own, one size down from the
+   break tabs, and Remove sits at the end of the name row rather than in a header band. */
+.pc-tabs { margin: 2px 0 16px; }
+.pc-tabs .stab { font-size: 12.5px; }
+/* The one destructive act sits beside the name it removes, on the input's own baseline —
+   not adrift mid-row, and not pinned to a card edge a metre from its subject. */
+.field.pc-rm { justify-content: flex-end; min-width: 0; flex: 0 0 auto; }
+.field.pc-rm .zlink { padding: 9px 0; }
+.pcc-empty { display: flex; align-items: baseline; gap: 10px; font-size: 12.5px; color: var(--ink-faint); padding: 2px 0 2px; }
+
+/* Break positions: a list of times, wider than a count and narrower than a name. */
+.cue-in input {
+  width: 230px; font: inherit; font-size: 12.5px; padding: 6px 10px;
+  border: 1px solid var(--line); border-radius: 7px; background: var(--card, #fff); color: var(--ink);
+}
+.cue-in input:hover { border-color: #d4d9e3; }
+.cue-in input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); outline: 0; }
+.cue-in.set input { border-color: var(--accent); }
+.cue-in { display: inline-flex; margin-right: 12px; }
+
+/* ---------- PLAYER BEHAVIOUR: ONE INTEGRATION, WHOLE (3 Sep, user call) ---------- */
+/* The rail is the cohort; the right side is one surface's configs together. */
+.pbd-g { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+.pbd-g.dirty { border-color: var(--accent); }
+.pbd-gh {
+  display: flex; align-items: baseline; gap: 8px; padding: 6px 12px;
+  background: var(--bg-soft, #f7f8fb); border-bottom: 1px solid var(--line);
+  font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--accent-ink);
+}
+.pbd-gh .pbd-note { font-size: 10.5px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--ink-faint); }
+.pbd-gh .bdot { margin-left: auto; }
+.pbd-g .pbd-r { padding-left: 12px; padding-right: 12px; }
+.pbd-g .pbd-r:last-child { border-bottom: 0; }
+
+
