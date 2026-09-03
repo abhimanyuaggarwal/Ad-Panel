@@ -1,0 +1,17 @@
+{
+  "name": "streamads-player-console",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Player Console — the Integrations Panel (mock API on :4200 + no-build web app). Self-contained: run everything from this folder.",
+  "type": "module",
+  "scripts": {
+    "start": "node api/server.js",
+    "test": "node test/run.js",
+    "demo": "curl -s -X POST localhost:4200/panel/mock/reset",
+    "scale": "curl -s -X POST localhost:4200/panel/mock/reset -H 'content-type: application/json' -d '{\"scenario\":\"scale\"}'"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}
