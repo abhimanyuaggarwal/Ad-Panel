@@ -1,5 +1,81 @@
 # Player Console — the Integrations Panel (StreamAds repo) — v1
 
+**LAST CALLS BEFORE HANDOFF (3 Sep, user — twelve, in order):**
+
+1. **"Ad delivery" is "Ad behaviour"** on the integration page — the same word the bulk act uses,
+   one name for one concept. (The ops room keeps "Ad setups": the object, not the section.)
+2. **Custom configs are KEYS, one row each — in a table.** A config is a single word a player
+   types to ask for it (`shorts`, not "Shorts feed") — held to `[A-Za-z0-9_-]{1,24}` at the
+   prompt, on blur, and by the server, refused by name otherwise. The tabs are gone, and the
+   first one-row cut failed because the key sat baseline-level with the controls and read as an
+   unlabelled fourth field. Settled shape: ONE heading row (KEY · PLAYBACK MODE · EXPAND MINITV ·
+   AUTOPLAY), the key in its own fixed identity column — mono, on a quiet tint, a rule dividing
+   it from the facts it names — and bare controls under their permanent headings.
+3. **Autoplay behaviour is On / Off / Auto** (was Off/Muted/Unmuted). Whether the player starts by
+   itself is one decision; loudness is another —
+4. **Passive volume (0–100%)** is the player's ONE volume, a Details field (JSON: `passiveVolume`,
+   replacing `startVolume`, which is now refused by name). Custom configs never carry a volume;
+   the Default player behaviour bulk sheet gained it as a fourth lever, and the Custom player
+   behaviour sheet shows it on the Default block only.
+5. **Creating an integration maps existing demand only** — the "+ New ad setup" blank card is gone
+   from create mode (in-section cards and the change modal both); it remains on the edit page,
+   where the stash-and-return flow lives.
+6. **Details is two rows: short answers, then the three forkable facts.** Playback, Fallback media
+   and Passive volume are all short answers (a mode, a media id, a number), so they share one row
+   at their natural widths like Property · Platform above them — growing them split the row 50/50
+   and left a select adrift in half a row of nothing. Playback mode · Expand MiniTV · Autoplay
+   behaviour then own the row below, an even share each: the same three facts, in the same order,
+   as the columns of the configs table under them.
+7. **The mapped setup rides the Ad behaviour TITLE ROW, at the right edge.** `FILLS FROM` eyebrow ·
+   a prominent accent chip with the setup's name (click = the open-and-return trip, edits kept;
+   hover = the demand summary) · the quiet meta (`who · when`, plus "becomes this integration's
+   own copy at create" while held) · `change`. It briefly sat on its own line under the title and
+   read as a second heading. Unmapped still says "nothing yet — every break fills from ONE ad
+   setup; pick it below". `.ads-fills` / `.st-chip` survive so the probes' reads stay honest.
+8. **Custom player configs carries no byline** ("a player asking by key gets that row…"): the KEY
+   heading over a mono key column says it, and the panel's rule is that facts wear micro-labels,
+   not sentences.
+9. **Adding a custom config is typing a row, not answering a dialog.** `+ Add config key` is a
+   real add-row button in the ladder's grammar, at the FOOT of the table where the row it makes
+   appears — it used to be a pale link up in the section title, naming the section again. Clicking
+   it inserts the row with the caret already in its key and the three facts born a photocopy of the
+   default's, so the row is finished the moment the key is typed. An unnamed row disables the next
+   add (`Key the row above first`) rather than a dialog disabling the page, typing never repaints
+   the table (`.wants` and the button are toggled by hand), the key's three refusals moved to blur
+   (one word · not `default` · not a key already here), an abandoned row is dropped by `keyPayload`
+   instead of earning a server refusal, and its `×` asks nothing. `askName` had no callers left
+   and is gone, with its CSS.
+10. **A map card offers two acts on hover: `Use` and `Duplicate & use`** — in the card's TOP-RIGHT
+   corner (3 Sep, second cut), where an "in use / free" pill used to sit saying what the foot
+   already says in words ("fills X"). `Use` is the small solid button, `Duplicate & use` the
+   outlined one beside it; they are absolutely placed and faded in, so the title never reflows,
+   with a short white ramp carrying them over the tail of a long name instead of clipping it.
+   The cards were widened to make room — three across in the section (`minmax(430px, 1fr)`) and
+   the chooser dialogs went to the house 860px sheet width, since a 330px card cannot hold a name
+   and two acts at once.
+   `use` maps that very setup (photocopying it if someone else already fills it, as before);
+   `duplicate & use` takes a photocopy — placements, ad units, deals, settings — and maps that,
+   leaving the original alone. On a SAVED integration the copy is made immediately; while an
+   integration is still being created it is made at Create (`FORM.data.copyAtCreate`, read from the
+   form because `keyPayload` rightly strips it), so cancelling leaves no orphan setup behind —
+   the same discipline the held-setup copy has always followed.
+11. **Two CSS collisions fixed in the New request template dialog** (reported as "UI is breaking",
+   both older than this round). The house `.select` carries `min-width: 210px` for page rows, but
+   the Provider field in a 440px dialog is 150px — the control spilled out through the dialog's
+   right edge; `.frow.tpl-form .select` now fits the column it was given. And `.dlg-note` was
+   defined twice: the later rule zeroed the margin of the earlier one but left its `border-top`
+   and `padding-top`, so the separator hairline sat 11px under the URL field and read as a doubled
+   input border. One definition now: a quiet hint with air above it and no rule line.
+12. **Every break can be cleared, and the whole setup at once.** `Clear` sits in the break's right
+   gutter and shows itself when the row is yours (the ad unit's gear grammar), greying where it
+   sits — not vanishing — when there is nothing to clear. `Clear all ad units` is in the setup's
+   `⋯` menu, which now renders while creating too. Clear means the DEMAND: the indirect ladder, the
+   direct deal, and on a mid-roll the extra pods, which collapse back to Pod 1. Placements, their
+   names and every delivery setting stay. Both confirms count first and name what goes ("Removes 15
+   ad units from 5 breaks across 2 placements (Default, Shorts feed)"), and nothing leaves the page
+   until Save.
+
+
 ## Layout (production handoff, 3 Sep 2026)
 
 Self-contained: `npm install && npm start` (port 4200), `npm test` (117 cases, ~1s,
@@ -8,7 +84,15 @@ documents the order). Everything invented lives in `api/mock/`; `POST /panel/moc
 rebuilds the world with the same ids.
 
     api/server.js            HTTP surface (routes, views/serializers, bulk actions)
-    api/store.js             the model: normalizers, refusals-by-name, the seam, publish plane
+    api/store.js             the model's front door — re-exports api/store/ whole
+    api/store/state.js       the in-memory maps, vocabulary constants, ids, reset
+    api/store/validate.js    shared refusal helpers (refused-by-name lives here)
+    api/store/tags.js        ad tags + request templates
+    api/store/ladders.js     slot behaviour, cue points, rungs, the walks
+    api/store/setups.js      ad setups: placements, pods, deals, CRUD, GAM directory
+    api/store/keys.js        integrations: identity, player, custom configs, the drive
+    api/store/publish.js     THE PUBLISH PLANE + the seam checked at the boundary
+    api/store/diff.js        what changed, in words
     api/mock/world.js        the seeded world + named scenarios
     web/js/util.js           escaping, LABELS vocabulary, toasts, house dialogs
     web/js/api.js            every request as a named operation — no view writes a URL
@@ -20,10 +104,26 @@ rebuilds the world with the same ids.
     web/js/views-setups.js       the ad setup EDITOR (ops room)
     web/js/views-keys-list.js    Integrations list, filters, selection, bulk bar
     web/js/views-keys-bulk.js    the three bulk acts (ad / custom player / default player)
-    web/js/views-keys-form.js    one integration's page + the new-integration chooser
+    web/js/views-keys-form.js    one integration's page 1/4: load, accessors, setup mapping + return flow
+    web/js/views-keys-drive.js   2/4: Ad behaviour — the walk mirror, the drive, break tabs, the card
+    web/js/views-keys-player.js  3/4: the player fields + the custom-config table
+    web/js/views-keys-shell.js   4/4: page frame, payload/diff, save/create/delete, the chooser
     web/js/main.js           hash router
+    web/css/                 the stylesheet, split 01–10 (pure partition of app.css — numeric
+                             load order IS the original cascade; later rules still win)
     test/run.js              the 117-case suite
-    docs/                    the original Player-Config scope documents
+    docs/                    Player-Config scope documents + STORE-SPLIT.md (the planned
+                             api/store.js split: module map, pinned rules, method)
+
+The four views-keys-form parts and the ten css files are PURE PARTITIONS (3 Sep): cut at
+section seams, byte-exact reassembly asserted before writing, nothing edited in the move.
+A computed-style snapshot of every element on seven screens (2,602 rows × 42 properties)
+was taken before and after the CSS split and is identical. api/store.js was split the
+same day under docs/STORE-SPLIT.md's rules — eight subject modules behind a re-export
+façade, so server.js, the tests and the mock world import exactly what they always did;
+verified by 117/117, the probe battery, and a 44-check end-to-end UAT (list filters and
+search, both editors' full journeys, the inline config row, pods, the lookup, clears,
+save→review→publish, all three bulk acts, zero console errors, no native dialogs).
 
 
 **THE BULK SHEET IS A CLEAN SLATE (3 Sep, user call).** The ad-behaviour sheet used to draw every
@@ -218,16 +318,16 @@ act. The decisions:
 2. **Picking lands in the editor ad ops actually work in** (`viewSetupForm(null)` seeded via
    `SETUP_CREATE_SEED`), not a stepper. The shape you are handed is the shape you keep tuning, and
    the create-mode editor that already existed became reachable again instead of being replaced.
-3. **A copy brings everything but the ad units.** Placements, delivery settings, cadence and
-   mid-roll break-group structure are photocopied; every ladder arrives EMPTY, and the head says so
-   ("copied from X — ad units are entered here"). This is the user's call and it is the right one:
-   ad units are trafficked per surface, so inheriting another setup's would quietly point new
-   inventory at someone else's units — the one mistake this panel must not make. Verified against
-   the server: the copy keeps 2 placements, the 1.5s timeout and the `[240, 660, 1080]` cadence,
-   with 0 pre-roll rungs where the source has 10.
+3. **A copy brings everything — ad units included** (3 Sep, user call; it used to arrive with empty
+   ladders on the argument that units are trafficked per surface). A copy you have to re-traffic by
+   hand is not a copy, and the same unit running on two surfaces was never abnormal here — an ad
+   setup is what a surface *asks*, not what it owns. It stays a PHOTOCOPY, deep-copied object by
+   object, so tuning the new setup moves nothing on the source; the head says `copied from X — its
+   own from here` and the create review counts what came ("26 copied — this setup's own"). Verified
+   against the server: 26 units in, 26 units out, source untouched.
 4. **Create is reviewed** like every other write (`setupCreateChangeList` through `reviewChanges`,
-   keepOrder), and **lands IN the new setup's editor** rather than back on the list — with a copy's
-   empty ladders, the very next act is filling them.
+   keepOrder), and **lands IN the new setup's editor** rather than back on the list — what happens
+   next, filling ladders or tuning the ones the copy brought, happens on that page.
 5. **The integration page's inline "+ New ad setup" card lost the wizard too**: it now names the
    setup, creates it bare (one placement, platform delivery settings) and maps it without leaving
    the page. The ladders are ad ops' work and happen in their room.
