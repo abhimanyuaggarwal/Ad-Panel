@@ -91,8 +91,11 @@
    settings used to live only below the fold (the ⚙ panel, one at a time) — reading a ladder's
    values meant opening ten folds. Row two now carries EVERY fact of the unit's TYPE upfront
    (user picked this over a curated subset and over news-only): fixed order, defaults included,
-   FULL labels in plain case with the value wearing the ink and the weight (re-cut on review —
-   9px label stubs read as noise; "complete context" won) — video: `Content pause · Request
+   FULL labels in plain case (re-cut on review — 9px label stubs read as noise; "complete
+   context" won), each fact a QUIET TINTED PILL (third pass — bold values read heavy, and the
+   free line ran past the unit's field): label faint, value medium ink, prominence from
+   figure-ground not weight, and the line ends where the ad unit's field ends (66px right
+   gutter), wrapping cleanly when a type's six facts need it — video: `Content pause · Request
    delay · Companion position · Template`; display adds `Ad placement · Skip offset ·
    Auto-hide`; a rotation banner is `Ad placement · Template` only. Type-based, never value-based: a fact that cannot apply right
    now (Skip while content pauses) dims in place with the reason on hover; a switched-off rung

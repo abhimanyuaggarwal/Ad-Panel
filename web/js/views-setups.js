@@ -561,7 +561,7 @@ function suRungFactsHtml(t, n, r) {
   return `
     <div class="rung-facts${r.on === false ? ' dim' : ''}" onclick="suToggleRungSettings('${t}', ${n})"
       title="This unit’s settings — click to edit">
-      ${facts.join('<b class="uf-sep">·</b>')}
+      ${facts.join('')}
     </div>`;
 }
 

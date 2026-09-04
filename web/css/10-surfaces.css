@@ -202,25 +202,27 @@
    left edge so summary and editor open on the same x. The whole line is a door to the
    gear panel; a fact that cannot apply right now dims in place (.na), and a switched-off
    rung dims its line whole (.dim). */
-/* Re-cut on user review (4 Sep): FULL LABELS in plain case ("Content pause", not a
-   9px PAUSE stub) so the line carries its complete context, and the VALUE wears the
-   ink and the weight — prominence lives in the answers, the labels stay quiet. */
+/* Re-cut on user review (4 Sep, third pass): QUIET TINTED PAIRS. Bold values read heavy
+   and the free-flowing line ran past the ad unit's field — each fact is now a soft
+   pill (label faint, value medium ink, no separators to typeset), so prominence comes
+   from figure-ground, not weight, and the line ends where the field above it ends
+   (66px right gutter = the rows' gear/✕ gutter). Full labels stand (the second pass's
+   "complete context" call). */
 .rung-facts {
-  margin: 0 0 6px 126px; padding: 3px 8px 4px; border-radius: 6px;
-  display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 12px;
-  font-size: 12px; cursor: pointer;
-  transition: background .12s;
+  margin: 2px 66px 7px 126px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px;
+  cursor: pointer;
 }
-.rung-facts:hover { background: var(--bg-soft, #f7f8fb); }
-.rung-facts .uf { white-space: nowrap; }
-.rung-facts .uf i {
-  font-style: normal; font-size: 11px; font-weight: 400; color: var(--ink-faint);
-  margin-right: 5px;
+.rung-facts .uf {
+  display: inline-flex; align-items: baseline; gap: 5px; white-space: nowrap;
+  padding: 2.5px 9px; border-radius: 6px; background: var(--bg-soft, #f4f6fa);
+  font-size: 11.5px; transition: background .12s;
 }
-.rung-facts .uf b { font-weight: 650; color: var(--ink); }
-.rung-facts .uf.na { opacity: .5; }
+.rung-facts:hover .uf { background: #ecf0f7; }
+.rung-facts .uf i { font-style: normal; font-size: 10.5px; font-weight: 400; color: var(--ink-faint); }
+.rung-facts .uf b { font-weight: 500; color: var(--ink); }
+.rung-facts .uf.na { opacity: .55; }
 .rung-facts.dim { opacity: .45; }
-.uf-sep { font-weight: 400; color: var(--ink-faint); opacity: .55; }
 
 /* The panel speaks the Delivery-settings rows' own language — a label column and one
    control per line, one height — inside a bounded card that starts where the unit's
