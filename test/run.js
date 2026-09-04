@@ -1198,8 +1198,12 @@ await test('restore is forward-only: the old content lands as a NEW version', as
   const after = (await req('GET', '/panel/setups/as_1/versions')).body;
   eq(after.liveVersion, top + 1, 'and that is what is live');
   assert(after.versions.some(v => v.v === top), 'the version we reverted away from is still there to go back to');
-  eq((await req('GET', '/panel/setups/as_1')).body.setup.unpublishedCount, 0,
-    'the draft followed, so the editor shows what is live');
+  const view = (await req('GET', '/panel/setups/as_1')).body.setup;
+  eq(view.unpublishedCount, 0, 'the draft followed, so the editor shows what is live');
+  // The lists' Status column reads the provenance (4 Sep): the live version names
+  // the version it restored, and a fresh publish clears it again.
+  eq(view.liveRestoredFrom, 2, 'the view says the live version is a restore of v2');
+  eq(view.everPublished, true, 'and that it has been on air');
 });
 
 await test('the restore preview answers what changes NOW, not what that version did then', async () => {

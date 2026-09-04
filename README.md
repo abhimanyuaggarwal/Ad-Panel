@@ -106,6 +106,23 @@
    suffix), so glance and editor can never disagree. Applies to the indirect ladder AND the
    direct-deal tier. `suRungFactsHtml` in views-setups.js, `.rung-facts` in 10-surfaces.css.
 
+10. **Templates table lost its In use column; the unit panel tightened.** The counted use
+   still speaks where it acts (row hover, switch toast, ⋯ Delete's reason, dialog foot).
+   The ⚙ panel runs 30px rows with compact controls scoped to the panel alone — six fields
+   as one sleek block, and the wider number box stops the placeholder clipping.
+11. **A STATUS column on both lists** — the round-28 cut reversed with richer content (user
+   call): `Unpublished` (never published) · `● v3` (on air, counted) · `● v5 · from v2` (the
+   live version is a restore — provenance named) · `Off air` (taken down), with the amber
+   `N unpublished` gap as its own quiet line under the state. Same `.stat` grammar as the
+   editor header chip, so a row and its editor never disagree; the name-side chips died with
+   it (one fact, one place). `publishView` grew `liveRestoredFrom` + `everPublished`; Demand
+   went fixed-width (chips never grow), Status 118px, both tables still fixed-layout.
+12. **The setup editor's hierarchy, restated** (user call — headers read weaker than the
+   buttons under them): AD UNIT TEMPLATES and PLACEMENTS step up to 12px headers; the
+   templates section closes with a hairline so the two sections read apart; the break names
+   (Pre-roll…) are 13px ink — the row's own header over its DIRECT/INDIRECT zone labels; and
+   rung labels right-align to HUG their switch (a bare `1` no longer strands 40px of void).
+
 **LAST CALLS BEFORE HANDOFF (3 Sep, user — twelve, in order):**
 
 1. **"Ad delivery" is "Ad behaviour"** on the integration page — the same word the bulk act uses,

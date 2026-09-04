@@ -80,7 +80,7 @@ async function viewKeysList() {
       <table class="t-keys">
       <thead><tr>
         <th class="chk"><input type="checkbox" id="chk-all" title="Select everything on this page" onclick="toggleAllKeys(this)"></th>
-        <th>Integration</th><th>Property</th><th>Platform</th><th>Active breaks</th><th>Modified</th>
+        <th>Integration</th><th>Property</th><th>Platform</th><th>Active breaks</th><th>Status</th><th>Modified</th>
       </tr></thead>
       <tbody id="key-rows"></tbody>
     </table></div>`;
@@ -243,7 +243,7 @@ function repaintKeyRows() {
   if (!tbody) return;
   paintPager(all.length);
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="empty">No integrations match — clear a filter or create one.</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty">No integrations match — clear a filter or create one.</div></td></tr>`;
     paintSelBanner();
     return;
   }
@@ -253,12 +253,12 @@ function repaintKeyRows() {
         <input type="checkbox" ${KSEL.has(k.id) ? 'checked' : ''} onclick="toggleKeySel('${k.id}', this)">
       </td>
       <td>
-        <div class="cell-main">${esc(k.name)}${k.live ? '' : ' <span class="stat off sm" title="Not on air — the player is served nothing">Off air</span>'}${k.unpublishedCount
-          ? ` <span class="stat pending sm" title="Saved but not published — the player has not seen ${k.unpublishedCount === 1 ? 'it' : 'them'}">${k.unpublishedCount} unpublished</span>` : ''}</div>
+        <div class="cell-main">${esc(k.name)}</div>
       </td>
       <td>${propCell(k.property)}</td>
       <td class="cell-plain">${esc(label('platform', k.platform))}</td>
       <td>${slotChipsHtml(k)}</td>
+      <td>${statusCellHtml(k)}</td>
       <td>
         <div class="cell-plain" style="font-weight:600">${esc(k.updatedBy || '—')}</div>
         <div class="cell-sub">${relWhen(k.updatedAt)}</div>

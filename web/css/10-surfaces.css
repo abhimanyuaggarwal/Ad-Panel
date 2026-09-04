@@ -30,7 +30,10 @@
 .card table.t-keys th:nth-child(4) { width: 13%; }
 .card table.t-keys th:nth-child(5) { width: 22%; }
 .card table.t-setups th:nth-child(3) { width: 22%; }
-.card table.t-setups th:nth-child(4) { width: 20%; }
+/* Demand holds four fixed-width chips — a % column outgrows or clips them; Status
+   (4 Sep, the round-28 cut reversed with version + provenance) is short and fixed. */
+.card table.t-setups th:nth-child(4) { width: 190px; }
+.card table.t-keys th:nth-child(6), .card table.t-setups th:nth-child(5) { width: 118px; }
 .card table.t-keys th:last-child, .card table.t-setups th:last-child,
 .card table.t-keys td:last-child, .card table.t-setups td:last-child { text-align: right; }
 
@@ -49,7 +52,9 @@
    dividing it from the facts it names (the URL it fires, the counted use), the rare act
    behind a ⋯ at the right edge, and the add at the FOOT where the row it makes appears.
    A row opens its own editor, so the whole row is the door. */
-.tpl-sec { padding: 2px 0 6px; margin-bottom: 12px; }
+/* A hairline closes the section, so templates and PLACEMENTS read as two rooms, not
+   one run-on strip (4 Sep, user call — "the communication is a bit cluttered here"). */
+.tpl-sec { padding: 2px 0 16px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
 .tpl-t { --tpl-cols: 220px minmax(260px, 1fr) 68px; }
 .tpl-h {
   display: grid; grid-template-columns: var(--tpl-cols); gap: 18px; align-items: end;
@@ -171,11 +176,13 @@
    switch and the ⋯ stay at full strength, or there is no way back. */
 .pcfg-r.off .pcfg-c, .pcfg-r.off .pcfg-id { opacity: .45; }
 
-/* PLACEMENTS is the structure: it names the strip from above, in the ink the templates
-   line gave up, and the first tab starts on the card's own left edge. */
+/* PLACEMENTS is the structure: it names the strip from above, and the first tab starts
+   on the card's own left edge. SECTION HEADERS READ AS HEADERS (4 Sep, user call — the
+   10px eyebrow sat visually below the "+ Add template" button): a step up in size and
+   ink, so AD UNIT TEMPLATES and PLACEMENTS clearly outrank the controls under them. */
 .pl-head {
-  font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--ink-soft); padding: 0 0 7px 2px;
+  font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-soft); padding: 0 0 9px 2px;
 }
 .pl-tabs { margin-top: 0; }
 .pl-tabs .stab:first-child { margin-left: 0; }

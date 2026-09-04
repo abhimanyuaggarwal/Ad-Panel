@@ -225,7 +225,10 @@
    settings rows begin — the 92px right-aligned gutter that pushed every unit ~80px
    rightward is gone. PRIMARY still fits; the fall numbers sit flush with it.
    `.zone-c` is the setups editor's real ancestor; `.slot-edit` kept for the dialogs. */
-.zone-c .rung-n, .slot-edit .rung-n { flex: 0 0 52px; text-align: left; font-size: 9.5px; padding-right: 0; }
+/* The label HUGS the switch (4 Sep, user call — "a lot of gap between the switch and
+   the row no"): right-aligned in its column, so a bare number sits beside the control
+   it belongs to instead of stranding 40px of void; PRIMARY still fits the column. */
+.zone-c .rung-n, .slot-edit .rung-n { flex: 0 0 52px; text-align: right; font-size: 9.5px; padding-right: 0; }
 .rung-list.lead { margin-bottom: 2px; }
 .rung-list.lead .rung-row .rung-n {
   color: var(--accent); font-size: 9.5px; letter-spacing: .3px;

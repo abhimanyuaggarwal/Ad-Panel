@@ -90,13 +90,20 @@ app.get('/panel/meta', handle((req, res) => {
   });
 }));
 
-// WHERE AN OBJECT STANDS ON THE PUBLISH PLANE — the same four facts on every view, so
-// a list row and an editor never disagree about whether something is on air.
+// WHERE AN OBJECT STANDS ON THE PUBLISH PLANE — the same facts on every view, so a
+// list row and an editor never disagree about whether something is on air. The lists'
+// Status column (4 Sep) needs two more: whether it was EVER published (an unpublished
+// draft and a taken-down surface are different states), and the live version's
+// provenance when it was a restore (v5 republishing v2 says so).
 function publishView(kind, obj) {
   const pending = store.isDirty(kind, obj.id) ? store.unpublishedChanges(kind, obj.id) : [];
+  const versions = store.versionsOf(obj.id);
+  const lv = store.liveVersion(obj.id);
   return {
     live: store.isPublished(obj.id),
-    liveVersion: store.liveVersion(obj.id),
+    liveVersion: lv,
+    liveRestoredFrom: lv ? (versions.find(x => x.v === lv)?.restoredFrom ?? null) : null,
+    everPublished: versions.length > 0,
     unpublishedCount: pending.length,
   };
 }

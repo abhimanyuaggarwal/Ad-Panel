@@ -215,18 +215,18 @@ function repaintSetupRows() {
   const count = document.getElementById('setup-count');
   if (count) count.textContent = `${rows.length} of ${SETUPS_LIST.filter(o => inScope(o.property)).length}`;
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="5"><div class="empty">No ad setups match — clear a filter or create one.</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty">No ad setups match — clear a filter or create one.</div></td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(o => `
     <tr class="rowlink" onclick="location.hash = '#setups/${o.id}'">
       <td>
-        <div class="cell-main">${esc(o.name)}${o.live ? '' : ' <span class="stat off sm" title="Not on air — nothing here is being served">Off air</span>'}${o.unpublishedCount
-          ? ` <span class="stat pending sm" title="Saved but not published">${o.unpublishedCount} unpublished</span>` : ''}</div>
+        <div class="cell-main">${esc(o.name)}</div>
       </td>
       <td>${propCell(o.property)}</td>
       <td class="cell-plain">${o.usedBy ? esc((o.usedByNames || []).join(', ')) : '<span class="sg-dim">not mapped yet</span>'}</td>
       <td>${setupChipsHtml(o)}</td>
+      <td>${statusCellHtml(o)}</td>
       <td>
         <div class="cell-plain" style="font-weight:600">${esc(o.updatedBy || '—')}</div>
         <div class="cell-sub">${relWhen(o.updatedAt)}</div>
@@ -270,7 +270,7 @@ async function viewSetupsList() {
       <span class="pg-range" id="setup-count"></span>
     </div>
     <div class="card"><table class="t-setups">
-      <thead><tr><th>Ad setup</th><th>Property</th><th>Integration</th><th>Demand</th><th>Modified</th></tr></thead>
+      <thead><tr><th>Ad setup</th><th>Property</th><th>Integration</th><th>Demand</th><th>Status</th><th>Modified</th></tr></thead>
       <tbody id="setup-rows"></tbody>
     </table></div>`;
   repaintSetupRows();

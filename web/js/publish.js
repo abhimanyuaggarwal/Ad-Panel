@@ -37,6 +37,27 @@ function pubStateChipHtml() {
     ${n ? `<span class="stat pending" title="Saved but not published — the player has not seen ${n === 1 ? 'it' : 'them'} yet">${n} unpublished</span>` : ''}`;
 }
 
+// WHERE IT STANDS, AS A LIST CELL (4 Sep, user call — the round-28 column cut reversed,
+// richer: the column answers the VERSION and its provenance, not just on/off).
+//   Unpublished      never published — the player is served nothing yet
+//   ● v3             on air, the version counted
+//   ● v5 · from v2   on air, and the live version is a restore — provenance named
+//   Off air          was published, taken down
+// The amber unpublished count rides underneath as its own quiet line: the gap between
+// draft and air is a second fact, not part of the state word. Same .stat grammar as the
+// editor header's chip, so a row and its editor never disagree.
+function statusCellHtml(o) {
+  const state = o.live
+    ? `<span class="stat live sm2" title="On air as v${o.liveVersion}${o.liveRestoredFrom
+        ? ` — a restore of v${o.liveRestoredFrom}` : ''} — this is what the player is being served">v${o.liveVersion}${o.liveRestoredFrom
+        ? `<i class="st-from">· from v${o.liveRestoredFrom}</i>` : ''}</span>`
+    : o.everPublished
+      ? '<span class="stat off sm2" title="Taken off air — the player is served nothing">Off air</span>'
+      : '<span class="stat off sm2" title="Never published — the player is served nothing yet">Unpublished</span>';
+  return `${state}${o.unpublishedCount
+    ? `<div class="st-gap" title="Saved but not published — the player has not seen ${o.unpublishedCount === 1 ? 'it' : 'them'}">${o.unpublishedCount} unpublished</div>` : ''}`;
+}
+
 // The two buttons, in the form's foot. Publish carries the weight whenever there is
 // something to publish, because at that moment it is the act the page is for.
 // ---------- the rail ----------

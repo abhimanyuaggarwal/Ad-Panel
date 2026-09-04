@@ -52,7 +52,9 @@
 
 /* slots — aligned table-like rows */
 .slot-row { display: flex; align-items: center; gap: 14px; padding: 3.5px 0; }
-.slot-label { flex: 0 0 88px; font-size: 12px; font-weight: 600; color: var(--ink-soft); white-space: nowrap; }
+/* The break's NAME is the row's header (4 Sep, user call — it read hierarchically weak):
+   a step up in size and ink over the zone labels (DIRECT · INDIRECT) it governs. */
+.slot-label { flex: 0 0 96px; font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; }
 .slot-row { align-items: flex-start; }
 .slot-label { padding-top: 9px; }
 .slot-multi-foot { display: flex; align-items: center; gap: 12px; padding-left: 1px; }
