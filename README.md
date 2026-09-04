@@ -85,6 +85,25 @@
    checkbox column is pinned at 36px so nothing depends on layout-quirk leftovers. Modified
    still right-aligns to close the row; verified at 1200/1440/1760 and on the scale scenario.
 
+**BRANCH `Ui/UX_Changes` (4 Sep, user call — under review against main):**
+
+9. **Every ad unit is TWO rows: the unit, then its values as a quiet fact line.** The unit's
+   settings used to live only below the fold (the ⚙ panel, one at a time) — reading a ladder's
+   values meant opening ten folds. Row two now carries EVERY fact of the unit's TYPE upfront
+   (user picked this over a curated subset and over news-only): fixed order, defaults included,
+   micro-labels faint + values in ink, hairline dots between pairs — video: `PAUSE · DELAY ·
+   COMPANION · TEMPLATE`; display adds `POSITION · SKIP · HIDE`; a rotation banner is
+   `POSITION · TEMPLATE` only. Type-based, never value-based: a fact that cannot apply right
+   now (Skip while content pauses) dims in place with the reason on hover; a switched-off rung
+   dims its line whole. The line is the SUMMARY, the ⚙ panel stays the EDITOR (user picked this
+   over inline row-2 controls): clicking the line or the gear opens it, and while open the line
+   hides — the panel IS that row, expanded, on the same 126px left edge. Words are the panel's
+   exactly (`label('pause')`, `label('displaySlot')`, the template's name with its `· off`
+   suffix), so glance and editor can never disagree. Applies to the indirect ladder AND the
+   direct-deal tier. `suRungFactsHtml` in views-setups.js, `.rung-facts` in 10-surfaces.css.
+
+**LAST CALLS BEFORE HANDOFF (3 Sep, user — twelve, in order):**
+
 1. **"Ad delivery" is "Ad behaviour"** on the integration page — the same word the bulk act uses,
    one name for one concept. (The ops room keeps "Ad setups": the object, not the section.)
 2. **Custom configs are KEYS, one row each — in a table.** A config is a single word a player

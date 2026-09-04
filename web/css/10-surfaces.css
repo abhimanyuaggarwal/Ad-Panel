@@ -196,6 +196,28 @@
 .unit-settings:hover { background: var(--accent-soft); color: var(--accent); }
 .unit-settings.open { color: var(--accent); }
 
+/* THE UNIT'S FACT LINE (4 Sep, user call — Ui/UX_Changes): row two of every ad unit.
+   Micro-labels faint and tiny, values in ink, hairline dots between pairs — the same
+   quiet weight as every fact byline in the product, indented to the unit-panel's own
+   left edge so summary and editor open on the same x. The whole line is a door to the
+   gear panel; a fact that cannot apply right now dims in place (.na), and a switched-off
+   rung dims its line whole (.dim). */
+.rung-facts {
+  margin: -1px 0 5px 126px; padding: 2px 8px 3px; border-radius: 6px;
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 7px;
+  font-size: 11px; color: var(--ink-soft); cursor: pointer;
+  transition: background .12s;
+}
+.rung-facts:hover { background: var(--bg-soft, #f7f8fb); }
+.rung-facts .uf { white-space: nowrap; }
+.rung-facts .uf i {
+  font-style: normal; font-size: 9px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--ink-faint); margin-right: 4px;
+}
+.rung-facts .uf.na { opacity: .5; }
+.rung-facts.dim { opacity: .45; }
+.uf-sep { font-weight: 400; color: var(--ink-faint); opacity: .55; }
+
 /* The panel speaks the Delivery-settings rows' own language — a label column and one
    control per line, one height — inside a bounded card that starts where the unit's
    name starts. It describes ONE unit, so the label column is the permanent label the

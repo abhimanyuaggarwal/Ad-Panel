@@ -441,7 +441,7 @@ function suRungAfterHtml(t, n, r) {
       ? `<span class="offdir" title="Typed in here — GAM has not synced it yet. A typo will never fill.">not in GAM</span>` : ''}
     <button type="button" class="unit-settings ${open ? 'open' : ''}" onclick="suToggleRungSettings('${t}', ${n})"
       aria-label="Unit settings"
-      title="${open ? 'Close this unit’s settings' : 'This unit’s own settings — pause, delay, placement, its template'}">
+      title="${open ? 'Close this unit’s settings' : 'Edit this unit’s settings — the line below shows them'}">
       <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="8" cy="8" r="2.2"/>
         <path d="M8 1.8v1.9M8 12.3v1.9M1.8 8h1.9M12.3 8h1.9M3.6 3.6l1.35 1.35M11.05 11.05l1.35 1.35M12.4 3.6l-1.35 1.35M4.95 11.05L3.6 12.4"/>
@@ -517,6 +517,49 @@ function suRungPanelHtml(t, n, r) {
         (tag.usedBy || 1) > 1
           ? `The request URL this unit fires through (JSON: unit.tpl). A tag fact — it changes everywhere “${tag.name}” is used (${tag.usedBy} setups).`
           : 'The request URL this unit fires through (JSON: unit.tpl). Templates are named at the head of this page.') : ''}
+    </div>`;
+}
+
+// THE UNIT'S FACTS RIDE UPFRONT (4 Sep, user call — Ui/UX_Changes branch). An ad unit
+// is TWO rows now: the unit itself, then its values as a quiet fact line — every fact
+// of the unit's TYPE, fixed order, defaults included, so reading a ladder never needs
+// a fold opened per unit. The grammar is the panel's own: micro-labels, values in ink,
+// nothing appears or vanishes as values change — a fact that cannot apply right now
+// (Skip while content pauses) dims in place with the reason on hover. The line is the
+// summary, the gear panel stays the EDITOR: clicking either opens it, and while it is
+// open the line hides — the panel IS this row, expanded. Words are the panel's exactly
+// (label('pause'), label('displaySlot'), the template's name), so the glance and the
+// editor can never disagree.
+function suRungFactsHtml(t, n, r) {
+  if (!r.tagId || SU_RUNG_OPEN === `${t}:${n}`) return '';
+  const isDisplay = window.TAG_TYPE[r.tagId] === 'display';
+  const rot = isRotation(baseSlot(t));
+  const tag = SU_TAGS.find(x => x.id === r.tagId);
+  const paused = (r.pause || (isDisplay ? 'no' : 'yes')) === 'yes';
+  const pair = (lbl, val, dim, why) =>
+    `<span class="uf${dim ? ' na' : ''}"${why ? ` title="${esc(why)}"` : ''}><i>${esc(lbl)}</i>${esc(val)}</span>`;
+  const secs = v => (v === undefined || v === null || v === '' ? null : `${v}s`);
+  const facts = [];
+  if (!rot) {
+    facts.push(pair('Pause', label('pause', r.pause || (isDisplay ? 'no' : 'yes'))));
+    facts.push(pair('Delay', secs(r.showAfterSec) ?? 'now'));
+  }
+  facts.push(pair(isDisplay ? 'Position' : 'Companion',
+    label('displaySlot', r.displaySlot || (KL_META.displaySlots || [])[0])));
+  if (isDisplay && !rot) {
+    facts.push(paused
+      ? pair('Skip', '—', true, 'Content is paused — the player shows its own ad controls, not a close button')
+      : pair('Skip', secs(r.closeAfterSec) ?? '—'));
+    facts.push(pair('Hide', secs(r.hideAfterSec) ?? '—'));
+  }
+  if (tag) {
+    const tpl = tag.tplId ? SU_TPLS.find(x => x.id === tag.tplId) : null;
+    facts.push(pair('Template', tpl ? (tpl.on === false ? `${tpl.name} · off` : tpl.name) : 'Standard'));
+  }
+  return `
+    <div class="rung-facts${r.on === false ? ' dim' : ''}" onclick="suToggleRungSettings('${t}', ${n})"
+      title="This unit’s settings — click to edit">
+      ${facts.join('<b class="uf-sep">·</b>')}
     </div>`;
 }
 
@@ -903,7 +946,7 @@ function suLadderHtml(t, ctx) {
   if (!slot.rungs.length) {
     return `<div class="ladder-empty" title="An integration cannot switch this break on while it has no demand">No tags</div>`;
   }
-  const rows = slot.rungs.map((r, n) => rungRowHtml(r, n, slot.rungs.length, ctx) + suRungPanelHtml(t, n, r));
+  const rows = slot.rungs.map((r, n) => rungRowHtml(r, n, slot.rungs.length, ctx) + suRungFactsHtml(t, n, r) + suRungPanelHtml(t, n, r));
   if (isRotation(t)) return `<div class="rung-list">${rows.join('')}</div>`;
   const fall = rows.slice(1);
   const liveFall = slot.rungs.slice(1).filter(r => r.tagId && r.on !== false).length;
@@ -1018,7 +1061,7 @@ function suSlotRowHtml(t, meta) {
       ? 'This pod\u2019s sold-direct deal — one, tried before the pod\u2019s primary each time the pod fires. Every pod sells its own.'
       : 'The break\u2019s sold-direct deal — one, tried before its primary each time the break fires.',
     `${dSlot.rungs.length
-      ? `<div class="rung-list">${dSlot.rungs.map((r, n) => rungRowHtml(r, n, dSlot.rungs.length, dCtx) + suRungPanelHtml(dt, n, r)).join('')}</div>`
+      ? `<div class="rung-list">${dSlot.rungs.map((r, n) => rungRowHtml(r, n, dSlot.rungs.length, dCtx) + suRungFactsHtml(dt, n, r) + suRungPanelHtml(dt, n, r)).join('')}</div>`
       : `<div class="slot-multi-foot">
           <button class="slot-add" onclick="suAddRung('${dt}')">+ Add the direct deal</button>
         </div>`}`);
