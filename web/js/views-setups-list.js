@@ -308,10 +308,9 @@ function suTemplatesRowHtml() {
     const units = `${n} ad unit${n === 1 ? '' : 's'}`;
     return `
     <div class="tpl-r${off ? ' off' : ''}" onclick="tplOpen('${t.id}')"
-      title="Open “${esc(t.name)}” — its name, provider and request URL">
+      title="Open “${esc(t.name)}” — its name, provider and request URL${n ? ` · ${units} request through it` : ''}">
       <span class="tpl-id">${providerBadge(t.provider)}<span class="tpl-n">${esc(t.name)}</span></span>
       <span class="tpl-url"><span class="mono" title="${esc(t.url)}">${esc(t.url)}</span></span>
-      <span class="tpl-use">${n ? units : '<span class="sg-dim">no ad unit yet</span>'}</span>
       <span class="pcfg-acts" onclick="event.stopPropagation()">
         <span class="toggle tiny ${off ? '' : 'on'}" onclick="tplToggle('${t.id}')"
           title="${off
@@ -334,7 +333,7 @@ function suTemplatesRowHtml() {
       ${mine.length ? `
       <div class="tpl-t">
         <div class="tpl-h">
-          <span class="tpl-id">Template</span><span>Request URL</span><span>In use</span><span></span>
+          <span class="tpl-id">Template</span><span>Request URL</span><span></span>
         </div>
         ${mine.map(row).join('')}
       </div>`

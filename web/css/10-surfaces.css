@@ -50,7 +50,7 @@
    behind a ⋯ at the right edge, and the add at the FOOT where the row it makes appears.
    A row opens its own editor, so the whole row is the door. */
 .tpl-sec { padding: 2px 0 6px; margin-bottom: 12px; }
-.tpl-t { --tpl-cols: 220px minmax(260px, 1fr) 140px 68px; }
+.tpl-t { --tpl-cols: 220px minmax(260px, 1fr) 68px; }
 .tpl-h {
   display: grid; grid-template-columns: var(--tpl-cols); gap: 18px; align-items: end;
   padding: 0 0 6px; border-bottom: 1px solid var(--line); margin-bottom: 2px;
@@ -72,11 +72,10 @@
 .tpl-n { font-size: 12.5px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tpl-url { min-width: 0; }
 .tpl-url .mono { display: block; font-size: 11.5px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tpl-use { font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
 /* THE ROW'S SWITCH (4 Sep): state anchors the corner, always visible; the ⋯ reveals on
    hover, exactly as the config rows do. A switched-off template keeps its row — name,
    URL, counted use — dimmed in place; the switch and the ⋯ stay at full strength. */
-.tpl-r.off .tpl-id, .tpl-r.off .tpl-url, .tpl-r.off .tpl-use { opacity: .45; }
+.tpl-r.off .tpl-id, .tpl-r.off .tpl-url { opacity: .45; }
 
 /* ---------- PODS, ROW FACTS AND THE TEMPLATE FORM (3 Sep) ---------- */
 /* The pods strip stands even at one pod — that is what makes "everything is in pod 1"
