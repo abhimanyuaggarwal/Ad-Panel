@@ -236,15 +236,10 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
 /* The three player facts used to bunch into the left third of the card with dead space
    beside them, under a 240px select and a 1100px text box. Every player field now takes
    an even share of its row, so the block lands on the same grid the identity rows use. */
-.frow.pfacts { gap: 18px 28px; }
-.frow.pfacts > .field { flex: 1 1 0; min-width: 210px; align-items: flex-start; }
-.frow.pfacts > .field .fctl { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
 /* Since the volume left the autoplay row (3 Sep), the four facts share the row evenly,
    and the volume box is a plain compact number field like every other. */
 /* Inside a column-flex .field the basis is HEIGHT — so the box sizes itself and only
    the width is pinned. */
-.frow.pfacts .num-wrap { flex: 0 0 auto; width: 96px; height: 38px; }
-.frow.pfacts .num-wrap input { padding-left: 10px; height: 36px; }
 
 
 /* The one destructive act sits beside the name it removes, on the input's own baseline —

@@ -23,7 +23,6 @@ const KPAGE = { page: 0, size: 50 };
 let KEYS_CACHE = [];
 let KL_META = null;
 let SETUPS_CACHE = [];
-let GAM_LAST_SYNC = null;
 
 // Jump from a setup's "fills N integrations" banner to the list, pre-filtered.
 function viewKeysUsing(kind, id) {

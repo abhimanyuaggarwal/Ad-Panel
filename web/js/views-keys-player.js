@@ -20,9 +20,12 @@ function playerFieldsHtml() {
   // identity rows above it are drawn on.
   // TWO ROWS (3 Sep, user call). Playback, Fallback media and Passive volume are all SHORT
   // answers (a mode, a media id, a number) — they share one row at their natural widths,
-  // like Property and Platform above them. The three facts a config may fork then get the
-  // whole next row to themselves, an even share each, so the fork's headings line up with
-  // the same three columns in the configs table below.
+  // like Property and Platform above them.
+  // THE DEFAULT IS ROW ZERO OF THE CONFIGS (4 Sep, user call). The three forkable facts
+  // used to take an even share of a flex row, which only APPROXIMATED the config table's
+  // columns. The row is now drawn on the table's own grid (`.pcfg-t`): an identity label
+  // — "Default player config" — where the table keeps its keys, each fact in the exact
+  // column its forks take in the card below, the same divider rule through both cards.
   return `
     <div class="frow prow2">
       <div class="field"><label>Playback</label>
@@ -38,8 +41,13 @@ function playerFieldsHtml() {
           oninput="pNum(this, 'passiveVolume')"><span class="unit">%</span></div>
       </div>
     </div>
-    <div class="frow pfacts">
-      ${pcFactsHtml(p, (f, v) => `pSet('${f}', ${v})`)}
+    <div class="pcfg-t dflt-t">
+      <div class="pcfg-r dflt-r">
+        <span class="pcfg-id dflt-id"
+          title="Every player that doesn't ask for a config by key follows this row — a custom config forks exactly these three facts">Default player config</span>
+        ${pcFactsHtml(p, (f, v) => `pSet('${f}', ${v})`)}
+        <span></span>
+      </div>
     </div>`;
 }
 
@@ -56,6 +64,7 @@ function pcAdd() {
   const p = FORM.data.player;
   cfgs.push({
     name: '',
+    on: true,
     playback: p.playback ?? 'active',
     expandInMini: p.expandInMini ?? true,
     autoplay: p.autoplay ?? 'auto',
@@ -185,13 +194,21 @@ function pcFactsHtml(c, set) {
 // that share fields get ONE heading row, and each value sits under its permanent label.
 // The KEY is the row's identity, not one of its settings — it wears its own column,
 // mono on a quiet tint, with a rule dividing it from the three facts it names.
+// THE ROW'S RIGHT EDGE IS A SWITCH AND A ⋯ (4 Sep, user call). A config can now be
+// switched off without losing it — the rung's own grammar: the row, its key and its
+// facts stand, dimmed; players asking for it follow the default player from the next
+// publish. Remove moved off the row surface into the ⋯ beside the switch: switching is
+// the everyday act, removing is the rare one, and the hover-only × they replaced put
+// the destructive act closer to hand than the reversible one.
 function customConfigsHtml() {
   const cfgs = FORM.data.playerConfigs || [];
   const max = KL_META.maxPlayerConfigs || 6;
   const meta = KL_META;
   const unnamed = cfgs.some(c => !(c.name || '').trim());
-  const row = (c, i) => `
-    <div class="pcfg-r${(c.name || '').trim() ? '' : ' wants'}">
+  const row = (c, i) => {
+    const off = c.on === false;
+    return `
+    <div class="pcfg-r${(c.name || '').trim() ? '' : ' wants'}${off ? ' off' : ''}">
       <span class="pcfg-id">
         <input type="text" class="pcfg-key mono" value="${esc(c.name)}" placeholder="type a key"
           title="The key a player asks for — one word" oninput="pcName(this, ${i})" onblur="pcKeyDone(this, ${i})">
@@ -199,8 +216,19 @@ function customConfigsHtml() {
       <span class="pcfg-c">${accSeg(c.playback ?? 'active', meta.playbackKinds, meta.playbackKinds.map(o => label('playback', o)), o => `pcSet(${i}, 'playback', '${o}')`)}</span>
       <span class="pcfg-c">${accSeg(c.expandInMini ?? true, [true, false], ['True', 'False'], o => `pcSet(${i}, 'expandInMini', ${o})`)}</span>
       <span class="pcfg-c">${accSeg(c.autoplay ?? 'auto', meta.autoplay, meta.autoplay.map(o => label('autoplay', o)), o => `pcSet(${i}, 'autoplay', '${o}')`)}</span>
-      <button type="button" class="pcfg-x" onclick="pcRemove(${i})" title="Remove “${esc(c.name)}” — players asking for it fall back to the default">×</button>
+      <span class="pcfg-acts">
+        <span class="toggle tiny ${off ? '' : 'on'}" onclick="pcSet(${i}, 'on', ${off})"
+          title="${off ? `Switched off — players asking for “${esc(c.name)}” follow the default player.`
+                       : `Switched on — a player asks for “${esc(c.name)}” by key. Off keeps the row; players fall back to the default.`}"><span class="track"></span></span>
+        <span class="rmenu">
+          <button type="button" class="row-kebab" onclick="rmenuToggle(event, this)" title="More actions" aria-label="More actions">⋯</button>
+          <div class="rmenu-list">
+            <div class="eh-item danger" onclick="rmenuShut(this); pcRemove(${i})">Remove config</div>
+          </div>
+        </span>
+      </span>
     </div>`;
+  };
   return `
     <div class="fieldset">
       ${FORM.errors.playerConfigs ? `<div class="banner bad" data-err-for="playerConfigs">${esc(FORM.errors.playerConfigs)}</div>` : ''}
@@ -233,13 +261,4 @@ function stampPreset(name) {
   FORM.rerender();
 }
 
-async function syncGamClicked() {
-  const ok = await ask({ title: 'Sync ad units from GAM?', okLabel: 'Sync' });
-  if (!ok) return;
-  const { added, lastSync } = await API.gamSync();
-  GAM_LAST_SYNC = lastSync;
-  const note = document.querySelector('.gam-sync-note');
-  if (note) note.textContent = `synced ${relWhen(lastSync)}`;
-  toast(added ? `${added} new ad unit${added > 1 ? 's' : ''} pulled from GAM` : 'GAM is up to date — nothing new');
-}
 

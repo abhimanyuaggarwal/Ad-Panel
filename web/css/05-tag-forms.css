@@ -31,7 +31,9 @@
 }
 .lk-scope button:hover { background: var(--bg-soft, #f4f6fa); color: var(--ink-soft); }
 .lk-scope button.on { background: var(--accent-soft); color: var(--accent-ink); }
-.lk-scope button.on /* One counted line when a scope comes up empty — never a silent nothing. */
+/* One counted line when a scope comes up empty — never a silent nothing.
+   (An orphaned `.lk-scope button.on` head had fused onto this selector — a sweep
+   remnant — leaving the note bar unstyled; unfused 4 Sep.) */
 .lk-note {
   margin: 4px -4px -4px; padding: 8px 12px; border-top: 1px solid var(--line);
   font-size: 11.5px; color: var(--ink-faint); background: #fafbfd; border-radius: 0 0 10px 10px;
@@ -99,6 +101,32 @@
 }
 .lk-badge.new { background: var(--good-soft); color: var(--good); }
 .lk-empty { padding: 10px 12px; font-size: 12.5px; color: var(--ink-soft); }
+
+/* THE DIRECTORY'S OWN DOOR (4 Sep, user call). One ACTION row at the menu's foot when
+   GAM answers nothing for the query — icon, the act, and the counted staleness that
+   explains it. A hairline above keeps it from reading as another result. While the pull
+   runs (10–20s against real GAM) the row is its own progress line: same footprint, the
+   icon becomes the spinner, and nothing else about the menu moves. */
+.lk-sync {
+  display: flex; align-items: center; gap: 9px; padding: 8px 10px; margin-top: 3px;
+  border-top: 1px solid var(--line); border-radius: 0 0 7px 7px;
+  cursor: pointer; color: var(--accent);
+}
+.lk-sync:hover { background: var(--accent-soft); }
+/* Nothing above it (a true empty) — the row IS the menu, no floating hairline. */
+.lk-sync:first-child { border-top: 0; margin-top: 0; border-radius: 7px; }
+.lk-sync svg { flex: none; }
+.lk-sync-t { font-size: 12px; font-weight: 650; }
+.lk-sync-m { font-size: 10.5px; color: var(--ink-faint); margin-top: 1px; }
+.lk-sync.busy { cursor: default; color: var(--ink-soft); }
+.lk-sync.busy:hover { background: transparent; }
+.lk-spin {
+  flex: none; width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--line); border-top-color: var(--accent);
+  animation: lkSpin .7s linear infinite;
+}
+@keyframes lkSpin { to { transform: rotate(360deg) } }
+
 .rung-ctl { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
 
 

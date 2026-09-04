@@ -120,6 +120,11 @@ function keyChangeList(a, b) {
   }
   for (const nm of Object.keys(cb)) {
     if (!ca[nm]) { out.push({ where: 'Player configs', field: nm, label: nm, from: '—', to: 'added' }); continue; }
+    // The row's switch, in words — absence is on, like a rung's (the server diff agrees).
+    if ((ca[nm].on !== false) !== (cb[nm].on !== false)) {
+      out.push({ where: 'Player configs', field: nm, label: nm,
+        fromText: ca[nm].on !== false ? 'on' : 'off', toText: cb[nm].on !== false ? 'on' : 'off' });
+    }
     for (const f of ['playback', 'expandInMini', 'autoplay']) {
       if (JSON.stringify(ca[nm][f]) !== JSON.stringify(cb[nm][f])) {
         out.push({ where: `Player configs · ${nm}`, field: f, from: ca[nm][f], to: cb[nm][f] });
@@ -175,7 +180,7 @@ function createChangeList() {
   born('Player', 'autoplay', label('autoplay', p.autoplay ?? 'auto'));
   born('Player', 'passiveVolume', `${p.passiveVolume ?? 100}%`);
   for (const c of d.playerConfigs || []) {
-    rows.push({ where: 'Player configs', field: c.name, label: c.name, fromText: '—', toText: 'added' });
+    rows.push({ where: 'Player configs', field: c.name, label: c.name, fromText: '—', toText: c.on === false ? 'added — off' : 'added' });
   }
   const setup = sectionSetup(0);
   rows.push({ where: 'Ad behaviour', field: 'adSetupId', fromText: '—',

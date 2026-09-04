@@ -130,6 +130,10 @@ export function versionChanges(kind, before, after) {
       }
       for (const name of Object.keys(ca)) {
         if (!cb[name]) { out.push({ where: 'Player configs', field: name, from: '—', to: 'added' }); continue; }
+        // The switch, in words — absence is on, like a rung's.
+        if ((cb[name].on !== false) !== (ca[name].on !== false)) {
+          out.push({ where: 'Player configs', field: name, from: cb[name].on !== false ? 'on' : 'off', to: ca[name].on !== false ? 'on' : 'off' });
+        }
         for (const g of ['playback', 'expandInMini', 'autoplay']) {
           if (JSON.stringify(cb[name][g]) !== JSON.stringify(ca[name][g])) {
             out.push({ where: `Player configs · ${name}`, field: g, from: cb[name][g], to: ca[name][g] });

@@ -130,13 +130,15 @@ export function resetWorld(opts = {}) {
     toiDispBackfill: tag('TOI Display Backfill', 'display', 'https://ads.toi.example/display/backfill', 'TOI', 'can'),
   };
 
-  // --- Request templates (31 Aug) -------------------------------------------
+  // --- Ad unit templates (né request templates; 31 Aug) -------------------------------------------
   // Named macro URLs, authored here since the JSON's unittpl names several and a
   // unit's tpl picks between them. Standard is absence — no tag has to choose.
   createTemplate({ name: 'GAM standard', provider: 'ima',
     url: 'https://ads.slike.example/vast?cb=[CACHEBUSTER]&ref=[REFERRER_URL]' });
+  // Seeded OFF (4 Sep) so the row switch is visible on day one: it stands, dimmed;
+  // units picking it would request through IMA's standard until it is on again.
   createTemplate({ name: 'GAM low-latency', provider: 'ima',
-    url: 'https://ads-fast.slike.example/vast?cb=[CACHEBUSTER]&url=[PAGE_URL]' });
+    url: 'https://ads-fast.slike.example/vast?cb=[CACHEBUSTER]&url=[PAGE_URL]', on: false });
 
   // --- Ad setups (the ops room's objects) -----------------------------------
   // The setup carries its PLACEMENTS (25 Aug): sections + their ladders, one document
@@ -284,8 +286,11 @@ export function resetWorld(opts = {}) {
     player: P.VideoShow,
     // One seeded custom config (2 Sep) so the fork is visible on day one: the shorts
     // feed runs passive, MiniTV held small, autoplay muted — the rest follows default.
+    // A second one rides switched OFF (4 Sep) so the row switch is visible too: the key
+    // and its facts stand, but players asking for it follow the default player.
     playerConfigs: [
       { name: 'shorts', playback: 'passive', expandInMini: false, autoplay: 'off' },
+      { name: 'amp_stories', playback: 'passive', autoplay: 'off', on: false },
     ],
     sections: [
       {

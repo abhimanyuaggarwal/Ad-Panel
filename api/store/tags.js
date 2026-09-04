@@ -1,14 +1,14 @@
-// store/tags.js — ad tags and request templates.
+// store/tags.js — ad tags and ad unit templates (né request templates — renamed in the UI 4 Sep).
 // Split from store.js (3 Sep, docs/STORE-SPLIT.md): a MOVE, not a rewrite — units
 // relocated whole, bodies untouched. store.js re-exports everything, so the HTTP
 // surface, the tests and the mock world see the exact same module they always did.
 import { slotGroupDefs } from './ladders.js';
 import { listSetups } from './setups.js';
 import { AD_UNIT_EXAMPLE, AD_UNIT_PATH, DIRECTORY_PROVIDERS, PROPERTY_SCOPES, PROVIDER_TYPE, PROVIDER_WORD, Refusal, SLOT_TYPES, TAG_PROVIDERS, TAG_TYPES, TEMPLATE_MACROS, URL_PROVIDERS, state } from './state.js';
-import { diff, httpUrl, mustGet, oneOf, str, uniqueName } from './validate.js';
+import { bool, diff, httpUrl, mustGet, oneOf, str, uniqueName } from './validate.js';
 
 
-// ---------- request templates ----------
+// ---------- ad unit templates ----------
 // AUTHORED IN THE PANEL since 31 Aug (AD-JSON-SCOPE — reversing the 20 Aug "no
 // interface" call on the user's word): the JSON names several templates and a unit's
 // `tpl` picks between them, so which template carries a unit IS an ops decision now.
@@ -20,7 +20,7 @@ export function normalizeTemplate(input, exceptId) {
   const name = str(input.name);
   if (!name) errors.push({ field: 'name', message: 'Name is required' });
   else if (!uniqueName(state.templates, name, exceptId)) {
-    errors.push({ field: 'name', message: `A request template named “${name}” already exists` });
+    errors.push({ field: 'name', message: `An ad unit template named “${name}” already exists` });
   }
   const property = oneOf(input.property ?? 'All', 'property', PROPERTY_SCOPES, errors);
   let provider = str(input.provider);
@@ -38,8 +38,13 @@ export function normalizeTemplate(input, exceptId) {
       }
     }
   }
-  if (errors.length) throw new Refusal(400, 'invalid_template', 'Request template was refused', { errors });
-  return { name, provider, url, property };
+  if (errors.length) throw new Refusal(400, 'invalid_template', 'Ad unit template was refused', { errors });
+  // The template's own switch (4 Sep, user call — the config rows' grammar): absence is
+  // on, so every template saved before the field existed keeps carrying its units. Off
+  // keeps the template, its name and its units' picks; those units request through their
+  // provider's STANDARD until it is on again — and since templates resolve LIVE (no
+  // publish plane), the switch takes effect on the players' next request.
+  return { name, provider, url, property, on: input.on === undefined ? true : bool(input.on) };
 }
 
 export function createTemplate(input) {
@@ -51,7 +56,7 @@ export function createTemplate(input) {
 }
 
 export function updateTemplate(id, input) {
-  const existing = mustGet(state.templates, id, 'request template');
+  const existing = mustGet(state.templates, id, 'ad unit template');
   const t = normalizeTemplate({ ...existing, ...input }, id);
   // Retyping a template's provider under tags that request through it would misroute them.
   if (t.provider !== existing.provider) {
@@ -68,7 +73,7 @@ export function updateTemplate(id, input) {
 }
 
 export function deleteTemplate(id) {
-  const obj = mustGet(state.templates, id, 'request template');
+  const obj = mustGet(state.templates, id, 'ad unit template');
   const holders = tagsUsingTemplate(id).map(x => x.name);
   if (holders.length) {
     throw new Refusal(409, 'template_in_use',
@@ -156,7 +161,7 @@ export function normalizeTag(input, exceptId) {
   if (tplId) {
     const tpl = state.templates.get(tplId);
     if (!tpl) {
-      errors.push({ field: 'tplId', message: 'That request template doesn\'t exist' });
+      errors.push({ field: 'tplId', message: 'That ad unit template doesn\'t exist' });
     } else if (tpl.provider !== provider) {
       errors.push({ field: 'tplId', message: `“${tpl.name}” is a ${label(tpl.provider)} template — this tag asks ${label(provider)}` });
     }

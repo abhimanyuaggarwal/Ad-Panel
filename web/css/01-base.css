@@ -101,9 +101,10 @@ main.view-in { animation: viewIn .18s ease-out; }
   margin: -24px -26px 14px; padding: 14px 26px;
 }
 /* On editor pages the header shares the page with the version rail: its actions stop
-   at the FORM column's edge (above Details, over the Platform dropdown), never over
-   the rail. 260px rail + 30px gap. */
-.ehead.with-rail { padding-right: 290px; }
+   at the FORM column's edge — Save/Publish/⋯ end exactly where the cards below end,
+   never over the rail. 260px rail + 30px gap + the 26px the full-bleed margin swallows
+   (forgetting that last term left the ⋯ overhanging the card edge by 26px — 4 Sep). */
+.ehead.with-rail { padding-right: 316px; }
 .eh-back {
   flex: 0 0 auto; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
   border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink-soft);

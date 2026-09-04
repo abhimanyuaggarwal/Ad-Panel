@@ -1529,6 +1529,31 @@ await test('the emitted unittpl block is resolved from the tags\' chosen templat
   eq(live.sections[0].slots.preroll.walk[0].tpl, 'GAM_2', 'and the unit names which one carries it');
 });
 
+await test('a template switch is live (4 Sep): off, its units request through the standard — no republish', async () => {
+  const s = (await req('GET', '/panel/setups/as_1')).body.setup;
+  const primary = s.sections[0].slots.preroll.rungView[0];
+  const tpl = (await req('POST', '/panel/templates', {
+    name: 'GAM_3', provider: 'ima', url: 'https://ads.example.com/vast3?cb=[CACHEBUSTER]',
+  })).body.template;
+  eq(tpl.on, true, 'born on — absence is on, like a rung');
+  await req('PATCH', `/panel/tags/${primary.tagId}`, { tplId: tpl.id });
+  const k = (await req('GET', '/panel/keys/key_1')).body.key;
+  eq((await req('GET', `/panel/live/${k.key}`)).body.sections[0].slots.preroll.walk[0].tpl, 'GAM_3', 'carried while on');
+
+  const off = await req('PATCH', `/panel/templates/${tpl.id}`, { on: false });
+  eq(off.status, 200, 'switched off — the pick on the tag stands');
+  const live = (await req('GET', `/panel/live/${k.key}`)).body;
+  eq(live.sections[0].slots.preroll.walk[0].tpl, undefined, 'the unit falls back to its provider’s standard');
+  eq(live.unittpl.GAM_3, undefined, 'and the unittpl map never names it');
+
+  await req('PATCH', `/panel/templates/${tpl.id}`, { on: true });
+  eq((await req('GET', `/panel/live/${k.key}`)).body.sections[0].slots.preroll.walk[0].tpl, 'GAM_3', 'on again — carried again, next request');
+
+  // The seeded world shows the state on day one.
+  const seeded = (await req('GET', '/panel/templates')).body.templates.find(t => t.name === 'GAM low-latency');
+  eq(seeded.on, false, 'the seeded off template holds its switch');
+});
+
 await test('break pacing lives on the BREAK: the pre-roll\'s head start, prefetch on coming breaks', async () => {
   // Moved 31 Aug (user call): minPreRenderTime gates the pre-roll, prefetch readies a
   // break that arrives mid-playback — slot facts, not player facts.
@@ -1665,6 +1690,31 @@ await test('no custom configs: the JSON does not grow the field, and ids hold ac
   const r = await req('PATCH', '/panel/keys/key_1', { playerConfigs: [
     { ...k1.playerConfigs[0], name: 'shorts_rail' }] });
   eq(r.body.key.playerConfigs[0].id, id0, 'a rename is a rename — the id holds');
+});
+
+await test('a config switch rides the row (4 Sep): off leaves the player’s JSON, the rail reads on/off', async () => {
+  const k = (await req('GET', '/panel/keys/key_1')).body.key;
+  const amp = k.playerConfigs.find(c => c.name === 'amp_stories');
+  eq(amp.on, false, 'the seeded fork holds its switch');
+  const live0 = (await req('GET', `/panel/live/${k.key}`)).body;
+  eq(live0.playerConfigs.length, 1, 'the off config is not in the JSON');
+  assert(!live0.playerConfigs.some(c => c.name === 'amp_stories'), 'gone by name');
+  eq(live0.playerConfigs[0].on, undefined, 'an emitted config never carries the switch');
+
+  // Switch it on: one save, one publish, and the rail says exactly that — in words.
+  await req('PATCH', '/panel/keys/key_1', { playerConfigs: k.playerConfigs.map(c =>
+    c.name === 'amp_stories' ? { ...c, on: true } : c) });
+  const pub = await req('POST', '/panel/keys/key_1/publish');
+  eq(pub.status, 200, 'published');
+  assert(pub.body.version.changes.some(c => c.where === 'Player configs' && c.field === 'amp_stories' && c.from === 'off' && c.to === 'on'),
+    `the switch is one line, in words (got ${JSON.stringify(pub.body.version.changes)})`);
+  eq((await req('GET', `/panel/live/${k.key}`)).body.playerConfigs.length, 2, 'now the player has both');
+
+  // Every config off: the field leaves the JSON entirely, like a surface that has none.
+  await req('PATCH', '/panel/keys/key_1', { playerConfigs: k.playerConfigs.map(c => ({ ...c, on: false })) });
+  eq((await req('POST', '/panel/keys/key_1/publish')).status, 200, 'published again');
+  eq((await req('GET', `/panel/live/${k.key}`)).body.playerConfigs, undefined,
+    'every fork off — the JSON does not grow the field');
 });
 
 // ---------- WHERE THE MID-ROLL BREAKS FALL (3 Sep, user call) ----------

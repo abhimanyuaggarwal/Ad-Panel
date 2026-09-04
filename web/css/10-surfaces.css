@@ -7,14 +7,25 @@
    a wide screen and the two lists lined up differently. Both tables now pin the same
    three widths and let the last column absorb the slack. */
 /* The setups name column carries the width of the keys list's checkbox column too, so
-   Property lands on the same x when you move between the two screens.
+   Property lands on the same x when you move between the two screens (the calc says it
+   exactly: keys checkbox 43px + the shared name share).
    EVERY column takes a share (3 Sep, user call): when only some columns were sized, the
    last one absorbed all the slack and the table ended in ~550px of dead space that read
-   as broken. The two name columns and Property stay pinned (that is what puts Property
-   beside the name); the rest is proportional, so the row reaches the card's right edge
-   at any width, and the trailing metadata column is right-aligned to close it off. */
-.card table.t-keys th:nth-child(2) { width: 300px; }
-.card table.t-setups th:nth-child(1) { width: 343px; }
+   as broken. UNIFORM GAPS (4 Sep, user call — "too much gap between Active breaks and
+   Modified"): pinning the name at 300px sent every spare pixel to the LAST column, so
+   ~450px of void pooled between the break chips and the right-aligned Modified while
+   every other gap was ~100px. The name is proportional now — the one column whose
+   content can use the room — so the slack splits evenly across the row and the gaps
+   read as one rhythm. Modified still right-aligns to close the row at the card edge. */
+/* FIXED LAYOUT, because auto layout treats these widths as hints and re-deals the slack
+   by content — the setups name column was landing 70px wide of its ask. Fixed layout
+   honours the header row's widths exactly, which is the whole point of setting them.
+   (calc(% + px) on a th is dropped under fixed layout in Chrome, so the setups name is
+   a plain 30.5% — the keys checkbox+name share within ~7px across 1200–1760.) */
+.card table.t-keys, .card table.t-setups { table-layout: fixed; }
+.card table.t-keys th:nth-child(1) { width: 36px; }
+.card table.t-keys th:nth-child(2) { width: 28%; }
+.card table.t-setups th:nth-child(1) { width: 30.5%; }
 .card table.t-keys th:nth-child(3), .card table.t-setups th:nth-child(2) { width: 128px; }
 .card table.t-keys th:nth-child(4) { width: 13%; }
 .card table.t-keys th:nth-child(5) { width: 22%; }
@@ -32,35 +43,40 @@
 .fp-gseg button { font-size: 11px; padding: 3px 9px; }
 .fp-gfoot { display: flex; justify-content: flex-end; padding: 6px 4px 2px; margin-top: 4px; border-top: 1px solid var(--line); }
 
-/* ---------- REQUEST TEMPLATES: A STRIP, NOT A FIFTH BREAK (3 Sep) ---------- */
-/* At the bottom, wearing a break row's clothing, they were invisible. At the top, as a
-   label and a few named chips, they are what they are: shared plumbing, one click from
-   its editor, with no open/closed state to be in. */
-/* THE TEMPLATES STRIP STEPS BACK (3 Sep, user call). It was a tinted, bordered box
-   while PLACEMENTS — the page's actual structure — was a pale eyebrow, so the shared
-   plumbing shouted and the structure whispered. It is a quiet line now: same eyebrow
-   weight as every other section label, no box, no fill. */
-.tpl-strip {
-  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  padding: 0 2px 14px; margin: 2px 0 0;
+/* ---------- AD UNIT TEMPLATES, AS THE CONFIG TABLE (4 Sep, user call) ---------- */
+/* The chips strip is gone: the section speaks the custom-config table's exact grammar —
+   an eyebrow title, ONE heading row, the name as a fixed identity column with a rule
+   dividing it from the facts it names (the URL it fires, the counted use), the rare act
+   behind a ⋯ at the right edge, and the add at the FOOT where the row it makes appears.
+   A row opens its own editor, so the whole row is the door. */
+.tpl-sec { padding: 2px 0 6px; margin-bottom: 12px; }
+.tpl-t { --tpl-cols: 220px minmax(260px, 1fr) 140px 68px; }
+.tpl-h {
+  display: grid; grid-template-columns: var(--tpl-cols); gap: 18px; align-items: end;
+  padding: 0 0 6px; border-bottom: 1px solid var(--line); margin-bottom: 2px;
+  font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-faint);
 }
-.tpl-strip-l {
-  flex: 0 0 auto; font-size: 10px; font-weight: 700; letter-spacing: .1em;
-  text-transform: uppercase; color: var(--ink-faint);
+.tpl-r {
+  display: grid; grid-template-columns: var(--tpl-cols); gap: 18px; align-items: center;
+  padding: 8px 0; cursor: pointer;
 }
-.tpl-chips { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; flex: 1; min-width: 0; }
-.tpl-chip {
-  display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 5px;
-  border: 1px solid var(--line); border-radius: 20px; background: var(--card, #fff);
-  font: inherit; font-size: 12px; color: var(--ink); cursor: pointer;
+.tpl-r + .tpl-r { border-top: 1px solid #eef0f5; }
+.tpl-r:hover { background: var(--bg-soft, #f7f8fb); }
+/* The identity column: its right rule runs through header and rows alike (pcfg's). */
+.tpl-id {
+  display: flex; align-items: center; gap: 8px; min-width: 0;
+  border-right: 1px solid var(--line); padding-right: 18px;
 }
-.tpl-chip:hover { border-color: var(--accent); box-shadow: var(--shadow-1, 0 1px 3px rgba(16,24,43,.08)); }
-.tpl-chip-n { font-weight: 600; }
-.tpl-chip-c {
-  font-size: 10.5px; font-weight: 700; color: var(--ink-faint);
-  background: #eef0f4; border-radius: 8px; padding: 0 6px;
-}
-.tpl-strip .sg-empty { font-size: 12px; }
+.tpl-h .tpl-id { border-right-color: transparent; }
+.tpl-n { font-size: 12.5px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tpl-url { min-width: 0; }
+.tpl-url .mono { display: block; font-size: 11.5px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tpl-use { font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
+/* THE ROW'S SWITCH (4 Sep): state anchors the corner, always visible; the ⋯ reveals on
+   hover, exactly as the config rows do. A switched-off template keeps its row — name,
+   URL, counted use — dimmed in place; the switch and the ⋯ stay at full strength. */
+.tpl-r.off .tpl-id, .tpl-r.off .tpl-url, .tpl-r.off .tpl-use { opacity: .45; }
 
 /* ---------- PODS, ROW FACTS AND THE TEMPLATE FORM (3 Sep) ---------- */
 /* The pods strip stands even at one pod — that is what makes "everything is in pod 1"
@@ -85,11 +101,8 @@
 .tpl-foot { display: flex; align-items: baseline; gap: 12px; margin-top: 14px; padding-top: 11px; border-top: 1px solid var(--line); }
 .tpl-foot .podl { margin-left: auto; }
 
-/* "+ Add placement" sat mid-row because it claimed the auto margin and the GAM sync
-   line then sat further right. The add belongs beside the last tab; the sync is the
-   thing that belongs at the far edge. */
+/* "+ Add placement" belongs beside the last tab, not mid-row on the auto margin. */
 .pl-tabs .stab.add { margin-left: 6px; }
-.pl-tabs .gam-sync { margin-left: auto; }
 
 
 /* ---------- THE PLACEMENT NAME LIVES IN ITS TAB (3 Sep, user call) ---------- */
@@ -119,7 +132,7 @@
    the key owns a fixed left column, mono on a quiet tint, a vertical rule dividing it
    from the facts; the facts sit under ONE heading row, so labels never repeat per row
    and a bare key can never read as an unlabelled fourth control. */
-.pcfg-t { --pcfg-cols: 176px minmax(150px, 1fr) minmax(120px, 1fr) minmax(160px, 1fr) 28px; }
+.pcfg-t { --pcfg-cols: 176px minmax(150px, 1fr) minmax(120px, 1fr) minmax(160px, 1fr) 68px; }
 .pcfg-h {
   display: grid; grid-template-columns: var(--pcfg-cols); gap: 18px; align-items: end;
   padding: 0 0 6px; border-bottom: 1px solid var(--line); margin-bottom: 2px;
@@ -149,13 +162,15 @@
 }
 .pcfg-key:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px var(--ring); outline: 0; }
 .pcfg-c { display: flex; align-items: center; min-width: 0; }
-.pcfg-x {
-  border: 0; background: none; cursor: pointer; color: var(--ink-faint);
-  font-size: 15px; line-height: 1; padding: 4px 6px; border-radius: 6px;
-  justify-self: end; opacity: 0; transition: opacity .12s;
-}
-.pcfg-r:hover .pcfg-x, .pcfg-x:focus-visible { opacity: 1; }
-.pcfg-x:hover { color: var(--bad); background: #fdf0f0; }
+/* THE ROW'S RIGHT EDGE (4 Sep): the switch is STATE, so it never hides; the ⋯ carries
+   the rare act (Remove) and reveals itself the way the gear does — hover, focus, open. */
+.pcfg-acts { display: inline-flex; align-items: center; gap: 4px; justify-self: end; }
+.pcfg-r .row-kebab, .tpl-r .row-kebab { opacity: 0; transition: opacity .12s; }
+.pcfg-r:hover .row-kebab, .pcfg-r:focus-within .row-kebab, .tpl-r:hover .row-kebab,
+.row-kebab:focus-visible, .rmenu.open .row-kebab { opacity: 1; }
+/* A switched-off config keeps its row — key, facts and all — dimmed in place; the
+   switch and the ⋯ stay at full strength, or there is no way back. */
+.pcfg-r.off .pcfg-c, .pcfg-r.off .pcfg-id { opacity: .45; }
 
 /* PLACEMENTS is the structure: it names the strip from above, in the ink the templates
    line gave up, and the first tab starts on the card's own left edge. */
@@ -217,13 +232,23 @@
 
 
 /* ---------- DETAILS SHORT-ANSWER ROW + THE FILLS-FROM STRIP (3 Sep, user calls) ---------- */
-/* Playback, Fallback media and Passive volume at their natural widths, side by side;
-   the three forkable facts then own the row below (.pfacts, an even share each). */
+/* Playback, Fallback media and Passive volume at their natural widths, side by side. */
 .prow2 .field { flex: 0 0 auto; }
 .prow2 .field input[type=text] { width: 300px; }
 .prow2 .rule-text { flex: 0 0 280px; }
 .prow2 .num-wrap { flex: 0 0 auto; width: 96px; height: 38px; }
 .prow2 .num-wrap input { padding-left: 10px; height: 36px; }
+
+/* THE DEFAULT IS ROW ZERO OF THE CONFIGS (4 Sep, user call). The Details card's last row
+   rides the config table's own grid (`--pcfg-cols`), so its three facts sit in the EXACT
+   columns their forks take in the card below — the identity label where the table keeps
+   its keys, the same divider rule through both cards. The label bottom-aligns with the
+   controls (each fact carries its own label above), and the rule spans the row so it
+   reads as the table's rule, not a tick. */
+.dflt-t { margin-top: 4px; }
+.dflt-r { padding-bottom: 0; }
+.dflt-r .pcfg-id { align-self: stretch; align-items: flex-end; padding-bottom: 7px; }
+.dflt-id { font-size: 12px; font-weight: 650; color: var(--ink-soft); white-space: nowrap; }
 
 /* The mapped ad setup is the page's headline relationship, so it rides the TITLE ROW at
    the right edge — an eyebrow, the setup as a PROMINENT chip that opens it, the meta

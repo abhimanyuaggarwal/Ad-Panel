@@ -588,8 +588,11 @@ function breakPanelHtml(t) {
 
 // The mapped setup is the fact this section exists for, so it rides the TITLE ROW at the
 // right edge (3 Sep, user call — a strip on its own line under the title read as a second
-// heading): a FILLS FROM eyebrow, the setup as a chip that opens its editor and comes back
-// with your edits kept, the quiet who·when, and change. Nothing mapped says so in words.
+// heading). Re-cut 4 Sep (user call): the eyebrow says AD SETUP — what the chip IS, not
+// what it does — and the chip alone: clicking it opens the setup's real editor (← there
+// keeps your edits). The who·when byline is gone (the setup's own page carries its
+// history), and `change` — the rare act — stepped back into a ⋯ beside the chip.
+// Nothing mapped still says so in words.
 function adsCardHtml(meta) {
   const setup = sectionSetup(0);
   return `
@@ -600,13 +603,18 @@ function adsCardHtml(meta) {
       <div class="fieldset-title-row">
         <div class="fieldset-title">Ad behaviour</div>
         <div class="ads-fills fills-strip">
-          <span class="fs-l">Fills from</span>
+          <span class="fs-l">Ad setup</span>
           ${setup
             ? `<button type="button" class="st-chip fs-setup" onclick="openSetupFromKey('${setup.id}')"
-                 title="${esc(setupSummary(setup))} — open the ad setup; ← there brings you back with your edits kept">
+                 title="${esc(setupSummary(setup))} — open “${esc(setup.name)}” in its own editor; ← there brings you back with your edits kept">
                  <span class="fs-name">${esc(setup.name)}</span><i class="fs-arr">›</i></button>
-               <span class="podl">${esc(setup.updatedBy || 'ad ops')} · ${relWhen(setup.updatedAt)}${!KEY_ORIGINAL && (setup.usedBy || FORM.data.copyAtCreate) ? ' · becomes this integration\'s own copy at create' : ''}</span>
-               <button type="button" class="zlink" onclick="changeSetupJourney()">change</button>`
+               ${!KEY_ORIGINAL && (setup.usedBy || FORM.data.copyAtCreate) ? `<span class="podl">becomes this integration's own copy at create</span>` : ''}
+               <span class="rmenu">
+                 <button type="button" class="row-kebab" onclick="rmenuToggle(event, this)" title="More actions" aria-label="More actions">⋯</button>
+                 <div class="rmenu-list">
+                   <div class="eh-item" onclick="rmenuShut(this); changeSetupJourney()">Change ad setup…</div>
+                 </div>
+               </span>`
             : `<span class="sg-empty">nothing yet — every break fills from ONE ad setup; pick it below</span>`}
         </div>
       </div>

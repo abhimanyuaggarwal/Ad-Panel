@@ -66,10 +66,9 @@ async function viewSetupForm(id) {
   if (typeof KEY_RETURN !== 'undefined' && KEY_RETURN && KEY_RETURN.expect !== (id || 'new')) KEY_RETURN = null;
   const meta = await getMeta();
   KL_META = meta;
-  const [{ tags }, gam, { templates }] = await Promise.all([API.listTags(), API.gamUnits(''), API.listTemplates()]);
+  const [{ tags }, { templates }] = await Promise.all([API.listTags(), API.listTemplates()]);
   SU_TAGS = tags;
   SU_TPLS = templates;
-  GAM_LAST_SYNC = gam.lastSync;
   for (const t of tags) window.NAME_LOOKUP[t.id] = t.name;
 
   let data;
@@ -510,8 +509,10 @@ function suRungPanelHtml(t, n, r) {
           ? 'Content is paused — the player shows its own ad controls, not a close button (JSON: skip)'
           : 'The close button appears this long after the banner does (JSON: skip)', paused)}
         ${row('Auto-hide', clock('hideAfterSec', ''), 'The banner leaves on its own, and content has the screen back (JSON: hide)')}` : ''}
-      ${tag ? row('Request template',
-        selectHtml(tag.tplId || '', [{ v: '', label: 'Standard' }, ...provTpls.map(x => ({ v: x.id, label: x.name }))],
+      ${tag ? row('Ad unit template',
+        // A switched-off template stays pickable — the pick is legal, just inert — and
+        // wears the fact as a micro-suffix where the decision is made.
+        selectHtml(tag.tplId || '', [{ v: '', label: 'Standard' }, ...provTpls.map(x => ({ v: x.id, label: x.on === false ? `${x.name} · off` : x.name }))],
           v => { suRungTplSet(t, n, v); }),
         (tag.usedBy || 1) > 1
           ? `The request URL this unit fires through (JSON: unit.tpl). A tag fact — it changes everywhere “${tag.name}” is used (${tag.usedBy} setups).`
@@ -602,13 +603,9 @@ function suTabsHtml(meta) {
   const tabs = [...secs.map((s, i) => tab(i, s))];
   const atMax = secs.length >= (meta.maxSections || 5);
   tabs.push(`<button type="button" class="stab add" ${atMax ? `disabled title="At most ${meta.maxSections} placements"` : ''} onclick="suAddSection()">+ Add placement</button>`);
-  // ONE directory, ONE sync (1 Sep, user call): the GAM pull refreshes the whole unit
-  // directory, so its CTA sits once on the placements line — not on every break.
-  tabs.push(`<span class="gam-sync">
-      <button type="button" class="zlink" onclick="syncGamClicked()"
-        title="Pull newly trafficked ad units from GAM, so a unit made this morning is pickable now">sync GAM units</button>
-      <span class="gam-sync-note">${GAM_LAST_SYNC ? esc(`synced ${relWhen(GAM_LAST_SYNC)}`) : ''}</span>
-    </span>`);
+  // The GAM sync CTA left this line (4 Sep, user call — it was a page-level act for a
+  // search-level problem): the pull now lives IN the ad-unit search, offered on the row
+  // where the directory comes up short. See lookupGamRowHtml in controls.js.
   return `
     <div class="pl-head">Placements</div>
     <div class="scope-tabs pl-tabs">${tabs.join('')}</div>`;

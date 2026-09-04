@@ -101,12 +101,16 @@ async function tagSearchItems(family, q, excludeIds = [], provider = 'ima', also
   // endpoint you paste. Either way the provider is already chosen on the field, so there
   // is one row and no second question.
   if (window.KL_DIR_PROVIDERS.includes(provider)) {
-    const { units } = await API.gamUnits(q);
+    const { units, lastSync } = await API.gamUnits(q);
     for (const u of units.filter(x => !known.has(x)).slice(0, 4)) {
       out.push({ kind: 'new', v: u, provider, title: gamUnitTitle(u), sub: u, icon: tagMark(family, provider), badge: 'new', badgeKind: 'new' });
     }
     const manual = manualRow(q, provider, family, known, units);
     if (manual) out.push(manual);
+    // The directory's own door, exactly where its gap is discovered (4 Sep, user call):
+    // the sync row appears the moment GAM answers nothing for what you typed — and stays
+    // while a pull is in flight, so the progress never vanishes under a narrowing query.
+    if (!units.length || GAM_SYNCING) out.gam = { lastSync };
   } else if (/^https?:/i.test(q)) {
     out.push({
       kind: 'new', v: q, provider, title: clip(q, 40),

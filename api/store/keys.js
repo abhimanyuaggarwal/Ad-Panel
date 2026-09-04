@@ -90,6 +90,11 @@ export function normalizePlayerConfigs(input, player, errors) {
     }
     const out = {
       id, name,
+      // The row's own switch (4 Sep, user call) — a rung's grammar: absence is on, so
+      // every config saved before the switch existed keeps serving. Off keeps the row,
+      // its key and its facts; players asking for it follow the default player, and the
+      // emitted JSON never carries it (see liveConfig).
+      on: c.on === undefined ? true : bool(c.on),
       playback: oneOf(c.playback ?? player.playback ?? 'active', 'playback', PLAYBACK_KINDS, errs),
       expandInMini: c.expandInMini === undefined ? true : bool(c.expandInMini),
       autoplay: oneOf(c.autoplay ?? player.autoplay ?? 'auto', 'autoplay', AUTOPLAY, errs),

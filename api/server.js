@@ -619,7 +619,7 @@ app.delete('/panel/tags/:id', handle((req, res) => {
   res.json({ deleted: obj.id });
 }));
 
-// ---------- request templates ----------
+// ---------- ad unit templates ----------
 // Plumbing behind a tag, not a room: a small list beside the tag library (31 Aug).
 function templateView(t) {
   const inTags = store.tagsUsingTemplate(t.id);
@@ -648,10 +648,15 @@ app.get('/panel/gam/units', handle((req, res) => {
   res.json(store.gamUnits(req.query.q));
 }));
 
-app.post('/panel/gam/sync', handle((req, res) => {
-  const { added, lastSync } = store.gamSync();
-  res.json({ added: added.length, units: added, lastSync });
-}));
+// The real GAM pull takes 10–20 seconds; the mock takes a beat (never under test, the
+// suite stays ~1s) so the search's in-flight row is a state a person can actually see.
+app.post('/panel/gam/sync', (req, res) => {
+  const go = handle((rq, rs) => {
+    const { added, lastSync } = store.gamSync();
+    rs.json({ added: added.length, units: added, lastSync });
+  });
+  setTimeout(() => go(req, res), process.env.NODE_ENV === 'test' ? 0 : 1800);
+});
 
 // ---------- mock ----------
 app.post('/panel/mock/reset', handle((req, res) => {

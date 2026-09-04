@@ -1,6 +1,89 @@
 # Player Console — the Integrations Panel (StreamAds repo) — v1
 
-**LAST CALLS BEFORE HANDOFF (3 Sep, user — twelve, in order):**
+**POST-HANDOFF CALLS (4 Sep, user — three, in order):**
+
+1. **Custom config rows carry a SWITCH, and Remove moved behind a ⋯.** Each row's right edge is
+   now a toggle (state — always visible) and a ⋯ menu holding `Remove config` (the rare act; the
+   hover-only `×` it replaces put the destructive act closer to hand than the reversible one).
+   The switch is a rung's grammar server-side: `on` on the config, absence = on, so every config
+   saved before the field existed keeps serving. Off keeps the row, its key and its facts — dimmed
+   in place, switch and ⋯ at full strength — and players asking for it follow the default player.
+   A switched-off config is NOT in the player's JSON (and the emitted shape never grows the `on`
+   field; all off = the field leaves the JSON entirely, like a surface with none). The rail and
+   the save review read the move in words: `amp_stories: off → on`, one line, named by key. The
+   demo world seeds `amp_stories` off so the switch is visible on day one; +1 API test (118).
+2. **The Ad behaviour title row says AD SETUP, chip only.** The `FILLS FROM` eyebrow renamed to
+   what the chip IS; clicking the chip still opens the setup's real editor (← keeps your edits).
+   The `who · when` byline is gone — the setup's own page carries its history — and `change`, the
+   rare act, stepped back into a ⋯ beside the chip (`Change ad setup…`, same modal as before).
+   "Becomes this integration's own copy at create" still shows while creating over a held setup.
+   Unmapped is unchanged ("nothing yet — … pick it below", cards in the section).
+3. **Request templates are AD UNIT TEMPLATES, drawn as the config table.** The chips strip is
+   gone; the section (still at the head of the ad setup editor) speaks the custom-config table's
+   grammar: eyebrow title, ONE heading row (`TEMPLATE · REQUEST URL · IN USE`), the name as a
+   fixed identity column with the provider badge, the URL it fires in mono, the counted use, a
+   per-row ⋯ holding `Delete template` (dimmed with the counted reason while ad units request
+   through it), and `+ Add template` at the FOOT. A row opens its own editor dialog (unchanged
+   inside; titled `New ad unit template` on create). The unit panel's row and the LABELS
+   vocabulary say `Ad unit template` too, and the server's refusals renamed with them
+   (`An ad unit template named … already exists`). The `⋯` row-menu machinery is shared:
+   `rmenuToggle`/`rmenuShut` in controls.js, `.row-kebab`/`.rmenu-list` in 03-controls.css,
+   items in the header menu's `.eh-item` grammar, closed by the existing global click-away.
+4. **The GAM sync lives IN the ad-unit search** — the `sync GAM units` CTA left the placements
+   line (a page-level act for a search-level problem). The moment the directory answers nothing
+   for what you typed, ONE action row appears at the menu's foot: a refresh icon, `Sync ad units
+   from GAM`, and the counted staleness that explains it (`directory synced 2h ago`). The real
+   pull takes 10–20 seconds, so it runs IN PLACE: the row becomes its own progress line (spinner,
+   `usually 10–20 seconds — results refresh when it lands`), the field keeps its focus and its
+   query, typing on is fine (the in-flight row stays while a pull runs, so progress never
+   vanishes under a narrowing query), and when it lands the same search re-runs — a unit
+   trafficked this morning simply appears where you were looking for it, the row dissolves, and
+   the toast counts what arrived. A menu closed before it lands still gets the toast; no confirm
+   dialog (a read-only, idempotent pull). Machinery: `lookupGamRowHtml`/`lookupGamSync` +
+   `GAM_SYNCING` in controls.js, `items.gam` attached by `tagSearchItems` when GAM returns zero
+   units for the query, `.lk-sync`/`.lk-spin` in 05-tag-forms.css; the mock's `/panel/gam/sync`
+   answers after ~1.8s (instant under test) so the in-flight state is real. Removed with the CTA:
+   `syncGamClicked`, the strip markup + `.gam-sync` CSS, the now-dead `GAM_LAST_SYNC` global (the
+   row reads `lastSync` fresh from `gamUnits` per query), and the never-instantiated `.suggest`
+   component (`suggestInput`/`suggestSyncRetry`/`suggestPick`/`SUGGEST_REGISTRY`/`slotSourceBadge`
+   + its `.sug-*` CSS) whose empty-state "Sync GAM & retry" button this feature supersedes. Also
+   unfused an orphaned `.lk-scope button.on` selector head that had left `.lk-note` unstyled.
+5. **The default player's three facts are ROW ZERO of the configs.** The Details card's last
+   row is drawn on the config table's own grid (`.pcfg-t` / `--pcfg-cols`, one source of truth):
+   a `Default player config` identity label where the table keeps its keys — bottom-aligned to
+   the control line, the same divider rule running through both cards — and Playback mode /
+   Expand MiniTV / Autoplay behaviour in the EXACT columns their forks take in the card below
+   (measured: identical x for all three control columns). The old `.frow.pfacts` even-share flex
+   row only approximated the columns; its CSS is gone. A fork now reads, visibly, as "this row,
+   under a key".
+6. **Save/Publish/⋯ end exactly where the cards end.** `.ehead.with-rail` reserved
+   `290px` (260 rail + 30 gap) but forgot the 26px its own full-bleed negative margin swallows,
+   so the header actions overhung the form column's right edge by exactly 26px — now `316px`,
+   and the ≤1100px media query (rail hidden) drops the reservation to the base 26px so the
+   buttons keep ending on the card edge at every width, on both editors.
+7. **Ad unit templates carry the row switch too** — the config rows' exact grammar: an
+   always-visible toggle anchors the corner, the ⋯ (Delete) reveals on hover, an off row dims
+   in place keeping its name, URL and counted use. Model: `on` on the template (absence = on,
+   `normalizeTemplate`); a switched-off template's units request through their provider's
+   STANDARD — `walkEntry` skips it, so the unit's `tpl` flag and the `unittpl` map never name
+   it, and all-off/unused behaves like no template at all. THE HONESTY POINT: templates resolve
+   LIVE (no publish plane), so the switch reaches players on their next request — the toggle's
+   hover and the counted toast both say "from the next request" (`“X” off — its 3 ad units
+   request through the provider's standard, from the next request`); no confirm, no review,
+   exactly like every other template edit. The unit panel's template select keeps off templates
+   pickable (legal, just inert) wearing a `· off` micro-suffix. The world seeds `GAM
+   low-latency` off so the state is visible on day one. +1 API test (119).
+8. **The lists' slack is split evenly — the Active breaks → Modified void is gone.** Pinning
+   the name at 300px sent every spare pixel to the last column, so ~450px pooled between the
+   break chips and the right-aligned Modified while every other gap was ~100px. The name column
+   is proportional now (keys 28%, the one column whose content can use the room — Off air /
+   unpublished chips fit inline beside the name again), and the tables run `table-layout:
+   fixed` because auto layout treats widths as hints and re-deals slack by content (the setups
+   name landed 70px wide of its ask; `calc(% + px)` on a th is also dropped under fixed layout
+   in Chrome, so the setups name is a plain 30.5% ≈ keys checkbox+name, within ~7px across
+   1200–1760 — Property still lands on the same x when switching screens, Δ1px at 1440). The
+   checkbox column is pinned at 36px so nothing depends on layout-quirk leftovers. Modified
+   still right-aligns to close the row; verified at 1200/1440/1760 and on the scale scenario.
 
 1. **"Ad delivery" is "Ad behaviour"** on the integration page — the same word the bulk act uses,
    one name for one concept. (The ops room keeps "Ad setups": the object, not the section.)

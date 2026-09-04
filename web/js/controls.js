@@ -207,22 +207,28 @@ document.addEventListener('click', e => {
 });
 
 // ---------- row menu (⋯) — labeled actions for a row ----------
-
-
-
-
-
-// ---------- GAM suggest input (slots) ----------
-// Type an ad unit → typeahead from the synced directory; paste a full URL → manual.
-
-const SUGGEST_REGISTRY = {};
-
-function slotSourceBadge(v) {
-  if (!v) return '';
-  return /^https?:/i.test(v)
-    ? '<span class="slot-src manual">manual URL</span>'
-    : '<span class="slot-src gam">GAM</span>';
+// Secondary acts live behind a ⋯ at the row's right edge (4 Sep, user call — first the
+// config rows' Remove, then the Ad-setup strip's change). Open state is pure DOM, like
+// the selects: the global click-away above closes any `.rmenu.open`, and a rerender
+// paints it closed. Items reuse the header menu's `.eh-item` grammar.
+function rmenuToggle(e, btn) {
+  e.stopPropagation();
+  const m = btn.closest('.rmenu');
+  document.querySelectorAll('.rmenu.open').forEach(x => { if (x !== m) x.classList.remove('open'); });
+  m.classList.toggle('open');
 }
+
+// An item closes its own menu before it acts — a confirm dialog must never sit over a
+// menu that is still open behind it.
+function rmenuShut(el) {
+  el.closest('.rmenu')?.classList.remove('open');
+}
+
+
+
+
+
+// ---------- the GAM directory, spoken of where it is used ----------
 
 // "/7176/toi/mweb/videoshow/preroll" -> "Toi + Mweb + Videoshow + Preroll" (drops the network code)
 function gamUnitTitle(u) {
@@ -230,43 +236,57 @@ function gamUnitTitle(u) {
   return parts.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' + ');
 }
 
+// THE SYNC LIVES IN THE SEARCH (4 Sep, user call — the "sync GAM units" CTA on the
+// placements line is gone). The moment the gap is discovered is the moment the search
+// answers nothing for what you typed: ONE action row at the menu's foot offers the pull,
+// wearing the counted staleness that explains it ("directory synced 2h ago"). The real
+// pull takes 10–20 seconds, so it runs IN PLACE: the row becomes its own progress line,
+// the field keeps its focus and its query, typing on is fine, and when it lands the same
+// search re-runs — a unit trafficked this morning simply appears where you were looking
+// for it. One module-level flag, so every lookup tells the same story; a menu closed
+// before the pull lands still gets the counted toast.
+let GAM_SYNCING = false;
 
-async function suggestInput(id, input) {
-  const v = input.value.trim();
-  const box = document.getElementById(id);
-  SUGGEST_REGISTRY[id].setFn(v);
-  box.querySelector('.slot-badge').innerHTML = slotSourceBadge(v);
-  const menu = box.querySelector('.sug-menu');
-  if (/^https?:/i.test(v)) { menu.classList.remove('open'); return; }
-  const { units } = await API.gamUnits(v);
-  if (!document.getElementById(id) || box.querySelector('input').value.trim() !== v) return;
-  menu.innerHTML = units.length
-    ? units.map(u => `
-        <div class="sug-item" onmousedown="suggestPick('${id}', '${esc(u)}')">
-          <div class="sug-title">${esc(gamUnitTitle(u))}</div>
-          <div class="sug-path">${esc(u)}</div>
-        </div>`).join('')
-    : `<div class="sug-empty">
-        <span>No ad units found${v ? ` for “${esc(v)}”` : ''}.</span>
-        <button onmousedown="suggestSyncRetry(event, '${id}')">Sync GAM &amp; retry</button>
-      </div>`;
-  menu.classList.add('open');
+const GAM_SYNC_ICON = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor"
+    stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M13.7 8a5.7 5.7 0 0 1-10 3.8M2.3 8a5.7 5.7 0 0 1 10-3.8"/>
+  <path d="M12.6 1.6v2.9h-2.9M3.4 14.4v-2.9h2.9"/></svg>`;
+
+// The row itself, drawn by lookupInput whenever a search attaches `items.gam`.
+function lookupGamRowHtml(id, gam) {
+  if (GAM_SYNCING) {
+    return `
+    <div class="lk-sync busy" onmousedown="event.preventDefault()">
+      <span class="lk-spin"></span>
+      <div><div class="lk-sync-t">Syncing ad units from GAM…</div>
+        <div class="lk-sync-m">usually 10–20 seconds — results refresh when it lands</div></div>
+    </div>`;
+  }
+  return `
+    <div class="lk-sync" onmousedown="lookupGamSync(event, '${id}')"
+      title="Pulls newly trafficked ad units from GAM — takes 10–20 seconds; you can keep working">
+      ${GAM_SYNC_ICON}
+      <div><div class="lk-sync-t">Sync ad units from GAM</div>
+        <div class="lk-sync-m">${gam.lastSync ? `directory synced ${esc(relWhen(gam.lastSync))}` : 'directory not synced yet'}</div></div>
+    </div>`;
 }
 
-async function suggestSyncRetry(e, id) {
-  e.preventDefault();
-  const { added } = await API.gamSync();
-  toast(added ? `${added} new ad unit${added > 1 ? 's' : ''} pulled from GAM` : 'GAM is up to date — nothing new');
-  const input = document.getElementById(id)?.querySelector('input');
-  if (input) { input.focus(); suggestInput(id, input); }
-}
-
-function suggestPick(id, v) {
-  const box = document.getElementById(id);
-  box.querySelector('input').value = v;
-  box.querySelector('.slot-badge').innerHTML = slotSourceBadge(v);
-  box.querySelector('.sug-menu').classList.remove('open');
-  SUGGEST_REGISTRY[id].setFn(v);
+async function lookupGamSync(e, id) {
+  e.preventDefault(); // mousedown: the field must not blur
+  if (GAM_SYNCING) return;
+  GAM_SYNCING = true;
+  lookupInput(id); // repaint in place: the action row becomes the progress line
+  try {
+    const { added } = await API.gamSync();
+    toast(added ? `${added} new ad unit${added > 1 ? 's' : ''} pulled from GAM` : 'GAM is up to date — nothing new');
+  } catch (err) {
+    toast(err.message, 'bad');
+  } finally {
+    GAM_SYNCING = false;
+  }
+  // Re-run the search that asked, with whatever is typed NOW — but only while its menu
+  // is still open. A person who moved on gets the toast, never a menu popping back up.
+  if (document.getElementById(id)?.querySelector('.lk-menu.open')) lookupInput(id);
 }
 
 
@@ -404,6 +424,9 @@ async function lookupInput(id) {
   const empty = note ? '' : `<div class="lk-empty">${esc(reg.emptyText ? reg.emptyText(q, reg.picked) : 'Nothing matches')}</div>`;
   menu.innerHTML = scopeBar
     + (items.length ? rows : empty)
+    // The directory's own door, when a search attaches it (see lookupGamRowHtml):
+    // an action row, never a result — it sits after the results, above the note bar.
+    + (items.gam ? lookupGamRowHtml(id, items.gam) : '')
     + (note ? `<div class="lk-note">${note}</div>` : '');
   menu.classList.add('open');
 }

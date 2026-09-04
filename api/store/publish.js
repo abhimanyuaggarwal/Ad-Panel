@@ -271,8 +271,11 @@ export function liveConfig(apiKey) {
     if (!tag) return null;
     const out = { provider: tag.provider, type: tag.type, value: tag.value };
     if (tag.tplId) {
+      // A switched-off template (4 Sep) is simply not in the answer — its units request
+      // through their provider's standard, and the unittpl map never names it. Templates
+      // resolve live, so the switch reaches players on their next request, no republish.
       const tpl = state.templates.get(tag.tplId);
-      if (tpl) { out.tpl = tpl.name; unittpl[tpl.name] = tpl.url; }
+      if (tpl && tpl.on !== false) { out.tpl = tpl.name; unittpl[tpl.name] = tpl.url; }
     }
     for (const f of ['displaySlot', 'pause', 'showAfterSec', 'closeAfterSec', 'hideAfterSec']) {
       if (x[f] !== undefined) out[f] = x[f];
@@ -312,14 +315,19 @@ export function liveConfig(apiKey) {
     return { name: s.name, slots };
   }).filter(s => Object.keys(s.slots).length);
 
+  // The named forks a player may ask for (2 Sep): each carries only the three facts
+  // that vary per placement; everything else follows `player`. A switched-off config
+  // (4 Sep) is simply not in the answer — a player asking for it follows the default —
+  // and the emitted shape never grows the switch itself. Emitted only when any survive,
+  // so the common integration's JSON does not grow a field.
+  const liveConfigs = (ks.playerConfigs || []).filter(c => c.on !== false)
+    .map(({ on, ...c }) => ({ ...c }));
+
   return {
     key: apiKey,
     integration: { name: ks.name, property: ks.property, platform: ks.platform, domains: ks.domains, packageName: ks.packageName },
     player: ks.player,
-    // The named forks a player may ask for (2 Sep): each carries only the three facts
-    // that vary per placement; everything else follows `player`. Emitted only when the
-    // surface has any — the common integration's JSON does not grow a field.
-    ...(ks.playerConfigs && ks.playerConfigs.length ? { playerConfigs: ks.playerConfigs.map(c => ({ ...c })) } : {}),
+    ...(liveConfigs.length ? { playerConfigs: liveConfigs } : {}),
     version: { integration: liveVersion(k.id), adSetup: ks.adSetupId ? liveVersion(ks.adSetupId) : null },
     unittpl,
     sections,

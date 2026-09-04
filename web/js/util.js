@@ -348,7 +348,7 @@ const FIELD_NAMES = {
   direct: 'Direct',
   prefetchSec: 'Prefetch', minContentSec: 'Min content playback', expandInMini: 'Expand MiniTV for ads',
   playback: 'Playback mode', playerConfigs: 'Player configs',
-  tplId: 'Request template', url: 'Request URL',
+  tplId: 'Ad unit template', url: 'Request URL',
   // The drive — the per-break quick decisions (26 Aug, DRIVING-SCOPE). `ask` reads
   // "Fallback order" since 31 Aug: the tiers set the sequence (Direct, then the
   // primary, then the fallback), and the fallback is the one ordered thing left.

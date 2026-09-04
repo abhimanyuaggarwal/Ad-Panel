@@ -289,22 +289,60 @@ async function tplRefresh() {
 // bottom"). They sat under Pre/Mid/Post/Out wearing a break row's exact clothing — same
 // label column, same glimpse, same chevron — so the eye read them as another break and
 // slid past. They are a different KIND of thing: named request URLs shared by every ad
-// setup on the account, not a property of this one. So they moved to the top of the card
-// and lost the accordion entirely: a label, the templates as chips, and one add. A chip
-// opens its own editor; there is no open/closed state left to be in.
+// setup on the account, not a property of this one. So they moved to the top of the card.
+// AD UNIT TEMPLATES, AS THE CONFIG TABLE (4 Sep, user call — the chips strip is gone,
+// and the section wears the name of the thing it templates). The custom-config section
+// on the integration page set the grammar, and this one follows it: an eyebrow title,
+// rows under ONE heading row — the name as the identity column, then the URL it fires
+// and the counted use — the rare act (Delete) behind a ⋯ at the row's right edge, and
+// the add at the FOOT where the row it makes appears. A row opens its own editor.
+// THE ROW'S SWITCH (4 Sep, user call — the config rows' exact grammar): off keeps the
+// template, its name and its units' picks, dimmed in place; those units request through
+// their provider's STANDARD until it is on again. Templates resolve LIVE (no publish
+// plane), so the switch reaches players on their next request — the toggle says so.
 function suTemplatesRowHtml() {
   const mine = SU_TPLS.filter(t => inScope(t.property));
+  const row = t => {
+    const off = t.on === false;
+    const n = t.usedBy || 0;
+    const units = `${n} ad unit${n === 1 ? '' : 's'}`;
+    return `
+    <div class="tpl-r${off ? ' off' : ''}" onclick="tplOpen('${t.id}')"
+      title="Open “${esc(t.name)}” — its name, provider and request URL">
+      <span class="tpl-id">${providerBadge(t.provider)}<span class="tpl-n">${esc(t.name)}</span></span>
+      <span class="tpl-url"><span class="mono" title="${esc(t.url)}">${esc(t.url)}</span></span>
+      <span class="tpl-use">${n ? units : '<span class="sg-dim">no ad unit yet</span>'}</span>
+      <span class="pcfg-acts" onclick="event.stopPropagation()">
+        <span class="toggle tiny ${off ? '' : 'on'}" onclick="tplToggle('${t.id}')"
+          title="${off
+            ? esc(`Switched off — ${n ? `its ${units} request` : 'an ad unit picking it requests'} through the provider's standard. On reaches players from the next request.`)
+            : esc(`Switched on — ad units picking it request through this URL. Off: the provider's standard, from the next request.`)}"><span class="track"></span></span>
+        <span class="rmenu">
+          <button type="button" class="row-kebab" onclick="rmenuToggle(event, this)" title="More actions" aria-label="More actions">⋯</button>
+          <div class="rmenu-list">
+            <div class="eh-item danger ${n ? 'dim' : ''}" ${n
+              ? `title="${units} request through it — point them elsewhere first"`
+              : `onclick="rmenuShut(this); tplDelete('${t.id}')"`}>Delete template</div>
+          </div>
+        </span>
+      </span>
+    </div>`;
+  };
   return `
-    <div class="tpl-strip">
-      <span class="tpl-strip-l" title="Named request URLs the player fires an ad unit through — shared across every ad setup. A tag that picks none uses its provider's standard template.">Request templates</span>
-      <div class="tpl-chips">
-        ${mine.length ? mine.map(t => `
-          <button type="button" class="tpl-chip" onclick="tplOpen('${t.id}')"
-            title="${esc(t.url)}${t.usedBy ? ` — ${t.usedBy} tag${t.usedBy === 1 ? '' : 's'} request through it` : ' — no tag uses it yet'}">
-            ${providerBadge(t.provider)}<span class="tpl-chip-n">${esc(t.name)}</span>${t.usedBy ? `<span class="tpl-chip-c">${t.usedBy}</span>` : ''}
-          </button>`).join('') : '<span class="sg-empty">none yet — tags use their provider’s standard request</span>'}
+    <div class="tpl-sec">
+      <div class="pl-head" title="Named request URLs an ad unit fires through — shared across every ad setup. A unit that picks none uses its provider's standard template.">Ad unit templates</div>
+      ${mine.length ? `
+      <div class="tpl-t">
+        <div class="tpl-h">
+          <span class="tpl-id">Template</span><span>Request URL</span><span>In use</span><span></span>
+        </div>
+        ${mine.map(row).join('')}
+      </div>`
+        : '<div class="pcc-empty">None — ad units request through their provider’s standard template</div>'}
+      <div class="pcc-foot">
+        <button type="button" class="slot-add pcc-add" onclick="tplNew()"
+          title="A named request URL ad units can pick, in their own settings">+ Add template</button>
       </div>
-      <button type="button" class="zlink" onclick="tplNew()">+ New template</button>
     </div>`;
 }
 
@@ -353,7 +391,7 @@ function tplFormBody(t) {
 
 async function tplNew() {
   const body = await askForm({
-    title: 'New request template',
+    title: 'New ad unit template',
     body: tplFormBody(null),
     okLabel: 'Create',
   }, root => ({
@@ -365,7 +403,7 @@ async function tplNew() {
   if (!body) return;
   try {
     await API.createTemplate(body);
-    toast('Template created — open it to route tags through it');
+    toast('Template created — ad units pick it in their own settings');
     await tplRefresh();
   } catch (e) {
     toast((e.errors && e.errors[0]?.message) || e.message, 'bad');
@@ -402,6 +440,25 @@ async function tplOpen(id) {
   try {
     await API.updateTemplate(t.id, body);
     toast('Saved');
+    await tplRefresh();
+  } catch (e) {
+    toast((e.errors && e.errors[0]?.message) || e.message, 'bad');
+  }
+}
+
+// The row's switch writes NOW (templates have no draft plane — they resolve live), so
+// the toast carries the counted, from-the-next-request consequence instead of a review.
+async function tplToggle(id) {
+  const t = SU_TPLS.find(x => x.id === id);
+  if (!t) return;
+  const to = t.on === false;
+  const n = t.usedBy || 0;
+  const units = `${n} ad unit${n === 1 ? '' : 's'}`;
+  try {
+    await API.updateTemplate(t.id, { on: to });
+    toast(to
+      ? `“${t.name}” on${n ? ` — its ${units} request through it again, from the next request` : ''}`
+      : `“${t.name}” off${n ? ` — its ${units} request through the provider's standard, from the next request` : ''}`);
     await tplRefresh();
   } catch (e) {
     toast((e.errors && e.errors[0]?.message) || e.message, 'bad');
