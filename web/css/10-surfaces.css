@@ -229,16 +229,23 @@
    table taught us values need. */
 /* Stretched to the SLOT's own right edge (4 Sep, user review): the rows stop 60px short
    of the head line (the reserved ⋯/Clear gutter), and the panel inheriting that edge
-   read as inset — it now runs past the ad unit to where the slot's head row ends. */
+   read as inset — it now runs past the ad unit to where the slot's head row ends.
+   TIGHTENED (4 Sep, user review — "taken too much space"): shallower rows, compact
+   controls scoped to the panel alone, so six fields read as one sleek block instead of
+   a page of form. The page's own controls elsewhere keep their full size. */
 .unit-panel {
-  margin: 4px -60px 10px 126px; padding: 5px 16px;
+  margin: 2px -60px 8px 126px; padding: 3px 14px;
   border: 1px solid var(--line); border-radius: 10px;
   background: var(--bg-soft, #f7f8fb);
 }
-.up-r { display: flex; align-items: center; gap: 12px; min-height: 37px; }
+.up-r { display: flex; align-items: center; gap: 12px; min-height: 30px; }
 .up-r.off { opacity: .45; }
 /* Labels not bold (4 Sep, user review) — the value and its control carry the weight. */
-.up-l { flex: 0 0 150px; font-size: 12px; font-weight: 400; color: var(--ink-soft); }
+.up-l { flex: 0 0 140px; font-size: 12px; font-weight: 400; color: var(--ink-soft); }
+.unit-panel .select { padding: 4px 10px; min-width: 190px; font-size: 12px; }
+.unit-panel .seg.small button { padding: 2px 8px; }
+.unit-panel .num-wrap.sm { height: 26px; width: 76px; flex-basis: 76px; }
+.unit-panel .num-wrap.sm input { height: 24px; font-size: 12px; width: 46px; }
 .up-c { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .up-c .select { background: #fff; }
 .up-c .num-wrap { background: #fff; }
