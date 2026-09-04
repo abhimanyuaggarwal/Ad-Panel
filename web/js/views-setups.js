@@ -442,9 +442,9 @@ function suRungAfterHtml(t, n, r) {
     <button type="button" class="unit-settings ${open ? 'open' : ''}" onclick="suToggleRungSettings('${t}', ${n})"
       aria-label="Unit settings"
       title="${open ? 'Close this unit’s settings' : 'Edit this unit’s settings — the line below shows them'}">
-      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="8" cy="8" r="2.2"/>
-        <path d="M8 1.8v1.9M8 12.3v1.9M1.8 8h1.9M12.3 8h1.9M3.6 3.6l1.35 1.35M11.05 11.05l1.35 1.35M12.4 3.6l-1.35 1.35M4.95 11.05L3.6 12.4"/>
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0 2-2z"/>
+        <circle cx="12" cy="12" r="3"/>
       </svg></button>`;
 }
 
@@ -536,21 +536,23 @@ function suRungFactsHtml(t, n, r) {
   const rot = isRotation(baseSlot(t));
   const tag = SU_TAGS.find(x => x.id === r.tagId);
   const paused = (r.pause || (isDisplay ? 'no' : 'yes')) === 'yes';
+  // FULL LABELS, STRONG VALUES (4 Sep, user review — "complete context"): the pairs
+  // wear the editor's whole words, not compressed stubs, and the value carries the ink.
   const pair = (lbl, val, dim, why) =>
-    `<span class="uf${dim ? ' na' : ''}"${why ? ` title="${esc(why)}"` : ''}><i>${esc(lbl)}</i>${esc(val)}</span>`;
+    `<span class="uf${dim ? ' na' : ''}"${why ? ` title="${esc(why)}"` : ''}><i>${esc(lbl)}</i><b>${esc(val)}</b></span>`;
   const secs = v => (v === undefined || v === null || v === '' ? null : `${v}s`);
   const facts = [];
   if (!rot) {
-    facts.push(pair('Pause', label('pause', r.pause || (isDisplay ? 'no' : 'yes'))));
-    facts.push(pair('Delay', secs(r.showAfterSec) ?? 'now'));
+    facts.push(pair('Content pause', label('pause', r.pause || (isDisplay ? 'no' : 'yes'))));
+    facts.push(pair('Request delay', secs(r.showAfterSec) ?? 'now'));
   }
-  facts.push(pair(isDisplay ? 'Position' : 'Companion',
+  facts.push(pair(isDisplay ? 'Ad placement' : 'Companion position',
     label('displaySlot', r.displaySlot || (KL_META.displaySlots || [])[0])));
   if (isDisplay && !rot) {
     facts.push(paused
-      ? pair('Skip', '—', true, 'Content is paused — the player shows its own ad controls, not a close button')
-      : pair('Skip', secs(r.closeAfterSec) ?? '—'));
-    facts.push(pair('Hide', secs(r.hideAfterSec) ?? '—'));
+      ? pair('Skip offset', '—', true, 'Content is paused — the player shows its own ad controls, not a close button')
+      : pair('Skip offset', secs(r.closeAfterSec) ?? '—'));
+    facts.push(pair('Auto-hide', secs(r.hideAfterSec) ?? '—'));
   }
   if (tag) {
     const tpl = tag.tplId ? SU_TPLS.find(x => x.id === tag.tplId) : null;

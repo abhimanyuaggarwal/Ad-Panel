@@ -202,18 +202,22 @@
    left edge so summary and editor open on the same x. The whole line is a door to the
    gear panel; a fact that cannot apply right now dims in place (.na), and a switched-off
    rung dims its line whole (.dim). */
+/* Re-cut on user review (4 Sep): FULL LABELS in plain case ("Content pause", not a
+   9px PAUSE stub) so the line carries its complete context, and the VALUE wears the
+   ink and the weight — prominence lives in the answers, the labels stay quiet. */
 .rung-facts {
-  margin: -1px 0 5px 126px; padding: 2px 8px 3px; border-radius: 6px;
-  display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 7px;
-  font-size: 11px; color: var(--ink-soft); cursor: pointer;
+  margin: 0 0 6px 126px; padding: 3px 8px 4px; border-radius: 6px;
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 12px;
+  font-size: 12px; cursor: pointer;
   transition: background .12s;
 }
 .rung-facts:hover { background: var(--bg-soft, #f7f8fb); }
 .rung-facts .uf { white-space: nowrap; }
 .rung-facts .uf i {
-  font-style: normal; font-size: 9px; font-weight: 700; letter-spacing: .06em;
-  text-transform: uppercase; color: var(--ink-faint); margin-right: 4px;
+  font-style: normal; font-size: 11px; font-weight: 400; color: var(--ink-faint);
+  margin-right: 5px;
 }
+.rung-facts .uf b { font-weight: 650; color: var(--ink); }
 .rung-facts .uf.na { opacity: .5; }
 .rung-facts.dim { opacity: .45; }
 .uf-sep { font-weight: 400; color: var(--ink-faint); opacity: .55; }
@@ -222,14 +226,18 @@
    control per line, one height — inside a bounded card that starts where the unit's
    name starts. It describes ONE unit, so the label column is the permanent label the
    table taught us values need. */
+/* Stretched to the SLOT's own right edge (4 Sep, user review): the rows stop 60px short
+   of the head line (the reserved ⋯/Clear gutter), and the panel inheriting that edge
+   read as inset — it now runs past the ad unit to where the slot's head row ends. */
 .unit-panel {
-  margin: 4px 0 10px 126px; padding: 5px 16px;
+  margin: 4px -60px 10px 126px; padding: 5px 16px;
   border: 1px solid var(--line); border-radius: 10px;
   background: var(--bg-soft, #f7f8fb);
 }
 .up-r { display: flex; align-items: center; gap: 12px; min-height: 37px; }
 .up-r.off { opacity: .45; }
-.up-l { flex: 0 0 150px; font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+/* Labels not bold (4 Sep, user review) — the value and its control carry the weight. */
+.up-l { flex: 0 0 150px; font-size: 12px; font-weight: 400; color: var(--ink-soft); }
 .up-c { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .up-c .select { background: #fff; }
 .up-c .num-wrap { background: #fff; }
