@@ -14,7 +14,7 @@ import { DOMAIN_RE, PACKAGE_RE, bool, diff, fmtSecs, httpUrl, intIn, mustGet, on
 
 // The PLAYER, after the 25 Aug trim: how the surface starts a video, and what it plays
 // when nothing else is available. Five fields, so it is no longer a card — the
-// integration's Identity carries them (see panel/README.md). Key-level, not per
+// integration's Identity carries them (see panel/PRODUCT-LOG.md). Key-level, not per
 // placement: what genuinely varied per placement was AD SOUND, and that is a slot field
 // now, which is more precise than a whole forked player ever was.
 export function normalizePlayer(input, errors, prefix = '') {

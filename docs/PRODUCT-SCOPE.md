@@ -168,5 +168,5 @@ modules behind a re-export façade, `mock/` holds every invented fixture. `web/`
 no-build vanilla-JS app: plain scripts in dependency order, styles split across ten
 cascade-ordered files. `test/run.js` pins 117 rules over real HTTP in about a second,
 and the repo carries a 44-check browser UAT. The deeper design record — every decision
-and the reasoning behind it — is `README.md`; the store split's method is
+and the reasoning behind it — is `PRODUCT-LOG.md`; the store split's method is
 `docs/STORE-SPLIT.md`.

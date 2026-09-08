@@ -6,7 +6,7 @@
 | **Owner** | Abhimanyu Aggarwal (Product) |
 | **Scope** | The Player Console only (`panel/`). The StreamAds direct-partner platform in `v2/` is a separate product and is not covered by this document. "v1" below means the console's first production release. |
 | **Audience** | Player engineering · platform engineering · ad ops · product |
-| **Read with** | `panel/ARCHITECTURE.md` (engineering map) · `panel/README.md` (decision record) · `panel/docs/PRODUCT-SCOPE.md` (product overview) · `panel/docs/DECISION-RECORDS.md` (the scope documents, one chapter each) · `panel/test/run.js` (128 rules — the executable spec) |
+| **Read with** | `panel/ARCHITECTURE.md` (engineering map) · `panel/PRODUCT-LOG.md` (decision record) · `panel/docs/PRODUCT-SCOPE.md` (product overview) · `panel/docs/DECISION-RECORDS.md` (the scope documents, one chapter each) · `panel/test/run.js` (129 rules — the executable spec) |
 | **Version** | v4 · 7 Sep 2026 |
 
 **Change log**
@@ -366,7 +366,7 @@ Everything else on the contract is settled.
 
 1. **`test/run.js`**: 128 cases over real HTTP. If a behaviour matters, a test names it. Port these into the production suite first.
 2. **`ARCHITECTURE.md`**: the engineering map. Directory layout, the model, the request flow, the two planes, web conventions, how-tos, and the known production gaps.
-3. **`README.md`**: every decision with its date and reasoning, including the reversed ones and why. The older scope documents (e.g. `AD-JSON-SCOPE.md`) live as chapters in `docs/DECISION-RECORDS.md`.
+3. **`PRODUCT-LOG.md`**: every decision with its date and reasoning, including the reversed ones and why. The older scope documents (e.g. `AD-JSON-SCOPE.md`) live as chapters in `docs/DECISION-RECORDS.md`.
 4. **`docs/PRODUCT-SCOPE.md`**: the product overview with the sharp edges called out (seconds vs ms, the GAM sync, the publish seam).
 5. This FAQ sits on top and cites into all four.
 
@@ -666,6 +666,6 @@ One word per concept. Where the code uses a different name, it is given in brack
 
 ---
 
-*Maintained with the code: when behaviour changes, this file changes with `README.md` and
+*Maintained with the code: when behaviour changes, this file changes with `PRODUCT-LOG.md` and
 `docs/PRODUCT-SCOPE.md`. Doubts raised on calls get added as new numbered questions. Open Items
 get their Jira links the day the tickets exist.*

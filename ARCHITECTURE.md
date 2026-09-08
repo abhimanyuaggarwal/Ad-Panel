@@ -2,7 +2,7 @@
 
 A guide for anyone about to change the code. It says where things live, how a request
 travels, what the model is, and the rules the code keeps. Product history and the reasons
-behind decisions are in `README.md` (the running log) and `docs/DECISION-RECORDS.md` (the
+behind decisions are in `PRODUCT-LOG.md` (the running log) and `docs/DECISION-RECORDS.md` (the
 dated scope documents); `docs/PRODUCT-SCOPE.md` describes the product for any reader. This
 file stays current and short.
 
@@ -93,7 +93,8 @@ panel/
 │   ├── PLAYER-CONFIG-FIELDS.xlsx  the field inventory the scope work was built from
 │   └── img/               the screenshots PRODUCT-SCOPE.md uses
 ├── .editorconfig          the only checked-in style tooling (utf-8, lf, 2-space)
-├── README.md              the product log: every decision, dated, with the reason
+├── README.md              the landing page: what it is, how to run it, where to read next
+├── PRODUCT-LOG.md         the product log: every decision, dated, with the reason
 └── ARCHITECTURE.md        this file — read it first
 ```
 
@@ -126,7 +127,7 @@ Vocabulary, so the code reads the same as the UI:
 | Word | Meaning |
 | --- | --- |
 | **integration / key** | one publisher surface (TOI · Mweb · VideoShow) and its API key string |
-| **ad setup** | the demand behind one integration: placements, ladders, behaviour |
+| **ad setup** | the demand behind an integration: placements, ladders, behaviour. One setup may fill several integrations; an edit there moves all of them |
 | **placement / section** | a named area inside a surface (Default, Shorts feed). The setup defines them; the integration overlays a switch per break |
 | **slot / break** | pre-roll, mid-roll, post-roll (ladders) and out-stream (a rotation of banners) |
 | **rung / ad unit** | one tag in a ladder, with its own switch and banner facts |
@@ -285,7 +286,11 @@ a state machine.
 - **Fail closed at the seam.** A switch may only light where every pod has live demand; an
   ops edit that would darken a live break is refused with the surface named.
 - **Copies are photocopies.** Duplicating a setup or an integration copies everything and
-  links nothing. One setup fills exactly one integration.
+  links nothing — a duplicate is never a shared reference.
+- **An integration asks from ONE setup; a setup may fill MANY** (8 Sep, reversing the 26 Aug
+  1:1 promise). Sharing is ordinary, so nothing refuses it — what replaces the old refusal is
+  counting at every door: `usedBy`, `usedByNames`, `usedByLive` and `setupLiveCounts` are all
+  written over the SET of holders, and deleting a setup is refused naming every one of them.
 - **Deterministic mock.** `resetWorld()` reissues the same ids and key strings (seeded RNG).
 - **Anything in use cannot be deleted.** Tags in ladders, templates on tags, setups on keys,
   live integrations.

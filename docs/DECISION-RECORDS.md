@@ -3,7 +3,7 @@
 Every scope document behind the Player Console, in the order the work happened, merged into
 one file so there is one place to look instead of twelve. **Nothing here is a live
 specification.** For what the product does today read `PRODUCT-SCOPE.md`; for how the code is
-laid out read `../ARCHITECTURE.md`; for the running log of decisions read `../README.md`.
+laid out read `../ARCHITECTURE.md`; for the running log of decisions read `../PRODUCT-LOG.md`.
 
 Each chapter keeps the name of the file it used to be, so a reference elsewhere in the
 codebase to (say) `AD-JSON-SCOPE.md` resolves to the chapter of that name below.
@@ -756,7 +756,7 @@ each slot's waterfall, and reorder tags — without opening 30 editors. This doc
 rework.
 
 **Status: BUILT 19 Aug 2026.** All five phases shipped; `npm run test:panel` covers the new rules
-in 53 cases. `README.md` is the spec of record for what exists — this document is kept as the
+in 53 cases. `PRODUCT-LOG.md` is the spec of record for what exists — this document is kept as the
 record of *why*, including the decisions and trade-offs below. The two questions left open when
 scoping were resolved during the build: **bulk reorder** is offered only where every selected slot
 follows one common waterfall (elsewhere the panel explains why and points at the move that would
@@ -1575,7 +1575,7 @@ bulk reaches all sections, no sub-choice) · roles/enforcement · undo (OPS-SPEE
 
 ## SECTIONED-SETUPS-SCOPE — one demand document per surface (25 Aug 2026)
 **Status: BUILT, 25 Aug 2026** — and extended the same day: AD BEHAVIOUR moved into the
-setup too, on the SLOT (see panel/README.md, "AD BEHAVIOUR MOVED TO THE AD SETUP"). The
+setup too, on the SLOT (see panel/PRODUCT-LOG.md, "AD BEHAVIOUR MOVED TO THE AD SETUP"). The
 split that made it work: a field describes either the ADS (→ the setup's slot/placement)
 or the PLAYER (→ the integration). Nothing was left over, so the third object stopped
 existing rather than moving somewhere quieter, and the per-break field prefixes died with
@@ -1736,11 +1736,11 @@ to live in. Re-homed same day (user call: a card under the listing was disjoint)
 templates live INSIDE the setup editor — one collapsed row at its foot, still global
 objects, the assign dialog leading with the setup's own tags. The mid-roll's GROUPS row
 now renders even at one group (a lone tab is a fact, not a choice), so "+ Add group" has
-one findable home. Phase 4 (the written player contract) stays open. README.md is the spec of
+one findable home. Phase 4 (the written player contract) stays open. PRODUCT-LOG.md is the spec of
 record for what exists; this document remains the record of why.
 
 Companions: `AD-SETUP-SCOPE.md` (two rooms), `DRIVING-SCOPE.md` (the drive + the 1:1 promise),
-`POD-SCOPE.md` (pods), `WATERFALL-SCOPE.md` (ladders). `README.md` stays the spec of record.
+`POD-SCOPE.md` (pods), `WATERFALL-SCOPE.md` (ladders). `PRODUCT-LOG.md` stays the spec of record.
 
 ### What the JSON asks for that we do not have
 
