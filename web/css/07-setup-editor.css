@@ -41,9 +41,6 @@
 .sg-dim { color: var(--ink-faint); font-size: 12px; }
 
 
-/* "Applies to" names what the row governs, so the union and its members can sit in one
-   control without reading as the same kind of thing. */
-.scope-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); padding: 0 10px 9px 0; align-self: flex-end; }
 
 /* The bulk sheet still folds at Waterfalls 3+ — many integrations, many depths. */
 .lr.tail .lr-l { font-weight: 750; }
@@ -101,11 +98,6 @@
 .tc-right .cons-row.direct { padding: 7px 10px; margin-bottom: 4px; border-bottom: 0; }
 .tc-right .cons-row.direct.off { padding: 6px 10px; }
 
-/* The mid-roll's break-group tabs: the placements' own grammar, one size down. At one
-   group none of this renders — scope is position, and the simple case stays chrome-free. */
-.grp-tabs { margin: 0 0 8px; }
-.grp-tabs .stab { font-size: 11.5px; padding: 3px 9px; }
-.grp-tabs .stab .sg-dim { font-weight: 400; }
 
 
 /* THE PARTNER CHIPS (27 Aug) — the whole "who is asked, in what order" decision as one
@@ -158,7 +150,10 @@
 .cons.scrolly { max-height: 320px; overflow-y: auto; padding-right: 4px; }
 
 /* The one dot left on a break tab: amber, and it means unsaved changes — nothing else. */
-.stab .edot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #d99a1f; margin-left: 6px; vertical-align: 1px; }
+.stab .edot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--chg); margin-left: 6px; vertical-align: 1px; }
+/* A tab sits in a strip with no gutter to hang the change rule in, so it goes just
+   inside its own leading edge. Same amber as the `.edot` above — same meaning. */
+.stab.chg::before { left: 1px; top: 5px; bottom: 5px; }
 
 /* Every break's switch on its own tab (1 Sep): four states in parallel, flip without
    visiting. Fixed geometry — the toggle is one size in both states and the edited dot
@@ -228,12 +223,20 @@
 /* The label HUGS the switch (4 Sep, user call — "a lot of gap between the switch and
    the row no"): right-aligned in its column, so a bare number sits beside the control
    it belongs to instead of stranding 40px of void; PRIMARY still fits the column. */
-.zone-c .rung-n, .slot-edit .rung-n { flex: 0 0 52px; text-align: right; font-size: 9.5px; padding-right: 0; }
-.rung-list.lead { margin-bottom: 2px; }
-.rung-list.lead .rung-row .rung-n {
-  color: var(--accent); font-size: 9.5px; letter-spacing: .3px;
+/* NARROWED TO A POSITION (7 Sep, user call — "moving the ad unit a bit to the left
+   close to the drag and drop icon"): 52px of right-aligned column put 42px of void
+   between the grip and the unit on every numbered row, and the only thing paying for
+   that width was the word "Primary". The word moved to the rule above the block (see
+   `suLadderHtml`), so the column holds a POSITION — two digits' worth — and the
+   unit's field rides ~44px further left, right beside its handle.
+   A rotation still names its rows ("Banner 3") and keeps the old width. */
+.zone-c .rung-n, .slot-edit .rung-n {
+  flex: 0 0 22px; text-align: right; font-size: 10px; letter-spacing: 0; padding-right: 0;
 }
-.rung-list.lead .rung-row.off .rung-n { color: var(--ink-faint); }
+.zone-c .rung-list.rot .rung-n { flex: 0 0 52px; font-size: 9px; letter-spacing: .2px; }
+.rung-list.lead { margin-bottom: 2px; }
+.rung-list.lead .ad-unit .rung-n { color: var(--accent); }
+.rung-list.lead .ad-unit.off .rung-n { color: var(--ink-faint); }
 /* The primary carries the weight it has: a tinted rail on the row that is asked first. */
 .rung-list.lead .rung-row .lookup input, .rung-list.lead .rung-row input[type="text"] {
   font-weight: 600;
@@ -244,8 +247,10 @@
 /* What the rows below the primary are FOR, said once instead of nine times. */
 .fall-rule {
   display: flex; align-items: center; gap: 8px;
-  margin: 7px 0 6px; padding-left: 26px;
+  margin: 12px 0 7px; padding-left: 2px;
 }
+/* The primary's rule is the first thing in the zone, so it needs no air above it. */
+.fall-rule.lead-rule { margin-top: 1px; }
 .fall-rule::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 .fall-w {
   font-size: 9.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
@@ -265,3 +270,141 @@
 .stab.copy { margin-left: auto; font-weight: 500; color: var(--accent); }
 .stab.copy:hover { color: var(--accent); text-decoration: underline; }
 
+
+/* ---------- THE WATERFALL (5 Sep, user call; one word 7 Sep) ---------- */
+/* The setup-head section: the templates section's own bounds (hairline close), the
+   zone grid inside so its rung rows land on the exact left edge the breaks' do. */
+.wf-sec { padding: 2px 0 10px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+.wf-sec .zone-row { padding: 6px 0 2px; }
+/* A waterfall through and through (7 Sep, user call): no primary rung — its positions
+   are the plain numbers the custom ladders' fall rows wear. */
+.wf-sec .rung-n { font-variant-numeric: tabular-nums; font-size: 11px; }
+/* `View the waterfall` lands here: the section flashes once — found, not hunted for. */
+.wf-sec.flash { animation: wf-flash 1.6s ease-out 1; border-radius: 10px; }
+@keyframes wf-flash {
+  0% { background: #eef3fe; box-shadow: 0 0 0 6px #eef3fe; }
+  100% { background: transparent; box-shadow: 0 0 0 6px transparent; }
+}
+
+/* ---------- THE SOURCE SWITCH (7 Sep, user call) ---------- */
+/* Every ladder break opens its Indirect zone with two answers — Waterfall or Custom —
+   the unlit one's stash counted beside them, and (when the waterfall is serving) the one
+   door up to it at the far end. It replaced an empty-break-only fork of two CTAs and a
+   confirmed `remove`, because switching now costs nothing: the answer you leave keeps
+   every unit it had. The row shares the settings column's width so its right edge lands
+   where the DELIVERY SETTINGS controls end — one edge down the whole break. */
+.wf-src { display: flex; align-items: center; gap: 12px; min-height: 30px; max-width: 620px; }
+/* THE SOURCE WEARS A LABEL (7 Sep, user call — the seg read as a view picker). The house
+   toggle already carried `gap: 9px` for a label nobody had yet; `tiny` closes it, so the
+   one variant that speaks re-opens it. The label is the switch's own hit area, not a
+   neighbour: the whole thing is one control. */
+.toggle.tiny.wf-src-sw { gap: 8px; font-size: 12.5px; color: var(--ink); white-space: nowrap; }
+.toggle.tiny.wf-src-sw.dead { cursor: default; }
+.wf-src-fact { font-size: 11.5px; color: var(--ink-faint); }
+.wf-src-view { margin-left: auto; }
+
+/* A connected break's body (7 Sep, user call): the three settings, STACKED, on the page's
+   own `.lr.rule` + `.bhv-grid` rows — same label edge, same control edge, same rhythm as
+   the delivery settings right below. Strung across one line they read as a toolbar and
+   started at three different x's. */
+.wf-mirror { display: flex; flex-direction: column; }
+.wf-levers { margin-top: 2px; }
+/* The order chips are the only control here taller than a seg — let the row breathe for
+   them without moving the other two. */
+.wf-levers .lr.rule .pchips { padding: 1px 0; }
+
+/* ---------- THE WATERFALL SECTION'S FOOT: BOTH ACTS, ONE LINE ---------- */
+/* Add on the left, `Apply on ad slots` on the right, the counted fact of where the
+   waterfall stands between them (7 Sep, user review — the act had its own `AD SLOTS`
+   zone row, which was a whole section standing for one button). */
+.wf-foot-gap { flex: 1 1 auto; }
+.wf-placed { font-size: 11.5px; color: var(--ink-faint); white-space: nowrap; }
+/* Units and nowhere to serve them is a FACT, not a silence — a blank space there would
+   imply the waterfall is placed. */
+.wf-placed.none { color: var(--warn); }
+/* The folded line SHOWS the waterfall (7 Sep, user call): the order alone — badges,
+   dimmed where the walk would skip. The breaks-count chip left the line same day. */
+.shead-glimpse .glimpse-walk { vertical-align: middle; }
+.wfg { display: inline-flex; }
+.wfg.dim { opacity: .35; }
+
+/* ---------- APPLY ON AD SLOTS: THE GRID (7 Sep, user call; re-cut on review) ---------- */
+/* Ad sections down the side, `Pre-roll │ Pod 1 · Pod 2 · Pod 3 │ Post-roll` across the
+   top, one tick per cell — connect and take off in the same pass. The first cut put each
+   break's unit count in a badge beside every tick, which was a second data dimension
+   nobody was deciding about and pushed every tick off its column's centre. ONE thing per
+   cell now, dead centre, and the tick is the only ink that moves.
+   Because this act lands on many breaks at once, hovering either AXIS lights the cells it
+   would answer (`.reach`) — you see the whole target, then you click — and everything the
+   pass would move carries the session's own tint (`.chg`). */
+.dlg.wfa-dlg { width: 600px; }
+.dlg.wfa-dlg .dlg-body { max-height: min(440px, calc(100vh - 260px)); overflow: auto; margin: 10px -4px 4px; padding: 0 4px; }
+.wfa-grid { border-collapse: collapse; width: 100%; font-size: 13px; }
+.wfa-grid th, .wfa-grid td { padding: 0; text-align: center; }
+/* This is a grid of ANSWERS in a dialog, not one of the console's data tables, so the
+   global `thead th` chrome (sticky, tinted band, 10px uppercase tracking) is stood down
+   here — it was painting a grey slab behind the header and fighting the column names. */
+.wfa-grid thead th {
+  position: static; background: transparent; text-transform: none;
+  letter-spacing: 0; font-size: inherit; font-weight: inherit; color: inherit; border-bottom: 0;
+}
+/* One highlight, one meaning: the reach of the axis under the cursor. The global
+   `tbody tr:hover` tint would say the same thing about a row nobody is acting on. */
+.wfa-grid tbody tr:hover { background: transparent; }
+/* The band names the pods it spans and nothing else — a rule only under those columns,
+   so `Pod 2` can never read as a break of its own. */
+.wfa-grid tr.wfa-bands th { height: 20px; border: 0; }
+.wfa-grid th.wfa-fam {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
+  color: var(--ink-faint); vertical-align: bottom; padding-bottom: 4px;
+}
+/* NO rule under the band: the two vertical hairlines already bracket the pods off from
+   Pre-roll and Post-roll, so a third line only thickened the header. */
+/* Both axis labels sit on ONE baseline — the corner micro-label reads a size down, so
+   bottom-aligning their boxes would have staggered the text. */
+.wfa-grid th.wfa-corner, .wfa-grid th.wfa-col { border-bottom: 1px solid var(--line); padding-bottom: 7px; vertical-align: baseline; }
+.wfa-grid th.wfa-corner {
+  text-align: left; font-size: 9.5px; font-weight: 700; letter-spacing: .6px;
+  text-transform: uppercase; color: var(--ink-faint); white-space: nowrap;
+}
+/* EVERY ANSWER COLUMN THE SAME WIDTH — it is a matrix, and content-sized columns made
+   `Pre-roll` half again as wide as `Pod 1` for no reason a reader could use. */
+.wfa-grid th.wfa-col { width: 86px; }
+.wfa-grid th.wfa-row { text-align: left; padding: 0 16px 0 0; max-width: 200px; border-bottom: 1px solid var(--line); }
+.wfa-grid tbody tr:last-child th.wfa-row, .wfa-grid tbody tr:last-child .wfa-cell { border-bottom: 0; }
+/* The two axes ARE the bulk controls — no extra control on the grid. They read as
+   actionable the way every other quiet act here does: the accent on hover, the reason in
+   the title, and the reach lit in the cells. */
+.wfa-h {
+  background: none; border: 0; margin: 0; padding: 5px 4px; cursor: pointer; font: inherit;
+  color: var(--ink); border-radius: 6px; max-width: 100%;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wfa-grid th.wfa-col .wfa-h { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+.wfa-grid th.wfa-row .wfa-h { font-weight: 600; text-align: left; padding-left: 2px; }
+.wfa-h:hover { color: var(--accent); }
+.wfa-cell { border-bottom: 1px solid var(--line); height: 40px; }
+/* The reach of the axis under the cursor, before anything is clicked. */
+.wfa-cell.reach { background: #f3f6fd; }
+/* What this pass would move, so the foot's counted delta is readable in the grid itself.
+   A RULE IS THE WRONG MARK HERE (8 Sep): run down a cell edge in a dense grid it reads
+   as a column divider, not as a change. So the grid takes the other half of the same
+   language — the dot, exactly the `.edot` the break tabs wear, in the same amber. */
+.wfa-cell.chg::before {
+  left: 6px; top: 6px; bottom: auto; width: 5px; height: 5px; border-radius: 50%;
+}
+/* No break to connect: the cell sits out, its reason on hover. */
+.wfa-cell.out { cursor: default; }
+.wfa-cell.out i { font-style: normal; color: var(--ink-faint); opacity: .55; }
+/* The mid-roll's pods sit together — the hairline is where a family starts. */
+.wfa-grid .split { border-left: 1px solid var(--line); }
+/* The tick fills its cell, so the whole cell is the target and the box is dead centre. */
+.wfa-tick { display: flex; align-items: center; justify-content: center; height: 40px; cursor: pointer; }
+.wfa-tick input { width: 16px; height: 16px; margin: 0; cursor: pointer; accent-color: var(--accent); }
+
+/* The closed row's quiet mark that a break follows the waterfall. */
+.sg-shared {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
+  color: var(--accent); background: #eef3fe; border: 1px solid #c7d6f8;
+  border-radius: 4px; padding: 1px 5px; margin-right: 7px;
+}

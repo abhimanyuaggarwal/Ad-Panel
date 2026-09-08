@@ -1,13 +1,28 @@
-// api.js — every request goes through a named operation. No view writes a URL.
+// api.js — every request the web app makes, as a named operation on `API`. No view
+// writes a URL: a screen calls API.updateSetup(id, body), never fetch('/panel/…').
+//
+// `call` speaks the server's error envelope ({ error, message, errors, usedBy }) and turns
+// a refused write into an Error carrying those fields, so a form can paint field errors
+// (applyServerErrors in controls.js) and a toast can name the surfaces involved.
 
 const API_BASE = '';
 
+// The publish plane serves both kinds of object under two URL segments.
+const pubSeg = kind => (kind === 'key' ? 'keys' : 'setups');
+
 async function call(method, path, body) {
-  const res = await fetch(API_BASE + path, {
-    method,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let res;
+  try {
+    res = await fetch(API_BASE + path, {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    // The browser's "Failed to fetch" names nothing — this failure is always the same
+    // thing here: the panel server did not answer. Say that, and what was NOT done.
+    throw new Error('The panel server is not answering — nothing was changed. Check it is running, then try again.');
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const err = new Error(data.message || 'Request failed');
@@ -28,11 +43,11 @@ const API = {
   updateKey: (id, body) => call('PATCH', `/panel/keys/${id}`, body),
   // THE PUBLISH PLANE (27 Aug) — the same four operations on either kind of object, so
   // the editors and the rail share one code path instead of two near-identical ones.
-  publish: (kind, id) => call('POST', `/panel/${kind === 'key' ? 'keys' : 'setups'}/${id}/publish`),
-  unpublish: (kind, id) => call('POST', `/panel/${kind === 'key' ? 'keys' : 'setups'}/${id}/unpublish`),
-  restorePreview: (kind, id, v) => call('GET', `/panel/${kind === 'key' ? 'keys' : 'setups'}/${id}/versions/${v}/preview`),
-  restoreVersion: (kind, id, v) => call('POST', `/panel/${kind === 'key' ? 'keys' : 'setups'}/${id}/versions/${v}/restore`),
-  versions: (kind, id) => call('GET', `/panel/${kind === 'key' ? 'keys' : 'setups'}/${id}/versions`),
+  publish: (kind, id, note) => call('POST', `/panel/${pubSeg(kind)}/${id}/publish`, note ? { note } : undefined),
+  unpublish: (kind, id) => call('POST', `/panel/${pubSeg(kind)}/${id}/unpublish`),
+  restorePreview: (kind, id, v) => call('GET', `/panel/${pubSeg(kind)}/${id}/versions/${v}/preview`),
+  restoreVersion: (kind, id, v, note) => call('POST', `/panel/${pubSeg(kind)}/${id}/versions/${v}/restore`, note ? { note } : undefined),
+  versions: (kind, id) => call('GET', `/panel/${pubSeg(kind)}/${id}/versions`),
   bulkKeys: body => call('POST', '/panel/keys/bulk', body),
   duplicateKey: id => call('POST', `/panel/keys/${id}/duplicate`),
   deleteKey: id => call('DELETE', `/panel/keys/${id}`),
@@ -51,7 +66,7 @@ const API = {
   deleteSetup: id => call('DELETE', `/panel/setups/${id}`),
 
   // Every screen that draws a ladder needs to know a tag's type — that is what decides
-  // whether a rung is an ordinary one or the display fallback closing a video ladder.
+  // whether a rung is an ordinary one or the display unit settling a video waterfall.
   // Recording it here, at the one seam tags come through, means no screen has to keep
   // its own cache in step.
   listTags: async () => {

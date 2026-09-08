@@ -1,11 +1,11 @@
-// store/setups.js — ad setups: placements, pods, direct deals, CRUD, the GAM unit
-// directory. The behaviour/rung/walk machinery it builds on lives in store/ladders.js.
-// Split from store.js (3 Sep, docs/STORE-SPLIT.md): a MOVE, not a rewrite.
+// store/setups.js — ad setups (the ops room's object): placements, per-slot ladders,
+// pods, direct deals, the waterfall, CRUD, and the mock GAM unit directory. The
+// behaviour / rung / walk machinery it builds on lives in ladders.js.
 import { listKeys } from './keys.js';
 import { askWord, driveAsk, groupWalks, liveRungs, localWalk, normalizeRungs, normalizeSlotBehaviour, refuseDeadRules, slotGroupDefs } from './ladders.js';
 import { isPublished } from './publish.js';
-import { DIRECTORY_PROVIDERS, MAX_MIDROLL_GROUPS, MAX_SECTIONS, PROPERTY_SCOPES, Refusal, SLOT_ALSO_TAKES, SLOT_FAMILY, SLOT_KIND, SLOT_TYPES, state } from './state.js';
-import { diff, fmtSecs, httpUrl, mustGet, oneOf, str, uniqueName } from './validate.js';
+import { DIRECTORY_PROVIDERS, MAX_MIDROLL_GROUPS, MAX_RUNGS, MAX_SECTIONS, PAUSE_MODES, PROPERTY_SCOPES, Refusal, SLOT_ALSO_TAKES, SLOT_FAMILY, SLOT_KIND, SLOT_TYPES, SLOT_WORD, state } from './state.js';
+import { diff, fmtSecs, httpUrl, intIn, mustGet, oneOf, str, uniqueName } from './validate.js';
 
 // ---------- ad setups (the ops room's object) ----------
 // One whole surface's demand — now WITH its placements (25 Aug, user call): the setup
@@ -15,6 +15,38 @@ import { diff, fmtSecs, httpUrl, mustGet, oneOf, str, uniqueName } from './valid
 // one shape still share — and the one-act fix survives. A family MAY be empty: that is
 // a fact, and the seam refuses to switch that slot on anywhere the setup is attached.
 
+// ---------- THE WATERFALL (5 Sep, user call; one word 7 Sep) ----------
+// ONE shared ladder, configured at the setup's head, that any pre/mid/post break —
+// per placement, per pod — may FOLLOW instead of holding its own units. A LINK, never
+// a copy: edit it once and every break following it moves together. Its levers ride
+// with it: a DEPTH every follower walks at most (null = the whole ladder) and ONE
+// content-pause answer stamped on every unit while its switch is on (null = each
+// unit's own answer). Out-stream takes turns — a rotation has no waterfall to follow.
+
+export function normalizeSharedWaterfall(input, errors) {
+  const w = input || {};
+  const errs = [];
+  const rungs = normalizeRungs(w.rungs, 'video', errs, 'waterfall', 'Waterfall', 'display', 'ladder', null);
+  const depth = w.depth === undefined || w.depth === null || w.depth === ''
+    ? null : intIn(w.depth, 'waterfall depth', 1, MAX_RUNGS, errs);
+  const pauseAll = w.pauseAll === undefined || w.pauseAll === null || w.pauseAll === ''
+    ? null : oneOf(w.pauseAll, 'content pause', PAUSE_MODES, errs);
+  for (const e of errs) {
+    errors.push({ field: 'waterfall', message: e.message.startsWith('Waterfall') ? e.message : `Waterfall: ${e.message}` });
+  }
+  return { rungs, depth, pauseAll };
+}
+
+// What a linked break actually SERVES: the waterfall's live units, cut at the depth,
+// each wearing the one pause answer while that switch is on. Materialized into the
+// slot's rungs on every save, so the walks, the seam, the publish plane and the
+// player's JSON all read the one truth they always read.
+export function servedWaterfallRungs(wf) {
+  const live = (wf?.rungs || []).filter(r => r.on !== false);
+  const cut = wf?.depth ? live.slice(0, wf.depth) : live;
+  return cut.map(r => ({ ...r, ...(wf.pauseAll ? { pause: wf.pauseAll } : {}) }));
+}
+
 export function normalizeSetup(input, exceptId) {
   const errors = [];
   const name = str(input.name);
@@ -23,6 +55,7 @@ export function normalizeSetup(input, exceptId) {
     errors.push({ field: 'name', message: `An ad setup named “${name}” already exists` });
   }
   const property = oneOf(input.property ?? 'All', 'property', PROPERTY_SCOPES, errors);
+  const waterfall = normalizeSharedWaterfall(input.waterfall, errors);
 
   // Back-compat input: a bare `slots` object reads as the Default placement.
   const rawSections = Array.isArray(input.sections) && input.sections.length
@@ -39,7 +72,8 @@ export function normalizeSetup(input, exceptId) {
     if (i > 0 && !secName) errors.push({ field: 'sections', message: `Placement ${i + 1} needs a name` });
     else if (seen.has(secName.toLowerCase())) errors.push({ field: 'sections', message: `Two placements are both named “${secName}”` });
     seen.add(secName.toLowerCase());
-    const where = `${secName || `placement ${i + 1}`}: `;
+    const loc = secName || `placement ${i + 1}`;
+    const where = `${loc}: `;
 
     // EVERY PLACEMENT CARRIES ITS OWN BEHAVIOUR (25 Aug, user call), and a new one is a
     // CLONE of Default rather than a blank — the values are already sane, and changing
@@ -49,11 +83,11 @@ export function normalizeSetup(input, exceptId) {
     refuseDeadRules(sec.rules, errors, where);
 
     if (sec.slots?.squeezeback && ((sec.slots.squeezeback.rungs || []).length || sec.slots.squeezeback.behaviour)) {
-      errors.push({ field: 'sections', message: `${where}the squeeze-back slot is gone — a banner over playing content is a break\u2019s display fallback, and the idle player\u2019s rotation is Out-stream` });
+      errors.push({ field: 'sections', message: `${where}the squeeze-back slot is gone — a banner over playing content is a rung of the break\u2019s waterfall, and the idle player\u2019s rotation is Out-stream` });
     }
     const slots = {};
     for (const t of SLOT_TYPES) {
-      const rungWhere = `${name || 'this setup'} · ${secName || `placement ${i + 1}`} ${t}`;
+      const rungWhere = `${name || 'this setup'} · ${secName || `placement ${i + 1}`} ${SLOT_WORD[t].toLowerCase()}`;
       const slotIn = sec.slots?.[t] || {};
       let gsInRaw = null; // the mid-roll's groups AS SENT — each pod's own deal is read from it below
       // A MID-ROLL IS BREAK GROUPS (31 Aug, AD-JSON-SCOPE): up to 3, each its own
@@ -61,13 +95,31 @@ export function normalizeSetup(input, exceptId) {
       // own rungs/behaviour, so every single-group path reads exactly what it always
       // read. A top-level rungs/behaviour patch lands on group 1; a groups patch is
       // authoritative.
+      // THE INDIRECT SOURCE (5 Sep): a break either OWNS its units or FOLLOWS the
+      // waterfall. Following keeps the break's own units (`ownRungs` — off keeps
+      // its tags: switching back is one click and nothing is re-typed) and serves the
+      // waterfall's, materialized here so every downstream read is the one it always was.
+      const readIndirect = (gIn, gWhere) => {
+        let source = gIn.waterfallSource == null || gIn.waterfallSource === 'own' ? 'own' : gIn.waterfallSource;
+        if (source !== 'own' && source !== 'setup') {
+          errors.push({ field: 'sections', message: `${gWhere}: “${gIn.waterfallSource}” is not an ad source — its own units (own), or the waterfall (setup)` });
+          source = 'own';
+        }
+        if (source === 'setup' && SLOT_KIND[t] !== 'ladder') {
+          errors.push({ field: 'sections', message: `${where}the ${SLOT_WORD[t].toLowerCase()} takes turns — a rotation has no waterfall to follow` });
+          source = 'own';
+        }
+        const own = normalizeRungs(source === 'setup' ? (gIn.ownRungs ?? gIn.rungs) : gIn.rungs,
+          SLOT_FAMILY[t], errors, 'sections', gWhere, SLOT_ALSO_TAKES[t], SLOT_KIND[t], t);
+        return { waterfallSource: source, ownRungs: own, rungs: source === 'setup' ? servedWaterfallRungs(waterfall) : own };
+      };
       if (t === 'midroll') {
         let gsIn = Array.isArray(slotIn.groups) && slotIn.groups.length ? slotIn.groups.slice() : null;
         if (gsIn) {
           if (slotIn.rungs && slotIn.rungs !== gsIn[0].rungs) gsIn[0] = { ...gsIn[0], rungs: slotIn.rungs };
           if (slotIn.behaviour && slotIn.behaviour !== gsIn[0].behaviour) gsIn[0] = { ...gsIn[0], behaviour: slotIn.behaviour };
         } else {
-          gsIn = [{ rungs: slotIn.rungs, behaviour: slotIn.behaviour }];
+          gsIn = [{ rungs: slotIn.rungs, behaviour: slotIn.behaviour, waterfallSource: slotIn.waterfallSource, ownRungs: slotIn.ownRungs }];
         }
         gsInRaw = gsIn;
         if (gsIn.length > MAX_MIDROLL_GROUPS) {
@@ -75,22 +127,21 @@ export function normalizeSetup(input, exceptId) {
         }
         const multi = gsIn.length > 1;
         const groups = gsIn.slice(0, MAX_MIDROLL_GROUPS).map((g, gi) => ({
-          rungs: normalizeRungs(g.rungs, SLOT_FAMILY[t], errors, 'sections',
-            `${rungWhere}${multi ? ` group ${gi + 1}` : ''}`, SLOT_ALSO_TAKES[t], SLOT_KIND[t], t),
+          ...readIndirect(g, `${rungWhere}${multi ? ` pod ${gi + 1}` : ''}`),
           behaviour: normalizeSlotBehaviour(t,
             g.behaviour || (defaults ? defaults.slots[t].behaviour : null),
-            errors, warnings, `${where}${t}${multi ? ` group ${gi + 1}` : ''} `),
+            errors, warnings, `${loc} ${SLOT_WORD[t].toLowerCase()}${multi ? ` pod ${gi + 1}` : ''}: `),
         }));
-        slots[t] = { rungs: groups[0].rungs, behaviour: groups[0].behaviour, groups };
+        slots[t] = { rungs: groups[0].rungs, ownRungs: groups[0].ownRungs, waterfallSource: groups[0].waterfallSource, behaviour: groups[0].behaviour, groups };
       } else {
         if (Array.isArray(slotIn.groups) && slotIn.groups.length > 1) {
-          errors.push({ field: 'sections', message: `${where}only a mid-roll holds break groups — a ${t} is one break` });
+          errors.push({ field: 'sections', message: `${where}only a mid-roll holds break groups — a ${SLOT_WORD[t].toLowerCase()} is one break` });
         }
         slots[t] = {
-          rungs: normalizeRungs(slotIn.rungs, SLOT_FAMILY[t], errors, 'sections', rungWhere, SLOT_ALSO_TAKES[t], SLOT_KIND[t], t),
+          ...readIndirect(slotIn, rungWhere),
           behaviour: normalizeSlotBehaviour(t,
             slotIn.behaviour || (defaults ? defaults.slots[t].behaviour : null),
-            errors, warnings, `${where}${t} `),
+            errors, warnings, `${loc} ${SLOT_WORD[t].toLowerCase()}: `),
         };
       }
       // THE DIRECT TIER, PER POD (3 Sep, user call — it was the mid-roll's, shared by
@@ -102,12 +153,12 @@ export function normalizeSetup(input, exceptId) {
         const one = (dIn, gTag) => {
           const d = dIn || {};
           if (d.maxSession !== undefined) {
-            errors.push({ field: 'sections', message: `${where}${t}${gTag}: direct has no session cap any more — the deal is tried each time the break fires` });
+            errors.push({ field: 'sections', message: `${loc} ${SLOT_WORD[t].toLowerCase()}${gTag}: direct has no session cap any more — the deal is tried each time the break fires` });
           }
           const dRungs = normalizeRungs(d.rungs, 'video', errors, 'sections',
             `${rungWhere}${gTag} direct`, 'display', 'ladder', t);
           if (dRungs.length > 1) {
-            errors.push({ field: 'sections', message: `${where}${t}${gTag} carries ONE direct deal — the tier is the deal, not a ladder (got ${dRungs.length})` });
+            errors.push({ field: 'sections', message: `${loc} ${SLOT_WORD[t].toLowerCase()}${gTag} carries ONE direct deal — the tier is the deal, not a ladder (got ${dRungs.length})` });
           }
           return { rungs: dRungs.slice(0, 1) };
         };
@@ -125,7 +176,7 @@ export function normalizeSetup(input, exceptId) {
           slots[t].direct = one(slotIn.direct, '');
         }
       } else if (slotIn.direct && (slotIn.direct.rungs || []).length) {
-        errors.push({ field: 'sections', message: `${where}${t} takes turns — direct is break demand, and this is not a break` });
+        errors.push({ field: 'sections', message: `${where}the ${SLOT_WORD[t].toLowerCase()} takes turns — direct is break demand, and this is not a break` });
       }
       // THE UNREACHABLE TAIL, counted (31 Aug): tries × per-try wait against the
       // break's own giving-up point. A lever, never a wall.
@@ -135,8 +186,8 @@ export function normalizeSetup(input, exceptId) {
         const n = localWalk(g.rungs).length;
         const reachable = Math.max(1, Math.floor((b.fillTimeoutSec * 1000) / b.tagTimeoutMs));
         if (n > 1 && reachable < n) {
-          const gTag = (slots[t].groups && slots[t].groups.length > 1) ? ` group ${gi + 1}` : '';
-          warnings.push(`${where}${t}${gTag}: ${n} tries × ${fmtSecs(b.tagTimeoutMs)} is ${fmtSecs(n * b.tagTimeoutMs)}, but the break gives up at ${b.fillTimeoutSec}s — the last ${n - reachable} ${n - reachable === 1 ? 'try' : 'tries'} would never run`);
+          const gTag = (slots[t].groups && slots[t].groups.length > 1) ? ` pod ${gi + 1}` : '';
+          warnings.push(`${loc} ${SLOT_WORD[t].toLowerCase()}${gTag}: last ${n - reachable} sources never run`);
         }
       }
     }
@@ -148,7 +199,7 @@ export function normalizeSetup(input, exceptId) {
       if (perGroup.every(x => x.breaks != null)) {
         const totalAds = perGroup.reduce((a, x) => a + x.breaks * x.ads, 0);
         if (totalAds >= 6) {
-          warnings.push(`${where}${mgs.length} mid-roll break groups total up to ${totalAds} ads a stream — heavy for anything under 20 minutes`);
+          warnings.push(`${where}${totalAds} ads across pods — a lot`);
         }
       }
       // Two groups landing breaks within a minute of each other feel relentless.
@@ -157,7 +208,7 @@ export function normalizeSetup(input, exceptId) {
         for (let bI = a + 1; bI < cued.length; bI++) {
           for (const ca of cued[a].cuepoints) for (const cb of cued[bI].cuepoints) {
             if (Math.abs(ca - cb) < 60) {
-              warnings.push(`${where}two mid-roll groups both fall near ${fmtSecs(Math.min(ca, cb) * 1000)} — breaks under a minute apart will feel relentless`);
+              warnings.push(`${where}pod breaks under a minute apart`);
               break outer;
             }
           }
@@ -177,7 +228,7 @@ export function normalizeSetup(input, exceptId) {
   }
 
   if (errors.length) throw new Refusal(400, 'invalid_setup', 'Ad setup was refused', { errors });
-  return { name, property, sections, warnings };
+  return { name, property, waterfall, sections, warnings };
 }
 
 // A slot's direct tier: the live rungs the player would try before the primary.
@@ -222,7 +273,13 @@ export function updateSetup(id, input) {
         groups: patch.groups.map((g, gi) => {
           const pg = prevGroups[gi] || prevGroups[0] || { rungs: [], behaviour: null };
           return {
-            rungs: g.rungs || pg.rungs,
+            // Unlinking without naming units means "back to what stood" — the kept own
+            // units, exactly (the whole point of keeping them).
+            rungs: g.rungs || (g.waterfallSource === 'own' && pg.ownRungs ? pg.ownRungs : pg.rungs),
+            // The indirect source and the kept own units merge like the ladder does —
+            // a patch that never mentions them moves nothing.
+            ownRungs: g.ownRungs || pg.ownRungs,
+            waterfallSource: g.waterfallSource !== undefined ? g.waterfallSource : pg.waterfallSource,
             behaviour: g.behaviour ? { ...(pg.behaviour || {}), ...g.behaviour } : pg.behaviour,
             // A pod's deal merges on its own, like the slot's used to.
             ...(g.direct || pg.direct ? { direct: g.direct ? { ...(pg.direct || {}), ...g.direct } : pg.direct } : {}),
@@ -233,6 +290,9 @@ export function updateSetup(id, input) {
     const out = { ...(prevSlot || {}), ...patch };
     // A slot patch that touches only the ladder keeps its behaviour, and vice versa.
     if (patch.behaviour) out.behaviour = { ...(prevSlot?.behaviour || {}), ...patch.behaviour };
+    // Unlinking without naming units means "back to what stood": the kept own units,
+    // exactly — the whole point of keeping them.
+    if (patch.waterfallSource === 'own' && !patch.rungs && prevSlot?.ownRungs) out.rungs = prevSlot.ownRungs;
     return withDirect(out);
   };
   let mergedSections = existing.sections;
@@ -257,7 +317,12 @@ export function updateSetup(id, input) {
       return { ...sec, slots };
     });
   }
-  const { warnings: ruleWarnings, ...s } = normalizeSetup({ ...existing, ...input, sections: mergedSections }, id);
+  // The waterfall merges like a slot does: a patch that only moves the depth
+  // keeps the ladder; `waterfall: null` is the explicit way to clear it whole.
+  const mergedWaterfall = input.waterfall === undefined
+    ? existing.waterfall
+    : (input.waterfall ? { ...(existing.waterfall || {}), ...input.waterfall } : { rungs: [] });
+  const { warnings: ruleWarnings, ...s } = normalizeSetup({ ...existing, ...input, sections: mergedSections, waterfall: mergedWaterfall }, id);
 
   // A rename (same index, new name) carries the attached integrations' overlays with
   // it — ops renaming a placement must never orphan product's switches and forks.
@@ -296,14 +361,17 @@ export function updateSetup(id, input) {
         const multi = walks.length > 1;
         walks.forEach((r, gi) => {
           if (r.walk.length === 0) {
+            // Said in the UI's words (7 Sep, UAT P1): the pod, the placement, who plays it.
             throw new Refusal(409, 'setup_in_use',
-              `1 live section fills their ${t}${multi ? ` group ${gi + 1}` : ''} from this — switch them off first`,
+              multi
+                ? `Pod ${gi + 1} in “${ov.name}” is empty — ${k.name} plays its ${SLOT_WORD[t].toLowerCase()} live, so every pod needs an ad unit`
+                : `“${ov.name}” ${SLOT_WORD[t].toLowerCase()} would go dark — ${k.name} plays it live; add an ad unit, or switch it off there first`,
               { usedBy: [`${k.name} · ${ov.name}`] });
           }
         });
         if (walks.some(r => r.fellBack || r.vacuous)) {
           const provs = askWord(driveAsk(k.drive?.[t]?.ask) || []);
-          driftWarnings.push(`${k.name}'s ${t} asks ${provs} — nothing of theirs is left in “${ov.name}”, so it falls back to your arrangement`);
+          driftWarnings.push(`${k.name} ${SLOT_WORD[t].toLowerCase()}: asks ${provs} — falls back`);
         }
       }
     }
@@ -373,7 +441,7 @@ export function updateSetupBehaviour(id, index, input) {
       const n = localWalk(rungs).length;
       const reachable = Math.max(1, Math.floor((next.fillTimeoutSec * 1000) / next.tagTimeoutMs));
       if (n > 1 && reachable < n) {
-        warnings.push(`${n} tries × ${fmtSecs(next.tagTimeoutMs)} is ${fmtSecs(n * next.tagTimeoutMs)}, but the break gives up at ${next.fillTimeoutSec}s — the last ${n - reachable} ${n - reachable === 1 ? 'try' : 'tries'} would never run`);
+        warnings.push(`last ${n - reachable} sources never run`);
       }
     }
   }
@@ -454,11 +522,7 @@ export function gamHasUnit(path) {
   return state.gamUnits.includes(path);
 }
 
-// The slot's display word, so a version's change list reads the way the screen does
-// rather than the way the payload does (27 Aug nomenclature pass).
-export const SLOT_WORD = {
-  preroll: 'Pre-roll', midroll: 'Mid-roll', postroll: 'Post-roll', outstream: 'Out-stream',
-};
+// SLOT_WORD moved to store/state.js (7 Sep) — one vocabulary module owns the words.
 
 // A tag typed in by hand before GAM caught up. DERIVED, never stored — the next sync
 // that pulls the unit in clears the mark on its own, with nothing to remember.

@@ -1,12 +1,10 @@
-// store/keys.js — integrations: identity, player, custom configs, the drive, sections.
-// Split from store.js (3 Sep, docs/STORE-SPLIT.md): a MOVE, not a rewrite — units
-// relocated whole, bodies untouched. store.js re-exports everything, so the HTTP
-// surface, the tests and the mock world see the exact same module they always did.
-import { FIELD_WORDS, fieldWord } from './diff.js';
+// store/keys.js — integrations (the product room's object): identity, the player and
+// its custom configs, the drive (per-break quick decisions), the section switches, and
+// the seam that refuses a switch no published demand could fill.
 import { DRIVE_FIELDS, askWord, driveAsk, driveWalkRungs, effectiveBehaviour, normalizeCuepoints, slotGroupDefs } from './ladders.js';
 import { isPublished } from './publish.js';
-import { setupSection } from './setups.js';
-import { AUTOPLAY, MAX_RUNGS, MAX_SECTIONS, MIDROLL_MODES, PLATFORMS, PLAYBACK_KINDS, PLAYBACK_MODES, PREROLL_TIMING, PROPERTIES, PROVIDER_WORD, Refusal, SLOT_TYPES, TAG_PROVIDERS, WEB_PLATFORMS, WORST_CASE_WARN_MS, keyString, state } from './state.js';
+import { duplicateSetup, setupSection } from './setups.js';
+import { AUTOPLAY, FIELD_WORDS, MAX_RUNGS, MAX_SECTIONS, MIDROLL_MODES, PLATFORMS, PLAYBACK_KINDS, PLAYBACK_MODES, PREROLL_TIMING, PROPERTIES, PROVIDER_WORD, Refusal, SLOT_TYPES, SLOT_WORD, TAG_PROVIDERS, WEB_PLATFORMS, WORST_CASE_WARN_MS, fieldWord, keyString, state } from './state.js';
 import { DOMAIN_RE, PACKAGE_RE, bool, diff, fmtSecs, httpUrl, intIn, mustGet, oneOf, str, uniqueName } from './validate.js';
 
 
@@ -119,7 +117,7 @@ export function normalizeSection(input, index, errors, warnings, seenNames) {
 
 
   if (input.slots?.squeezeback && Object.keys(input.slots.squeezeback).length) {
-    errors.push({ field: 'sections', message: `“${name}”: the squeeze-back slot is gone — a banner over playing content is a break\u2019s display fallback, and the idle player\u2019s rotation is Out-stream` });
+    errors.push({ field: 'sections', message: `“${name}”: the squeeze-back slot is gone — a banner over playing content is a rung of the break\u2019s waterfall, and the idle player\u2019s rotation is Out-stream` });
   }
   const slots = {};
   for (const type of SLOT_TYPES) {
@@ -159,8 +157,8 @@ export function normalizeDrive(input, errors) {
       if (v === null || v === undefined) continue; // an explicit clear
       if (!allowed.includes(f)) {
         errors.push({ field: 'drive', message: allowed.length
-          ? `The ${t} quick decisions are ${allowed.map(fieldWord).join(', ')} — ${FIELD_WORDS[f] || `“${f}”`} is arranged in the ad setup`
-          : `A ${t} takes turns — nothing to decide beyond its switch` });
+          ? `The ${SLOT_WORD[t].toLowerCase()} quick decisions are ${allowed.map(fieldWord).join(', ')} — ${FIELD_WORDS[f] || `“${f}”`} is arranged in the ad setup`
+          : `A ${SLOT_WORD[t].toLowerCase()} takes turns — nothing to decide beyond its switch` });
         continue;
       }
       const errs = [];
@@ -197,12 +195,15 @@ export function normalizeDrive(input, errors) {
       } else if (f === 'every') {
         out.every = intIn(v, 'every', 60, 3600, errs);
       }
-      for (const e of errs) errors.push({ field: 'drive', message: `${t}: ${e.message}` });
+      for (const e of errs) errors.push({ field: 'drive', message: `${SLOT_WORD[t].toLowerCase()}: ${e.message}` });
     }
     if (Object.keys(out).length) drive[t] = out;
   }
   return Object.keys(drive).length ? drive : null;
 }
+
+// Refusals speak the UI's words, not the enum's (7 Sep, UAT).
+const PLATFORM_WORD = { mweb: 'Mweb', desktop: 'Desktop', android: 'Android', ios: 'iOS' };
 
 export function normalizeKey(input, exceptId, { driveTouched = true } = {}) {
   const errors = [];
@@ -229,7 +230,7 @@ export function normalizeKey(input, exceptId, { driveTouched = true } = {}) {
   if (WEB_PLATFORMS.includes(k.platform)) {
     k.packageName = '';
     if (k.domains.length === 0) {
-      errors.push({ field: 'domains', message: `${k.platform} integrations need at least one domain — the player refuses requests from anywhere else` });
+      errors.push({ field: 'domains', message: `${PLATFORM_WORD[k.platform] || k.platform} integrations need at least one domain — the player refuses requests from anywhere else` });
     }
     for (const d of k.domains) {
       if (!DOMAIN_RE.test(d)) errors.push({ field: 'domains', message: `“${d}” is not a valid domain` });
@@ -237,14 +238,21 @@ export function normalizeKey(input, exceptId, { driveTouched = true } = {}) {
   } else {
     k.domains = [];
     if (!PACKAGE_RE.test(k.packageName)) {
-      errors.push({ field: 'packageName', message: `${k.platform} integrations need a valid package name (e.g. com.toi.reader)` });
+      errors.push({ field: 'packageName', message: `${PLATFORM_WORD[k.platform] || k.platform} integrations need a valid package name (e.g. com.toi.reader)` });
     }
   }
 
-  // ONE setup per integration (25 Aug) — the attachment is key-level. And ONE
-  // integration per setup (26 Aug, DRIVING-SCOPE): the setup is this surface's own
-  // workshop, so deep edits there can never recall anyone else's fleet. A promise,
-  // enforced: attaching a setup another integration holds is refused by name.
+  // ONE setup per integration (25 Aug) — the attachment is key-level, and that half of
+  // the rule stands: a surface asks from exactly one ad setup.
+  // …BUT A SETUP MAY FILL MANY INTEGRATIONS (8 Sep, user call — "allow the ad setup to
+  // be configured in multiple integrations"). The 26 Aug promise ran the other way and
+  // was enforced here by name; it made every real case of shared demand — the same
+  // ladder across mweb, desktop and app — a fleet of photocopies that drifted apart the
+  // first time anyone tuned one. Sharing is now the platform's answer: the attachment is
+  // a LINK, one setup edited in one room moving every surface that asks from it, which
+  // is the point. What protects the fleet is not a refusal here but knowing WHO ELSE
+  // asks — `usedBy`/`usedByNames` already count every holder, the setup's own page names
+  // them, and the integration's Use screen states it before the link is made.
   if (input.status !== undefined) {
     errors.push({ field: 'status', message: 'Live or paused is not a field any more — an integration is on air when it is published, and Unpublish takes it down' });
   }
@@ -253,13 +261,6 @@ export function normalizeKey(input, exceptId, { driveTouched = true } = {}) {
   if (k.adSetupId && !state.setups.has(k.adSetupId)) {
     errors.push({ field: 'adSetupId', message: 'That ad setup doesn\'t exist' });
     k.adSetupId = null;
-  }
-  if (k.adSetupId) {
-    const holder = listKeys().find(x => x.id !== exceptId && x.adSetupId === k.adSetupId);
-    if (holder) {
-      errors.push({ field: 'adSetupId', message: `“${state.setups.get(k.adSetupId).name}” already fills “${holder.name}” — one integration, one ad setup. Attach a copy instead` });
-      k.adSetupId = null;
-    }
   }
   const setup = k.adSetupId ? state.setups.get(k.adSetupId) : null;
 
@@ -287,24 +288,24 @@ export function normalizeKey(input, exceptId, { driveTouched = true } = {}) {
     for (const t of SLOT_TYPES) {
       if (!s.slots[t].on) continue;
       if (!setup) {
-        errors.push({ field: 'sections', message: `“${s.name}” ${t} is switched on but no ad setup is attached — nothing could fill it. Ad ops connect one from their room` });
+        errors.push({ field: 'sections', message: `“${s.name}” ${SLOT_WORD[t].toLowerCase()} is switched on but no ad setup is attached — nothing could fill it. Ad ops connect one from their room` });
       } else if (!secDef) {
         errors.push({ field: 'sections', message: `“${s.name}” is not a placement in “${setup.name}” — placements live in the ad setup now; ad ops add them there` });
         break;
       } else if (slotGroupDefs(secDef.slots[t]).every(g => !g.rungs.length)) {
-        errors.push({ field: 'sections', message: `“${s.name}” ${t} is switched on but “${setup.name}” carries no ${t} demand there — ask ad ops, or switch it off` });
+        errors.push({ field: 'sections', message: `“${s.name}” ${SLOT_WORD[t].toLowerCase()} is switched on but “${setup.name}” carries no ${SLOT_WORD[t].toLowerCase()} demand there — ask ad ops, or switch it off` });
       } else {
         // Every break group answers for itself — one dark group is one dark break.
         const gdefs = slotGroupDefs(secDef.slots[t]);
         const multi = gdefs.length > 1;
         gdefs.forEach((g, gi) => {
           const r = driveWalkRungs(g.rungs, g.behaviour, k.drive?.[t], t);
-          const gWord = multi ? ` group ${gi + 1}` : '';
+          const gWord = multi ? ` pod ${gi + 1}` : '';
           if ((r.fellBack || r.vacuous) && gi === 0) (fellBack[t] = fellBack[t] || []).push(s.name);
           if (r.walk.length === 0) {
             errors.push({ field: 'sections', message: !g.rungs.length
-              ? `“${s.name}” ${t}${gWord} is switched on but its break group carries no demand — ask ad ops, or remove the group`
-              : `“${s.name}” ${t}${gWord} is switched on but every rung is off by ad ops — switch one on in the ad setup, or switch the unit off` });
+              ? `“${s.name}” ${SLOT_WORD[t].toLowerCase()}${gWord} is switched on but carries no demand — ask ad ops, or remove the pod`
+              : `“${s.name}” ${SLOT_WORD[t].toLowerCase()}${gWord} is switched on but every ad source is off by ad ops — switch one on in the ad setup, or switch the unit off` });
           }
         });
       }
@@ -336,9 +337,9 @@ export function normalizeKey(input, exceptId, { driveTouched = true } = {}) {
       && setup && setupSection(setup, s.name)?.slots[t].rungs.length).length;
     const provs = askWord(ask);
     if (driveTouched && secs.length >= onSecs) {
-      errors.push({ field: 'sections', message: `The ${t} asks ${provs} and “${setup.name}” carries ${ask.length > 1 ? 'none of them' : 'none'} there — switch another partner on, or ad ops add one` });
+      errors.push({ field: 'sections', message: `The ${SLOT_WORD[t].toLowerCase()} asks ${provs} and “${setup.name}” carries ${ask.length > 1 ? 'none of them' : 'none'} there — switch another partner on, or ad ops add one` });
     } else {
-      warnings.push(`${secs.join(', ')}: no ${provs} in the ${t} — runs as set up there`);
+      warnings.push(`${secs.join(', ')}: no ${provs} in the ${SLOT_WORD[t].toLowerCase()}`);
     }
   }
 
@@ -391,7 +392,7 @@ export function keyWarnings(k) {
         const n = driveWalkRungs(g.rungs, g.behaviour, k.drive?.[t], t).walk.length;
         const worst = n * bhv.tagTimeoutMs;
         if (worst > WORST_CASE_WARN_MS) {
-          warnings.push(`${s.name} ${t}${multi ? ` group ${gi + 1}` : ''}: ${n} rungs × ${fmtSecs(bhv.tagTimeoutMs)} is a ${fmtSecs(worst)} wait before anything plays`);
+          warnings.push(`${s.name} ${SLOT_WORD[t].toLowerCase()}${multi ? ` pod ${gi + 1}` : ''}: up to ${fmtSecs(worst)} before an ad`);
         }
       });
     }
@@ -451,5 +452,25 @@ export function deleteKey(id) {
   }
   state.keys.delete(id);
   state.versions.delete(id);
+  return obj;
+}
+
+// Duplicate — clone the whole surface for an experiment. Fresh key string, and NOT
+// published: a copy has no version history of its own, so it cannot serve until someone
+// publishes it on purpose. THE SETUP STILL COPIES rather than linking (8 Sep, when
+// sharing became legal): a duplicate is a scratch surface to experiment on, and an
+// experiment that edits demand the original is serving from is not an experiment. A
+// surface that WANTS the shared ladder says so by mapping it — one click, on its page.
+export function duplicateKey(id) {
+  const src = getKey(id);
+  let name = `${src.name} copy`;
+  let n = 2;
+  while (listKeys().some(k => k.name.toLowerCase() === name.toLowerCase())) name = `${src.name} copy ${n++}`;
+  const setupCopy = src.adSetupId ? duplicateSetup(src.adSetupId, `${name} demand`) : null;
+  const { obj } = createKey({
+    ...JSON.parse(JSON.stringify(src)),
+    name,
+    adSetupId: setupCopy ? setupCopy.id : null,
+  });
   return obj;
 }

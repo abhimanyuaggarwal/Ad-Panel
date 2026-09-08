@@ -34,42 +34,20 @@
   color: var(--good); background: var(--good-soft); border-radius: 4px; padding: 1px 5px;
 }
 .v-n { margin-left: auto; font-size: 10.5px; color: var(--ink-faint); white-space: nowrap; }
-.v-chev { font-size: 12px; color: var(--ink-faint); transition: transform .12s; }
-.v-item.open .v-chev { transform: rotate(90deg); }
+/* A rail row is a door (6 Sep): the whole head is clickable, the sheet does the reading. */
+.v-head { cursor: pointer; border-radius: 6px; }
+.v-head:hover .v-t { color: var(--accent); }
 .v-who { font-size: 11px; color: var(--ink-faint); margin-top: 1px; }
 .v-item.pending .v-t { color: #8a6d1f; }
 
-.v-changes { margin: 7px 0 2px; display: flex; flex-direction: column; gap: 4px; }
 .vc { font-size: 11.5px; color: var(--ink-soft); line-height: 1.45; }
 .vc code { font-size: 11px; background: var(--bg-soft, #f4f5f9); border-radius: 3px; padding: 0 4px; }
 .vc-where { display: block; font-size: 9.5px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: var(--ink-faint); }
 .vc-to { font-weight: 600; color: var(--ink); }
-.v-restore { font-size: 11.5px; }
 .dlg .cons .vc { padding: 3px 0; }
 
 /* THE RESTORE DIALOG — a decision, so it says where you are, where you are going, what
    moves, and what you lose. In that order, because that is the order they are asked. */
-.rst-hop {
-  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
-  padding: 10px 12px; border-radius: 9px; background: var(--bg-soft, #f7f8fb); margin-bottom: 14px;
-}
-.rst-a, .rst-b { display: flex; flex-direction: column; font-size: 10px; font-weight: 700;
-  letter-spacing: .3px; text-transform: uppercase; color: var(--ink-faint); }
-.rst-a b, .rst-b b { font-size: 15px; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--ink); }
-.rst-b b { color: var(--accent); }
-.rst-arrow { color: var(--ink-faint); font-size: 15px; align-self: center; }
-.rst-when { margin-left: auto; align-self: center; font-size: 11.5px; color: var(--ink-faint); }
-.rst-t { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--ink-faint); margin-bottom: 5px; }
-.rst-list { max-height: 220px; overflow-y: auto; }
-.rst-warn {
-  margin-top: 14px; padding: 10px 12px; border-radius: 9px; font-size: 12.5px; line-height: 1.5;
-  color: #8a6d1f; background: #fdf8e8; border: 1px solid #f0e3bd;
-}
-.rst-warn b { display: block; margin-bottom: 2px; }
-.rst-lost { margin-top: 7px; max-height: 120px; overflow-y: auto; }
-.rst-lost .vc { color: #8a6d1f; }
-.rst-lost .vc code { background: #f6eed6; }
 .rail .fieldset-title { margin-bottom: 12px; }
 .tl-empty { font-size: 12.5px; color: var(--ink-faint); }
 /* No rail below 1100px — the header's reservation for it goes too, so Save/Publish/⋯
@@ -143,3 +121,8 @@
 .field.err .chips-input { border-color: var(--bad); }
 
 
+
+/* The person's own line under a version (6 Sep; re-aligned same day — it sat 22px off
+   the rail's grid). Every line of a row — head, note, who — shares ONE left edge. */
+.v-note { font-size: 11px; color: var(--ink-soft); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v-who { margin-top: 2px; }

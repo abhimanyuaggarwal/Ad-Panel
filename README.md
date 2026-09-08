@@ -1,5 +1,990 @@
 # Player Console — the Integrations Panel (StreamAds repo) — v1
 
+**AN AD SETUP MAY FILL MANY INTEGRATIONS (8 Sep, user call).** *"Allow the ad setup to be
+configured in multiple integrations."* The 26 Aug promise ran one setup ↔ one integration and
+the server enforced it by name. It reversed the real case: the same ladder across mweb, desktop
+and app is ordinary, and keeping it as a fleet of photocopies means it drifts the first time
+anyone tunes one. **Half the rule stands and half is gone:** an integration still asks from
+exactly ONE ad setup — a surface has one source of demand — but a setup may now fill as many
+integrations as anyone maps it to.
+
+- **The refusal is deleted** (`normalizeKey`): attaching a setup another integration already
+  fills is an ordinary attach. Nothing else in the store moved — `usedBy`, `usedByNames`,
+  `usedByLive`, `setupLiveCounts` and the delete refusal were always written over the SET of
+  holders and had simply been reduced to one by the promise.
+- **What replaces the refusal is COUNTING, at every door.** The change modal's foot says *also
+  fills “X”* beside the acts; the `Use` screen carries a `SHARED` line — *also fills “X” — an
+  edit there moves both*; a card's foot names the holders instead of naming a reason it cannot
+  be used; the setup's own page already said *Assigned to A, B*; deleting is refused naming
+  every holder; and a publish now agrees with itself — *“A” picks this up* · *“A”, “B” pick this
+  up*. Inside the setup editor the singular copy went plural where a count is now real:
+  *switched on in 2 of 3 integrations*, *2 integrations play this mid-roll live*.
+- **Both acts, on every card.** `Use` and `Copy & use` no longer depend on who holds what — only
+  the setup already filling THIS integration has nothing to press. The client's own detour is
+  gone too: `mapSetup` used to hand a held setup to the copy door behind the click.
+- **A copy is now an intent, never an inference.** Create used to photocopy the mapped setup
+  whenever `usedBy` was non-zero — the only legal ending under 1:1. It now copies only when
+  someone asked (`copyAtCreate`, set by `Use a copy` and by the chooser's photocopy seed), so
+  mapping a shared setup on a new integration means what it says.
+- **Duplicating an INTEGRATION still copies its setup** rather than linking (`duplicateKey`): a
+  duplicate is a scratch surface, and an experiment that edits demand the original is serving
+  from is not an experiment. A surface that wants the shared ladder maps it in one click.
+- Re-pinned in the suite: *an ad setup can fill several integrations — the link is allowed, and
+  every holder is counted* (two surfaces born on one setup, one ladder edit reaching both with
+  no republish of their own, the delete refusal naming them both). 129 cases pass.
+  `PRODUCT-SCOPE.md`, `FAQ.md` Q4 + glossary and `ARCHITECTURE.md`'s diagram note now say so.
+
+**THE CHIP IS THE CHANGE DOOR, AND `Open ↗` STANDS BESIDE IT (8 Sep, user call).** *"Swap the
+click — clicking the ad setup name chip should open the change modal — and rather than 3 dots
+use a preview that opens in a new tab: a mature icon with a name, clean, understood by a
+layman."* The strip had it backwards: clicking the NAME of the thing you want to swap opened a
+second tab, while the swap hid behind a `⋯`. Now **the chip opens `Change ad setup`** (a `⌄`
+where the `↗` was, because a picker sits behind it), and **reading the setup is its own labelled
+button — `Open ↗`** — the word plus the arrow that means "elsewhere", the same `open ↗` every
+card in the picker wears. The kebab and its one-item menu are gone: nothing hides, and nothing
+is a bare glyph. `AD SETUP  [ TOI VideoShow demand ⌄ ]  Open ↗`.
+
+**ONE COLOUR FOR EVERY FACT VALUE (8 Sep, user call).** *"The settings read-only beneath the ad
+unit — in it the colour of the value should be same; currently text fields are different colour and
+the integer keys are different colour. Use the integer key colour in text values as well."*
+
+- **What was actually two colours was default vs SET**, not text vs number: a fact sitting at its
+  default receded (`--ink-faint`, weight 400) and a fact somebody had set stood at
+  `--ink-soft`/500 — the under-layer from the 7 Sep UAT round, so ten units would not read as
+  forty chips of identical noise. The call is the report of how that lands when you are READING
+  rather than auditing: the units in the world happen to have their clocks set and their words
+  left alone, so the split reads as *numbers are dark, words are pale* — an inconsistency in the
+  value's TYPE, which is not something this line means. Every value is one weight and one colour
+  now, and the line still lifts as a whole on hover.
+- **What it costs, named:** you can no longer tell at a glance which facts were deliberately set
+  and which are simply the defaults — the fold is where that lives now. `.uf.dflt` is still
+  emitted (it is a true fact about the value) and deliberately unstyled, so restoring the
+  under-layer is one CSS rule, not a re-derivation.
+- **`.uf.na` keeps its dim** — a fact that CANNOT apply right now (`Close button` while the content
+  pauses) with its reason on hover. That is a refusal, not a default, and it is the one thing on
+  the line that has to look different from the rest.
+
+**THE UNIT BLOCK, CALMED (8 Sep, user call — four pointers over three passes).** *"The background
+colour of the ad unit is quite distracting and cluttery feeling — can we make it easy on the eyes,
+maybe 2–3% black, very light and calm, and an outline that too light and calm … not visually
+cognitive on the mind and eyes of the user"*, then, on the first pass, *"tone down the background
+more, it is still visually distracting when seeing too many ad units on screen"*; plus *"remove the
+space between the drag and the number in the ad unit — maybe the number can be centre aligned"* and
+*"the drag & drop icon, the count nos and the switch should be vertically aligned for the ad unit
+card; currently it is on top, it should be vertically in the middle so that the card feels as
+one"*.
+
+- **NO FILL AT REST — the block is the page, plus a hairline.** It wore `#eff2f7`: a ~5% BLUE-grey,
+  which is two problems compounding on a ten-unit ladder. It is a HUE (so it reads as a state — the
+  `wants` row is that same move in accent), and a fill REPEATS: one block is calm, ten stacked are
+  ten grey bands the eye counts on its way to the name it wants. The first pass took it to ~2.4% of
+  a neutral near-black; the second took it to **nothing**. At rest the block is `transparent` with
+  a `~4.5%` inset hairline, and the FILL is what it does when touched (hover ~3%) or opened (~2.4%
+  under a firmer hairline) — the only two moments it has something to say. One hairline per block
+  is cheaper to the eye than one band per block, because hairlines do not stack into a texture.
+  This is the exact **opposite trade to the 7 Sep cut**, which dropped the outline *because* the
+  fill was heavy enough to carry the shape: with no fill at all, the outline is the only thing that
+  says "one unit". The ring is an inset box-shadow, not a border, so the block's box does not grow
+  (the drop-line states carry it in their own shadow list, and the collapsed off line takes a third
+  lighter ring so it still recedes in a stack). **The field wears a hairline at rest now** — on a
+  fill-free block a bare white field stops reading as typeable, and an input has to look like one.
+- **The position sits ON the handle.** The number was right-aligned in a 22px column with the row's
+  7px gap in front of it, so a `1` floated between handle and switch with space on both sides and
+  belonged to neither. No gap at all between those two now, and the digit is **centred in its own
+  column**: they read as one leading group.
+- **TWO COLUMNS, AND THE LEADING GROUP CENTRES ON THE CARD.** The handle, the position and the
+  switch answer for the WHOLE unit — its order, where it is asked, whether it serves — but they
+  were the head row's first three cells, so on a two-tier block they sat at the TOP, level with one
+  of the two tiers they govern, and the card read as a row with something hanging under it. The
+  block is a two-column **grid** now: `.unit-rail` in column 1 spanning every row (so it centres
+  against the block's full height), the three tiers stacked in column 2. While the fold is OPEN the
+  rail's area narrows to the head row (`grid-row: 1`) and centres on that — centred against a
+  250px settings panel it would strand the switch beside `Ad placement`, four rows from the unit it
+  switches. **The grid is what makes both exact without a magic number**: measured in the browser,
+  the rail's centre lands on 30.5 of a 61px closed block and on 20.5 — the field's own centre line
+  — while open.
+- **`--unit-x` is retired.** The lower tiers hang off the body column, so the x they share with the
+  unit's field is structural; it was a hand-measured `90px` (re-measured twice today) that any
+  change to a gap could silently invalidate. The fact line and the settings still land on the
+  field's left edge — now by construction rather than by arithmetic.
+- **A dead selector found on the way:** `renderSetupForm`'s "scroll to the rung you were sent to
+  fill" used `.rung-row.wants`, but `ctx.rowClass` has landed on the BLOCK since the frame landed
+  (7 Sep) — so a visitor arriving from an integration's *add a tag here* got no scroll and no
+  caret. It reads `.ad-unit.wants` now. The snapshot walk's own `.rung-row .toggle` step moved to
+  `.unit-rail .toggle` for the same reason.
+
+**AN OFF UNIT IS OUT OF THE WALK (8 Sep, user call — three pointers on the ad setup).**
+*"In the ad setup, in the waterfall, the count should be counted for only the enabled ones. The
+follow waterfall should be moved down the primary one. The ad unit which is disabled is technically
+made inactive — it should be treated in an intuitive manner, i.e. maybe by tweaking the row by
+collapsing it and only showing a sleek minimal info about it so that we can read it to enable it."*
+Two of the three are the same finding: a switched-off unit was still drawn, numbered and counted as
+if it were serving. It is not asked, so it now holds no number, no columns and no height.
+
+- **Positions are WALK positions** (`livePos` / `posLabel` in views-setups-rungs.js, used by the
+  waterfall's ladder, a break's fall, its special tier and a rotation's banners). A nine-rung
+  waterfall with units 4 and 6 off used to read `1…9`, so two of its numbers named nobody and the
+  third partner actually asked wore a `5`. The numbers now run `1…N` over the units that would
+  serve; an off unit wears none at all. Nothing renumbers when a unit is switched back on beyond
+  what actually changed — the count is derived per read, never stored.
+- **A ladder's counted rule counts real rungs both sides.** `N of M active` on the `WATERFALL
+  ORDER` rule now takes M from the FILLED rungs, not the rows: an empty rung waiting to be filled
+  used to inflate the total, so a ladder could read *7 of 8 active* with nothing switched off.
+- **The `Waterfall order` chips name only the partners ASKED** (`suWfOrderProviders(asked)`). A
+  partner whose every unit is off is no longer numbered into the walk. The DRAG still knows about
+  it: `suWfOrderSet` permutes the asked partners among the slots they already hold, so an off-only
+  partner keeps its place instead of being swept to the tail by a re-order it was not part of.
+- **A SWITCHED-OFF UNIT COLLAPSES** (`suUnitOffHtml`, `.ad-unit.off.collapsed`). The dim was the
+  whole problem: a full three-tier block at 60% opacity spent a live unit's worth of ink on a unit
+  that serves nobody, and made the one line you actually need — *which unit is this?* — the
+  faintest on the ladder. It stands down to ONE 28px line at full contrast: handle, switch,
+  provider badge, name, and the word `off`, on a tint a shade below the live blocks so the units
+  that serve stay the figure. The field goes with the fold — an off unit is not being re-targeted,
+  you turn it on first — which is what keeps the line thin. Nothing is lost: every fact stays on
+  the rung underneath and the block opens back out, settings and all, the moment the switch goes
+  on. No hover explainer on the switch (the room's tooltip policy): the badge is the state.
+- **`Follow the waterfall` moved DOWN the primary.** At the head of the AD SOURCES zone the source
+  switch was the first thing read on every break, sitting above the row that decides most of the
+  revenue. The break's own first ask opens its zone now, and the switch sits where the FALL begins
+  — the part of the ladder anyone comes here to swap (`ctx.midHtml`, injected by `suLadderHtml`
+  between the lead block and the `WATERFALL ORDER` rule). A break with nothing in its ladder keeps
+  the switch at the head: there is nothing above it to sit under, and following the waterfall is
+  that break's one act. What the switch DOES is unchanged — following still serves the waterfall
+  in place of the break's whole own ladder, primary included, and the dialog still names what
+  stops serving, what starts and what is parked.
+
+**CHANGING THE AD SETUP IS A SWAP BETWEEN KNOWN THINGS (8 Sep, user call — three pointers).**
+*"Clicking on change should not have the option to select blank, only predefined ad setups mapped
+to the same property as the integration; why is Use disabled — Use and Duplicate & use should be
+maturely handled, the buttons are sounding immature; and clicking the connected ad setup should
+open it in a new tab."*
+
+- **`Change ad setup` lists what exists, on THIS property, and nothing else.** The `+ New ad setup`
+  blank card is gone from the change modal — an integration already wired and serving is not the
+  place to start a setup from nothing, and the room that owns setups is one click away in the nav.
+  The list narrows to `s.property === FORM.data.property`: another property's demand could never
+  legitimately fill this surface, so it is not offered and then refused. The kicker names the
+  scope (*TOI ad setups — one fills every break*), and a property with none says so in place
+  (*No ad setup on TOI yet — one is built in Ad setups*) rather than showing an empty grid.
+  **The in-section picker (nothing mapped yet) narrows to the same one property**, since demand
+  on another property could never legitimately fill this surface either — one rule, both doors.
+  What it keeps is the `+ New ad setup` card: that state has no setup to swap, so building one
+  from there is exactly right, and it is the only door that still opens the create trip.
+- **A map card only wears acts it can actually perform.** The greyed `Use` is deleted. A disabled
+  button whose reason lives in a tooltip makes the reader hunt for what they did wrong, and the
+  pair `Use` / `Duplicate & use` read like two function names. In the picker's *acting* mood
+  (below), three states, three grammars: *free* — `Use` (solid) and `Use a copy` (outlined);
+  *held by another integration* — `Use a copy` alone, the holder named in the foot; *current* —
+  no act at all, because it is already the answer: it wears `current` and opens. Both labels now
+  start with the same verb, so the choice is between *this setup* and *a copy of it*, not between
+  two vocabularies.
+- **A copy is a new object, so only its own button makes one.** The card body carries the plain
+  pick and nothing else; on the two states with no plain pick it carries no click at all
+  (`.sc-read` — hover border kept, cursor and lift dropped). Clicking a held card used to
+  photocopy it silently.
+- **`Use a copy` STATES ITSELF BEFORE IT RUNS** (same day, second pointer — *"it just abruptly
+  attaches with the user having no clue what has happened"*). It was the one act on this page
+  that made a new object IN ANOTHER ROOM and announced it with a two-word pill afterwards: a
+  setup nobody had named appeared in Ad setups and the chip here quietly became something else.
+  Now it opens a 620 sheet that says, in a label column, **`COPIED FROM` <name> · <counted
+  demand>** and **`THEN FILLS` every break on “<this integration>”, in place of “<current>”**,
+  with a closing line that the source *is left exactly as it is*. Between them sits the field
+  that matters: **the person names the copy** — they are the one who will have to find it in the
+  setups room next week — prefilled with this integration's own demand, stepped past any name
+  already in use. **A name already taken refuses IN the dialog** (`An ad setup is already called
+  that`, on the field, nothing retyped) because the server would otherwise suffix it silently.
+  The button says what it does in each mode: `Copy and use` on a saved integration, `Copy at
+  create` on one still being made — where the note adds that cancelling leaves nothing behind
+  and the strip's pill now names it: *becomes “Shorts Rail demand” at create*.
+- **Cancel goes back to the cards**, not to nothing: the person is still mid-decision, so
+  `changePickCopy` reopens the change modal. And **there is no success toast** — they named the
+  copy a second ago and the chip now wears that name; the pill is left free for the one thing the
+  swap can genuinely cost, the `N dropped` warning for sections the new setup has no placement
+  for (toast policy: silent when the result is visible in place).
+- **One door for copies, so nothing photocopies behind a click.** `mapSetup`'s old
+  "held setup → duplicate first" branch is gone; it hands the whole case to `mapSetupCopy`,
+  which asks. The copy TIMING is unchanged — made immediately on a saved integration, at Create
+  on one still being created (`FORM.data.copyAtCreate`, plus the typed `FORM.data.copyName`;
+  both are page facts `keyPayload` rightly strips).
+- **THE CHANGE MODAL SELECTS; ITS FOOT ACTS** (same day, third pointer — *"let's have the Use or
+  Copy & use as CTA on the bottom when changing, and accordingly the second screen shows up with
+  clean communication, not too much text, and once the user confirms it attaches"*). Picking and
+  acting used to be one click on an 11px button that only appeared on hover, so a swap on a LIVE
+  integration happened the instant a name was clicked. Now a card in this modal **selects** — one
+  at a time, the selection visible (`.dlg-card.sel`) — and the acts sit where a dialog's acts
+  belong: **`Cancel` · `Copy & use` · `Use`**, full size, in the foot. They are drawn only once
+  something is selected (an act with no object is a question, not a button), and the foot **says
+  in one line why an act is missing** instead of showing it dead: *Pick an ad setup* · *Already
+  fills this integration* · *“X” fills from it — take a copy* (that last one leaving `Copy & use`
+  as the single, solid act). Selection repaints **the cards' class and the foot by hand** — the
+  search box above them is a live input, and a repaint would swallow what was typed.
+- **Then the second screen, and only then does it attach.** `Use` — no new object, but on a live
+  integration it re-points every break — now confirms too: **`NOW` <current>**, **`AFTER` <new> ·
+  <counted demand>**, and, in amber, **what the swap costs**: *“Shorts feed” has no placement in
+  it — that section's breaks switch off*. That warning used to arrive as a four-word pill AFTER
+  the fact (`1 dropped`); it is now read before it is paid, where a lever still exists
+  (`droppedBySetup` / `droppedWords`, one reading shared by both screens and the attach).
+  `Copy & use` shows the same shape plus the name field, trimmed to **`COPY OF` · `REPLACES` ·
+  Name the copy · *The original is untouched.*** Both foots read **`Back` · the act**, and Back
+  returns to the cards **with the selection and the search text still there** — the person is
+  still choosing. A screen that carried the warning suppresses the pill afterwards
+  (`attachSetupToForm(target, warned)`); the doors without a second screen keep their receipt.
+- **…and the demo world had nothing to `Use`** (same day, fourth pointer — *"there is only Copy
+  & use, I can't see the Use CTA"*). Not a bug in the foot: the seeded world was seven ad setups
+  for seven integrations, **every one of them held**, so `Use` — which the server refuses on a
+  setup another integration fills (*"X" already fills "Y" — one integration, one ad setup*) —
+  could never legitimately appear, and the setups room's own `Not mapped yet` filter matched
+  nothing either. That is not what the room looks like in life, where ad ops build a setup and
+  someone maps it later. **Every property now seeds one unmapped setup** — `TOI Shorts demand`,
+  `ET Markets Live demand`, `NBT ArticleShow demand` (`api/mock/world.js`, created last so every
+  id above them holds) — so every integration opens the change modal with at least one setup it
+  can simply use. The seed spec pins it: 10 setups, three unmapped, one per property.
+- **The picker keeps the acting mood.** Filling an EMPTY integration displaces nothing, so a card
+  there still acts on hover and attaches straight away; `Use a copy` there still opens the copy
+  screen, because that one makes an object. One card renderer, two moods
+  (`setupMapCardHtml(s, mine, acts | null)`).
+- **The connected chip opens the setup in a NEW TAB** (`openSetupTab`, `↗` in place of `›`), and so
+  does every card's `open ↗`. The integration you are editing never leaves the screen, so there is
+  nothing to stash and nothing to carry home — `openSetupFromKey` and its stash are deleted.
+  `KEY_RETURN`/`KEY_RESTORE` stay for the ONE trip that still has to leave: building a new setup
+  from the integration page, which must come back here with the new setup mapped.
+
+**SPECIAL · AD SOURCES — the two zone names (7 Sep, user call).** *"Rename Direct to Special, and
+Indirect to something relevant, since it will have both direct and indirect — what can we name it
+so that it is understood by a layman and works in the context of ads too?"*
+
+- **Direct → `Special`.** The zone holds the ONE deal that jumps the queue and is asked first,
+  every time; `Special` says that to anyone, where `Direct` named a sales channel only ad ops
+  reads. One label map (`label('slotType', 'direct')`) now feeds the zone head, the integration's
+  read-only break row and the bulk sheet's lever, so those three can no longer disagree. The
+  server's own word follows (`FIELD_WORDS.direct` → *special campaigns*), and so do the list
+  filter (`With special deals` / `No special deals`), the empty CTA (`+ Add the special deal`) and
+  the dead-switch reason (`No special deals yet — ad ops add them`).
+- **Indirect → `Ad sources`.** `Indirect` named the demand's KIND, and the zone stopped being one
+  kind the moment a direct deal could sit in its ladder. What it always is, is where the ads come
+  from — which is the word a ROTATION's ladder has worn since 1 Sep. So the rename UNIFIES the two
+  instead of adding a fourth word to the gutter rail: every break and every rotation now reads
+  `Special · Pods · Ad sources · Delivery settings`. `FIELD_NAMES.indirect` becomes *Ad source
+  units* for the diffs, and the server's refusal for a bad `waterfallSource` says *is not an ad
+  source* (re-pinned in `test/cases/11-waterfall.spec.js`).
+- **THE WIRE DOES NOT MOVE.** `direct`, `indirect` and `waterfallSource` stay exactly as they are
+  in the store, the API and the player's JSON — the panel's standing rule that legacy keys keep
+  their names and only the WORDS change. Nothing to migrate, nothing to re-publish.
+- **The connected count left the waterfall foot** (same call — *"6 ad slots connected — remove
+  this text"*), the same call the folded heads' count chips lost to: a number you cannot act on is
+  not worth the ink, and `Apply on ad slots` shows every connection by name the moment it opens.
+  What stays is the WARNING — `no ad slots yet`, in amber — because that is not a count: a
+  waterfall with units that reaches nothing serves nobody, and silence there would read as placed.
+
+
+**THE AD UNIT IS ONE BLOCK (7 Sep, user call — four pointers, then a review and a question).** *"The ad unit and its
+read only settings have to be treated as a single block — it needs to feel as a single block, and
+once the settings are opened it should be aligned with the ad unit; currently it passes over the ad
+unit in the right side. Remove settings logo and open the settings whenever the ad unit is in focus.
+Also try moving the ad unit a bit to the left close to the drag and drop icon, and make the drag and
+drop more prominent — currently it is hardly discoverable there."* All four are the same finding:
+an ad unit was drawn as a ROW WITH STRAYS — a row, a fact line under it at a hand-measured 126px
+indent, a gear at its right edge, and a settings panel that started on the field's left edge and
+ran **60px past its right edge** into the row's own `⋯` gutter. Three things asked to be read as
+one thing while nothing framed them as one. Reviewed on screenshots the same day — *"the one
+block can be improved and made better so that it is intuitive and easy on the eyes and on the page
+does not feel cluttered"*, plus the question that found a real hole: *"if the settings block is
+opened how to close it?"* The settled shape, after both:
+
+- **One shape, three tiers.** `.ad-unit` is the block — it carries the ground, the hover, the
+  drag and the switched-off dim — and the head row, the fact line and the settings are TIERS
+  INSIDE IT. Both lower tiers hang off the block's own body column (`--unit-x`, a measured 97px,
+  was retired 8 Sep when the block became a two-column grid), so the summary and the editor open on
+  the same x as the name they belong to and can never drift apart by a hand-typed indent again — the fact line used to carry a literal 126px,
+  and the panel a `margin-right: -60px` that put it 60px PAST the field, over the row's own `⋯`
+  gutter. `suUnitHtml` composes the three; every ladder in the room goes through it
+  (`suLadderHtml`, and the direct tier's own list). It is `.ad-unit`, not `.unit` — that class
+  was already a number field's suffix (`<span class="unit">sec</span>`) and a dialog section's
+  spacer, and the block was silently inheriting an 18px margin from it.
+- **THE BLOCK IS A SOFT SURFACE, THE UNIT'S FIELD IS THE FIGURE (re-cut, same day — "the one
+  block can be improved … easy on the eyes and on the page does not feel cluttered").** The
+  first shape was an outlined white card with a tinted, hairline-topped footer. On a nine-unit
+  ladder that is nine outlines plus eighteen internal hairlines, on a card that already has
+  borders and zone rules — every unit shouting its own edges. Inverted: the block is one tinted
+  ground (`#eff2f7`, deepening on hover and while open) with **no outline and no internal
+  divider**, and the unit's field is the one WHITE thing on it — bordered only where the caret
+  is. *(Re-traded 8 Sep — see the entry at the top: the fill went away entirely and a hairline
+  came back to hold the shape, because at 5% ten blocks read as ten bands. The internal divider is
+  still gone, and the field is still the figure.)* Figure and ground do what eighteen hairlines were doing, the ad unit's NAME is the
+  brightest thing in its own block, and a ladder reads as a stack of soft shapes.
+- **THE WAY BACK (user question — "if the settings block is opened how to close it?").** It was
+  missing, and the question found the hole: focus and the fact line both OPENED the fold, and the
+  fact line is hidden while it is open, so the only exit was opening a different unit. A fold
+  needs a visible state and a way out, so there are three now — the **head row is the toggle**
+  (`suUnitHeadClick`, which stands down for the row's own controls: the field, the switch, the
+  handle, the remove ✕, because each of those already answers for itself and a second click on
+  the field must open its search, not close the fold), a **caret at the head row's end** says
+  which way it will go (the room's own `.slot-chev` glyph, rotating and turning accent while
+  open — a DISCLOSURE, not the gear that went: it names the fold's state, not a room called
+  Settings), and **Escape** closes innermost-first — a tag search over the fold, then the fold.
+- **Focus is the door; the gear is gone.** The gear stood next to a door — the fact line already
+  opened the settings — and putting the caret in a unit's field is what someone does the moment
+  they mean to work on that unit. So the fold now opens on `focusin` anywhere inside a filled
+  block (one delegated listener, like the click-away that closes the selects), and the fact line
+  stays clickable both ways. This is why **both tiers are always painted** and the block's `open`
+  class picks which one shows: opening through `FORM.rerender()` would repaint the field the caret
+  just landed in and throw the caret away — the toolbar's own lesson. The switch is pure DOM
+  (`suUnitOpen` / `suUnitClose`), one unit open at a time, and focus LEAVING the ladder leaves the
+  fold as it stands — a panel that closed itself the moment you reached for a control elsewhere
+  would be a flicker, not a behaviour. An empty rung has no settings, so focusing it opens nothing.
+- **A real handle.** The grip was 14px of braille glyph at `opacity: 0` until its row was hovered:
+  a 4px speck, invisible to anyone who had not already found it. It is now six drawn dots at the
+  block's leading edge, standing at rest, answering to the pointer like a button, and dragging the
+  whole BLOCK (tiers and all) rather than the head row. A ladder's order is its most consequential
+  fact; the control that changes it has to look grabbable before it is tried.
+- **The unit moved left, and the words that were holding it out there moved up.** 52px of
+  right-aligned position column put 42px of void between the grip and the unit's field on every
+  numbered row — and the only thing paying for that width was the word `Primary`. The word moved
+  to a **rule above its block**, in the exact grammar the fall has always used (`WATERFALL ORDER ·
+  6 of 9 active` gains `PRIMARY · asked first, every time`): same distinction, said once instead
+  of per row, which is the pattern this room already chose for the fall. The column now holds a
+  POSITION — two digits' worth — the field rides ~44px further left with its handle beside it, and
+  every unit in a ladder starts on the same x. A rotation still NAMES its rows (`Banner 3`) and
+  keeps the wide column (`.rung-list.rot`).
+- **A filled unit's field opens QUIET.** With focus as the door, clicking a unit's name used
+  to land a one-row search menu on top of the settings it had just opened — naming the unit you
+  already picked. `lookupHtml` grew a `quiet` opt (the dead `data-quiet` seam, now earning its
+  keep): a rung that already holds its unit still SELECTS its value on focus but does not open
+  the menu, and the click that caused the focus cannot reopen it (stamped, 500ms, so a Tab that
+  never clicks does not swallow the next one). Typing replaces the selection and opens the search
+  on the first keystroke; a second click opens it outright. An empty rung is not quiet — its
+  field's whole job is the search.
+- **The fact line kept its content and became COLUMNS.** Every fact of the unit's type, fixed
+  order, defaults included, dimming in place when one cannot apply — all unchanged. What changed
+  is the clutter: the tinted pills went (chips on a tint = two grounds saying one thing), and
+  each fact now names its column (`data-f`, a `min-width` per fact in CSS) so `Content pause`
+  sits at ONE x down the whole ladder. Nine rows of repeated labels read as a column the eye
+  learns once; nine ragged lines read as noise. To make that hold across types, **the two
+  banner-only facts moved to the end** of both the fact line and the settings (`… Ad placement ·
+  Ad unit template · Close button · Auto-hide`): the four facts EVERY unit has now fill the
+  first four columns on every row, so a video row and a banner row line up all the way across
+  and the banner simply carries two more — no holes, no jumps.
+- **The settings PAIR UP.** Six one-per-line rows made an open block 440px tall against a 100px
+  closed one, with the right two-thirds empty — the fold shoved the rest of the ladder off
+  screen to show six short answers. `auto-fit` columns pair them (93px at 1440/1760, falling back
+  to one column at 1280, measured), and the pairs fall out honestly row-major: the two clocks
+  that decide WHEN, the two facts that decide WHERE and THROUGH WHAT, and on a banner the two
+  that decide how it leaves. The row grammar is untouched — there are simply two per line.
+
+*Pinned:* `npm test` (128 cases) and the full `test/ui-snapshot.mjs` walk — 60 screens, no console
+errors, the two pre-existing `.ps-btn` misses unchanged. Checked in headless runs: drag-reorder, the
+empty rung, a switched-off unit, "an edit keeps the panel open", all three ways to close (caret /
+head row / Escape, and that the row's own controls are not swallowed by the head-row toggle), the
+quiet-focus field in all four of its states, and the block at 1280 / 1440 / 1760 (the fact line
+never wraps or overflows its block at any of them).
+
+
+**PLAYER CONFIGS, PASSIVE VOLUME AND THE FRAME LADDER (7 Sep, user call — three pointers).**
+
+- **The default player config became row zero, literally.** The Details card's last row used to
+  be drawn on the config table's grid *in a different card* — near-alignment with the real table
+  below, and the same three labels printed twice (sentence-case field labels floating over that
+  row, uppercase column heads over this one, 90px apart). Two half-tables reading as one broken
+  table, which is what "too disoriented, not pleasing to the eyes" was pointing at. The row now
+  lives **inside** the configs table as its first row, under the ONE heading row: identity
+  `Default` (a word, not a typed key), the three facts in the columns, and no switch or `⋯` —
+  the default cannot be switched off or removed, so those cells stay empty rather than offering
+  dead controls. The fieldset is **Player configs** now, not *Custom* player configs, and it
+  never shows an empty state (the default row is always there). Details keeps only what is the
+  PLAYER's rather than a config's: type, fallback media, passive volume. `pcFactsHtml` is gone.
+- **Passive volume left both bulk player sheets.** *"Why do we have the passive volume — that is
+  not part of the default or custom player config?"* — exactly right, and the server already
+  agreed: `PATCH` a config carrying `passiveVolume` and it is refused (`test/cases/10-player-configs`
+  — *"a fork carries no volume — the player has ONE Passive volume"*). A player config IS playback
+  mode, MiniTV expansion and autoplay; passive volume is the player's own, like its type and its
+  fallback media, and it is edited in Details. Gone from `Default player behaviour` (four rows to
+  three) and from the `DEFAULT` block of `Custom player behaviour`, along with its caret caches
+  (`PB_TEXT`, `DC_TEXT`) and `pbNum`/`dcVol`. **Trade-off accepted:** passive volume can no longer
+  be set across a cohort in one act — it is a per-integration field again. `BULK_PLAYER_FIELDS`
+  still accepts it, so the capability is one row away if it is ever wanted back.
+- **THE FRAME LADDER — three modal frames, and the height floor is opt-in.** Measured first,
+  because "the modal is big to carry this less info" was true of two dialogs and false of the
+  rest: a confirm and the ad-slots grid already fitted exactly, and the card choosers and the
+  master-detail sheet genuinely FILL their 860. The two offenders both had a hard-coded
+  `min-height`, applied at the 860 house width to content three rows tall:
+
+  | dialog | was | now |
+  |---|---|---|
+  | Default player behaviour | 860×481 (221px dead) | **620×245** |
+  | THE CHANGE REVIEW, standalone | 860×529 (278px dead) | **620×267** |
+  | Custom player behaviour (master-detail) | 860×529 | 860×529 — fills it |
+  | New integration / ad setup chooser | 860×505 / 860×609 | unchanged — cards fill them |
+  | `ask()` confirm · Apply on ad slots | 440×146 · 620×(content) | unchanged — already exact |
+
+  So: `.dlg` **440** for a confirm, `.dlg.sheet` **620** for a form or a list (content height,
+  scrolls past the viewport), `.dlg.wide` **860** for cards and master-detail, which need the
+  width for their columns. And **`.steady`** carries the floor instead of every sheet wearing it.
+  The floor was never about size — a journey that resizes between its steps reads as a different
+  dialog arriving and the eye re-finds the footer, which is real, but only where there IS a next
+  step in the same dialog. The tabbed ad sheet and the master-detail player sheet earn it and
+  keep it (their reviews pass `steady: true`, so step 2 measures the same from the outside);
+  a single-screen sheet was paying for stability against nothing. THE CHANGE REVIEW is the
+  interesting case — it is step 2 of a bulk sheet *and* a standalone confirm from Save / Publish /
+  Restore / Delete, so it wears both footprints: `.dlg.rvw` 620 natural, `.dlg.rvw.steady` 860
+  with the 411px floor. Retired with the ladder: **`.dlg.step`**, the dead guided-journey frame
+  (680px, a 530px body floor) whose two wizards died on 3 Sep — nothing had rendered `dlg step`
+  since. One consequence of 620: a long from→to line in the review (a renamed setup) now wraps to
+  two lines where 860 held it on one — compactness bought with a wrap, deliberately.
+
+**THE BAND, THE GAP AND THE PILL (7 Sep, user call — three pointers in one review).**
+
+- **The profile menu took the property switcher's seat.** The header band's right seat held
+  a global property scope (`window.GLOBAL_PROP`, persisted in localStorage) that every list,
+  picker and count filtered through; it holds WHO IS SIGNED IN now — initials in a soft
+  circle, first name, role under it, one chevron — opening the **platform-standard dropdown
+  the user asked for**: the identity at its head (whole name + email, the one place they
+  belong on screen), then **View profile** and **Log out**. The menu borrows the header ⋯
+  menu's grammar whole (`.eh-menu`/`.eh-item`) so it reads like every other menu here, and
+  its open state is pure DOM closed by the same global click-away. *View profile* is the
+  identity read-only in a one-button dialog, saying once at its foot that sign-in and access
+  are managed outside the console — no fields that would refuse. *Log out* is confirmed
+  (it clears the page you are standing on), then clears what the console holds locally and
+  paints the signed-out plate with a **Log back in**; `route()` stands down behind
+  `window.SIGNED_OUT` so browser Back cannot paint the rooms again. **`meLogOut()` is the one
+  seam tech swaps** for the real sign-out call and its redirect. (The first cut of this seat
+  had no menu at all, on the reasoning that a Sign out with no session to end is worse than
+  none — the user's call stands over it, so the act is real and ends what the console
+  actually holds.) The identity is invented data, so it comes from the fixture through
+  **`meta.me`** (`api/mock/world.js` `ME`) — the view layer never makes up a name, and when
+  auth lands the session answers there instead. Consequences of the switcher's removal:
+  **both lists always offer the Properties filter** (it used to hide itself whenever the
+  switcher was already narrowing, which is now the only way to narrow), a new ad setup starts
+  with an empty property either way, and **`inScope()` survives as the one seam property
+  scope ever came through** — it answers "yes" for every object today, and the properties a
+  session grants will answer there without a call site moving.
+- **Demand and Modified were touching in the ad setups list.** Demand was a fixed 190px
+  holding 203px of chips, so the chips overflowed their own cell padding and sat ~18px off
+  the Modified label while every other gap in the row was ~100px — and the fix was in the
+  columns either side, not in Modified: Integration was spending 305px on 147px of names.
+  Demand now takes the **same 22% share as the keys list's Active breaks** (identical chips,
+  identical share — the two lists breathe alike, and the gap measures 130px against the keys
+  list's 131px), Integration takes the **16%** its longest name actually needs, and the name
+  column keeps 30.5% so Property still lands on the same x in both rooms.
+- **The receipt says the act and nothing else — 3 to 5 words, one line** (asked three times,
+  so it is now enforced in `toast()`: a newline and anything after it is dropped). What a
+  pill IS decided the rule: two seconds, bottom of the screen, nowhere near where you are
+  looking, so nothing that has to be READ goes in it. Everything that was riding it moved to
+  a home that already existed: **a save's soft warnings** ("Shorts feed mid-roll: 4 breaks —
+  a lot") now read on THE CHANGE REVIEW under a quiet amber `Worth a look` (`pubFlagsHtml`),
+  before the act rather than chasing it; **skipped and left-alone lists** went back to the
+  rows, which show their own state (a bulk sweep says `28 changed · 4 skipped` and stops);
+  **consequence clauses** went to the confirm that already carried them (`Off air —
+  the ad setup serves nothing until…` is just `Off air`, because the dialog above it said
+  the rest and the person agreed to it); **exact values** went to `title=`. A dead break
+  switch keeps its whole reason on hover and says the short one on click. The one text the
+  pill still carries whole is a **refusal with no home** (`'bad'`): a seam error we could not
+  place in the page, where the sentence IS the information.
+
+**THE WATERFALL (6 Sep, user call; re-cut twice on 7 Sep).** One indirect ladder at the
+AD SETUP's head — beside the other shared plumbing, under AD UNIT TEMPLATES — that any
+pre-, mid- or post-roll break, per placement and per pod, can be CONNECTED to instead of
+holding its own units. A LINK, never a copy: edit it once and every break connected to it
+moves together. **It is called `Waterfall`, one word** (7 Sep, user call — *"rename shared
+waterfall to waterfall only"*): the setup has exactly one of them, and the alternative
+already wears its own name — a break's `Custom` waterfall — so `shared` was a qualifier
+against nothing. The rename runs through the head section, the folded glimpse, the closed
+row's mark, every diff and refusal label (`Waterfall: …`), the review's group order and
+the test file (`11-waterfall.spec.js`). The grammar, in order:
+
+- **The section** (`views-setups-waterfall.js`, the pseudo-slot `'shared'` in `suSlot`,
+  so every rung helper — add, toggle, remove, drag, tag search, fact line, settings tier —
+  works on it unchanged): UNITS is the ladder in the page's exact rung grammar, but in
+  plain positions `1…N` over the units that would be ASKED (8 Sep — a switched-off unit holds
+  no number; see the entry at the top) — **a waterfall has no primary rung** (7 Sep, user call), so no
+  lead row, no Waterfall-order rule splitting it, and the one add act is `+ Add
+  waterfall tag` from the first unit on — and the cap is not a NOTE (`10 of 10` removed
+  7 Sep, user call): the add greys in place with the cap as its reason, which is what
+  every other refused option here does.
+  The head's folded line SHOWS the waterfall instead of describing it (7 Sep, user
+  call — counted prose was distraction): the provider walk in badges, off/depth-cut units
+  dimmed in place; nothing when empty. **The count chips are gone from all three folded
+  heads** — AD UNIT TEMPLATES, WATERFALL and PLACEMENTS (7 Sep, user call): a
+  number you cannot act on is not worth a chip, so templates fold to the title alone and
+  Placements keeps only its break chips.
+- **AD SLOTS — `Apply on ad slots`, THE GRID** (7 Sep, user call, third cut — *"rather
+  than having a place on section let's have a CTA … it opens up a modal which contains a
+  grid, i.e. rows have the ad section and columns have pre, mid pod 1, pod 2, pod 3,
+  post, and we can enable/disable whichever slots we want this waterfall connected to"*).
+  It opens the whole two-dimensional truth at once: **ad
+  sections down the side, the breaks across the top** — `Pre-roll │ Pod 1 · Pod 2 · Pod 3
+  │ Post-roll`, the pods under a floating `MID-ROLL` band, vertical hairlines bracketing
+  the family — and **one tick per cell**. What it replaced (`Place on`: one button per
+  break KIND, then a sheet of rows to untick) could only ever ADD, said nothing about which
+  placement a break belonged to until you opened it, and spent three buttons on a fact with
+  two axes. The grid **connects and takes off in the same pass**, and its foot names the
+  delta both ways (`Apply — connect 4, take off 1`), staying unavailable with its reason
+  while there is nothing to change. A cell whose break does not exist sits out with **its
+  reason on hover** (`“Default” holds one pod`); the out-stream never appears at all — a
+  rotation takes turns, so it has no waterfall to follow. The two AXES are the
+  bulk acts and cost no extra control — a column header answers that break for every ad
+  section, a section name answers every break of that row. One quiet merged receipt after
+  the write (`Waterfall connected to 4 slots, taken off 1`) — the act reaches breaks
+  across placements you cannot see from the section.
+- **THE GRID, CRAFTED (7 Sep, fourth cut on user review — *"this is too badly designed and
+  not at all looking clean and intuitive; we don't need count and all here and it should
+  be crafted very thoughtfully since it will bulk apply"*).** Four things were wrong and
+  all four were the same mistake — ink that was not an answer. (1) **The per-cell unit
+  count is gone.** It was a second data dimension nobody was deciding about, and it pushed
+  every tick off its column's centre, so five columns of answers read as ten columns of
+  something. A cell now holds ONE thing — ticked, unticked, or a faint dash where there is
+  no break — dead centre, and the tick is the only ink that moves. (2) **The console's
+  global `thead th` chrome is stood down inside the grid** (`position: static`, no tinted
+  band, no 10px uppercase tracking): this is a grid of answers in a dialog, not one of the
+  data tables, and the inherited slab was painting grey behind the header and fighting the
+  column names. Both axis labels share ONE baseline (`vertical-align: baseline` — the
+  corner micro-label reads a size down, so bottom-aligning their boxes staggered the
+  text), and every answer column is **the same width** (86px): it is a matrix, and
+  content-sizing made `Pre-roll` half again as wide as `Pod 1` for no reason a reader
+  could use. The band's own underline went too — the vertical hairlines already bracket
+  the pods, so a third line only thickened the header. (3) **A bulk act shows its reach
+  before it lands**: hovering either axis lights the cells that axis would answer
+  (`.reach`, painted imperatively — one class on the cells, not a `:has()` chain per
+  column), and the generic `tbody tr:hover` tint is stood down so a highlight means
+  exactly one thing. (4) Everything the pass would move wears the session's own tint
+  (`.chg`), so the foot's counted delta is legible **in the grid itself**.
+- **THE ACT SITS IN THE UNITS FOOT (7 Sep, user review — *"we don't need an ad slot
+  section, we can have this CTA at the bottom right of the Units itself"*).** A whole
+  `AD SLOTS` zone row with its own label, holding one button, was a section standing for a
+  control. The ladder's foot already carries the section's other act, so this one takes
+  the far end of it: **`+ Add waterfall tag` left, `Apply on ad slots` right**, with the
+  counted fact of where the waterfall stands between them — and **emptiness is a fact, not
+  a silence**: a waterfall with units and no slots serves nobody, so the foot says
+  `no ad slots yet` in the warn amber rather than letting a blank space imply it is placed.
+  (Fixed on the way through: `.slot-add` had **no `:disabled` style** — only the retired
+  `.wf-follow` carried its own — so every `disabled title="…"` add button on the page
+  looked exactly like a live one. It greys now, which is the house rule.)
+- **The levers live AT THE LINK (re-cut 6 Sep, user call — settings in the section were
+  settings for nobody until something followed it)**: the head section holds ONLY the
+  ladder; every connected break carries the levers, and they stay ONE
+  set of global answers on the waterfall itself — setting them at any connected break IS
+  the bulk edit. *Waterfall depth* is the bulk sheet's own seg (`1 · 2 · 3 · Full`),
+  counted over live units; *Content pause* is a plain `Auto · Yes · No` seg — Auto (the
+  default) is each unit's own answer, Yes/No one answer for every unit, their own kept
+  underneath. *Waterfall
+  order* is the integration page's OWN chip control, standing first in the levers
+  (re-cut 7 Sep, user call — the Tweak-order switch went first, then row-drag followed
+  it out: a connected slot never reorders units by hand): one numbered chip per partner
+  behind the waterfall, in walk order, dragged into the order they are asked
+  (`suWfOrderChipsHtml`) — a drop re-arranges THE waterfall's units, stable within a
+  partner, for every break connected to it (per-unit fine ordering stays the head
+  section's own drag).
+- **A CONNECTED BREAK SHOWS THE SETTINGS, NOT THE LADDER** (7 Sep, user call — *"the view
+  should show the waterfall order, waterfall depth and content pause to be precise, while
+  the actual waterfall can be previewed by scroll spy taking to the waterfall section"*):
+  the three answers that are precise to this break. The read-only
+  MIRROR of every rung went out with this cut: it retold the waterfall's own story on
+  every connected break, four times over, in the one place none of it could be changed,
+  and the order chips already say who is asked in what order.
+  **STACKED, in the page's own settings grammar** (re-cut same day, user review — *"one
+  under the other, not in one row"*): the three are `.lr.rule` rows on a `.bhv-grid`
+  column, which puts them on the SAME label edge and control edge as the DELIVERY SETTINGS
+  zone directly below — one edge running top to bottom through the break. Strung across
+  one line they read as a toolbar and started a draggable chip control, a four-way seg and
+  a three-way seg at three different x's; stacked, each is a setting with a name, which is
+  what it is.
+- **The door rides the SOURCE row** (7 Sep, user review — *"remove this text 'this break
+  walks 3 of 3 units' and 'view this waterfall' can be more appropriately placed"*).
+  `View the waterfall` used to sit under the levers behind a dashed rule, wearing a
+  counted line that repeated the depth lever back at you. It belongs on the row that says
+  WHICH waterfall is serving — you read the source, you go and look — so it takes the far
+  end of that row (`suWfJump` still walks the scroll up and flashes the section once:
+  found, not hunted for), and the settings below are left as settings, nothing else. The
+  source row shares the settings column's width, so the link's right edge lands on the
+  same x as the delivery controls'.
+- **THE SOURCE IS ONE SWITCH, BOTH WAYS, LOSING NOTHING** (7 Sep, user call — *"there
+  should be an option to switch to a shared waterfall if a custom waterfall is
+  configured, while the vice versa is also needed, i.e. there should be an option to
+  switch off the custom waterfall but it stays so you can anytime come back to it"*).
+  Every ladder break opens its INDIRECT zone with a two-answer seg — **`Waterfall │
+  Custom`** (`suWfSourceRowHtml` → `suWfUse`) — standing whichever answer is lit, with
+  the **unlit answer's stash counted beside it** (`custom waterfall kept · 3 units, off`
+  / `3 units in the waterfall`), so the switch never hides work it is holding. Switching
+  **deletes nothing**: the break's own rungs stay exactly where they are while the
+  waterfall serves it (the server has always kept them as `ownRungs`; the form used to
+  wipe `slot.rungs` on connect, which shipped `ownRungs: []` and gutted the stash on the
+  next save — that is fixed here), so coming back is one click with nothing re-typed. The
+  seg greys as a whole, never half-lit, while the waterfall has no unit AND the break is
+  not on it: there is nothing to decide until the head of the page has something in it.
+  **Two controls went out with this cut**, both because there is no consequence left to
+  confirm: the empty-break-only fork (`+ Add custom waterfall` *or* `+ Shared waterfall`,
+  offered only while there was nothing to lose) and the confirmed `Remove the shared
+  waterfall?` on the mirror's rule line — with it, the published row's `⋯` (a published
+  setup now has no break menu at all: its one door is the seg in the row). A break with
+  nothing parked lands on `+ Add custom waterfall`, empty. **Clear still means clear**:
+  it takes the demand, the parked custom units AND the link, and names all three, counted,
+  before anybody confirms (`suSlotClearWhy`, `suSlotUnits().parked`) — the gentle way off
+  the waterfall is the seg, which keeps them.
+- **…AND THAT SWITCH NOW ASKS — THE SEG WAS THE WRONG SHAPE** (7 Sep, user call —
+  *"the tab in ad sources i.e waterfall or custom should not be tabs since the idea is to
+  switch from one to another so it should be a switch with a dialog and confirmation a tab
+  just does not communicate this flow"*). The two-answer seg above is gone. A seg is how
+  this app says **pick a view** — it is the version rail's `All │ Published` — and the ad
+  source is not a view: it decides which ladder actually serves. So the row wears the
+  house switch now, reading **`Follow the waterfall`** (`suWfSourceRowHtml` → **`suWfAsk`**
+  → `suWfUse`), and it **asks before it moves**. The dialog is where the flow is finally
+  legible: it names what stops serving, what starts, and — counted — what is kept for the
+  way back (*"Its 3 units are kept, switched off — turn this back off and they return
+  exactly as they stand"*; the empty case says it starts with nothing to ask). That last
+  line is the point — the act is still non-destructive both ways, so a confirm that only
+  said "are you sure?" would be a nag; **naming the stash is what makes it safe to try**.
+  The grey narrowed with it: only the **unlit** direction is ever blocked (following an
+  empty waterfall), because a break already following is always free to come back — it
+  greys where it sits, reason on hover, never a control that vanishes. `suWfUse` stays the
+  plain writer, so the Apply-on-ad-slots grid and restore are untouched. The house
+  `.toggle` finally uses the `gap` it always carried for a label nobody had
+  (`.toggle.tiny.wf-src-sw`). The snapshot walk gained both dialogs as screens of their
+  own — and **lost a dead step**: it used to click `Custom` while Custom was already lit
+  (`suWfUse` early-returns, so it captured the same screen twice) and then called landing
+  ON the waterfall "back". It now round-trips own → follow → own, and says so.
+- **The closed row of a connected break wears the `waterfall` mark AND NOTHING ELSE**
+  (7 Sep, user call — *"if it is a shared waterfall only show that icon, don't show the
+  IMA › CAN › GPT too"*): the walk is the waterfall's story, told once at the head of the
+  page where it can be changed — repeated on four connected breaks it read as four
+  different ladders. An unconnected break keeps its own walk. Out-stream takes turns — a
+  rotation has no waterfall to follow, so it never offers the seg (and the server refuses
+  the link by name).
+- **Model — materialized, one truth**: `setup.waterfall = { rungs, depth, pauseAll }`;
+  a slot/pod carries `waterfallSource: 'own'|'setup'` (absence = own, so everything
+  saved before the field existed keeps serving) and `ownRungs` (the kept arrangement),
+  while `rungs` stays the SERVING truth — `servedWaterfallRungs` stamps it on every
+  normalize, so the walks, the drive decisions over them, the seam, the publish plane
+  and the player's JSON are all unchanged code reading one truth. Fail closed both ways:
+  gutting the waterfall a LIVE connected break stands on refuses naming the surface, and a
+  connected break over an empty waterfall is "no demand" everywhere a switch could light.
+- **The diff reads the link, not the echo**: the waterfall diffs ONCE by name (ladder,
+  depth as Waterfall depth, pause as Content pause); a connected break's rung changes are
+  skipped (they mirror the waterfall) and only its link moving is a line (`its own
+  units → waterfall`). Restore puts the LINK back, never a frozen copy — and a
+  snapshot's own-by-absence is made explicit so restoring an own-units version unlinks.
+- **Waterfall in place of fallback, project-wide (user call)**: `Fallback order` is
+  **Waterfall order** (drive row, bulk sheet, diffs), the setups ladder rule line and
+  `+ Add waterfall tag` with it, and every refusal that said "display fallback" now says
+  the waterfall settles on one display unit. The one deliberate exception: **Fallback
+  media** (the player's backup CONTENT, not an ad ladder) keeps its name.
+- The demo world seeds it on `TOI VideoShow demand` — three units, the Shorts feed
+  post-roll following them with its own unit kept, parked — so the link, the levers and
+  the switch's way back are visible on day one. 8 API tests (128 total); the UI-snapshot
+  walk covers the grid, its two bulk axes and the switch in both directions.
+
+**WHAT THIS SESSION TOUCHED WEARS A QUIET TINT (7 Sep, user call — asked earlier,
+delivered only in the review sheet; now in BOTH editors).** Every key changed since the
+last save carries a soft background (`.chg`, one tint, figure-ground) exactly where it
+is edited: a rung row (toggled, swapped, refacted), a delivery-settings row, a drive
+row, a player fact, a custom-config cell, an identity field, a waterfall lever,
+a new placement's tab, a moved link. HONEST, not sticky: the mark compares against the
+last-saved baseline (`FORM.saved`, set at load and after every save), so typing a value
+back to what it was clears its tint, and Save clears them all — the rail's pending
+block owns saved-vs-air from there. Mechanics: `chgIf` + a generic `paintChg` pass over
+`data-field` wrappers (dot paths reach `player.*`), render-time predicates for rows
+(`suBhvDirty`/`suRungDirty`/`suSavedSlot`, `driveDirty`, per-config index compare), and
+live toggles from the typing writers so a keystroke tints without a repaint. A create
+page has no baseline and tints nothing. 14-check tint probe + the 62-check UAT.
+
+**…AND THAT TINT IS GONE — THE MARK IS A RULE NOW (8 Sep, user call — *"the fields which
+are modified its background is changed but its getting too cluttered and confusing with
+the background change we do something more clean and mature here"*).** The diagnosis was
+that **the app had four near-identical pale blues meaning four different things**: an ad
+unit's hover/open (`#e8ecf4`), the apply grid's reach (`#f3f6fd`), a rung someone was
+sent to fill (`.wants`, `--accent-soft`) and the change tint itself (`#ecf3fe` /
+`#e4edfe` / `#e6eefb`). So a changed unit read as a hovered unit, and a config row whose
+four cells each tinted read as **five loose blocks instead of one changed row** — the
+clutter, precisely. **BACKGROUND IS FOR INTERACTION**; a change is provenance, not a
+state you are pointing at, so it took its own channel: a **2px rule down the leading
+edge** in `--chg` — the amber this app already meant unsaved by, the break tab's
+`.edot`, which now reads the same token. One hue, one meaning, at every scale, and it
+never argues with a control's own colour again. Two shapes, by host: **a rule where
+there is an edge to run it down** (field, settings row, ad unit, source row, placement
+tab) and **a dot where there is not** — the apply grid, where a full-height rule down a
+cell edge read as a column divider rather than a mark. The marks are drawn out of flow
+(`::before`), so they move nothing: every `padding`/`margin` compensation the fills
+needed (`.field.chg`, `.wf-src.chg`, and the three `.pcfg-*` cells) went with them.
+**And the player-config row is marked once, not four times** — the rule says which row
+holds unsaved work, THE CHANGE REVIEW says which field and from what to what; that
+division is why one mark is enough.
+
+**`Impressions per break` is `Total Target Impressions` (8 Sep, user call).** Renamed
+where words live — `FIELD_NAMES.podAds` in `web/js/util.js` — and the three screens that
+had each hard-coded the same string (`controls.js` → `behaviourRowsHtml`, the bulk AD
+BEHAVIOUR sheet, the integration's Ad behaviour card) now read `fieldName('podAds')`
+instead, so the next rename is one line and the diffs, the version rail and the review
+cannot drift from the label. The server's own refusal words already said *target
+impressions count*, so they needed nothing.
+
+**`Pod fill order` is `Waterfall fill order`; `Display ad position` is GONE (8 Sep, user
+call).** The rename is the same one-line move as above (`FIELD_NAMES.nextAd`, the screen
+reading `fieldName`) — what it names is the walk down the *waterfall*, so the pod was
+never the right noun. The removal is the house rule, not a hidden field: **`Display ad
+position` said "position" about the POD (`Last position only` / `Any position`) while an
+ad unit's own `Ad placement` says "position" about the SCREEN (`Player bottom`, `L-band
+50`)** — two settings, one word, and the guessable reading was the wrong one. So it is
+**removed, not hidden**: out of `SLOT_BEHAVIOUR_FIELDS` on all three ladders, out of
+`normalizeSlotBehaviour`, out of `/panel/meta`, and into `DEAD_BEHAVIOUR_FIELDS`, where
+a payload still carrying it is **refused by name** with where the answer lives now. A
+display unit settles the break, exactly as it always did on the default. **Two
+consequences worth stating: `podBanner` leaves the player's JSON, and a break that had
+been set to `any` settles to `last`.** 129 cases (the refusal is the new one).
+
+**THE INTEGRATION KEY IS ON THE LISTING, ONE CLICK TO COPY (8 Sep, user call).** The list
+is where someone goes to fetch a key for a colleague, and the only copy in the product
+was inside one integration's ⋯ menu — open the row, open the menu, copy, go back. It is
+the row's second line now, under the name: the key in mono, quiet, with the copy glyph
+**always drawn** (a control that waits for a hover is a control nobody finds — the same
+call as the drag grips). Its click is stopped before the row's, so reading a key never
+navigates away. It reuses the house `copyText` and the same receipt the ⋯ gives (*API
+key copied*) — and `copyText` **stopped failing silently** while we were in it: a
+clipboard write is refused outright in an insecure context and by some permission
+settings, and saying nothing there leaves someone believing they copied a key they did
+not, so the failure now gets the pill too.
+
+**THE LISTING'S STATUS DROPPED THE COUNT (8 Sep, user call — *"just unpublished is
+enough"*).** `3 unpublished` is now `Unpublished`: **how many** changes wait is a fact
+for the page that can act on them, where the rail already counts them; a list is scanned,
+and all it owes the reader is whether this one has work waiting. It is also **suppressed
+where the state word already says it** — a never-published draft used to read
+`Unpublished` and then `1 unpublished` directly under it, the same word twice down one
+cell, which was the noise. A live object with a saved-but-unpublished draft reads
+`v1` then `Unpublished`.
+
+**`Take off air` is `Deactivate` (8 Sep, user call).** The ⋯ item names its subject —
+**Deactivate integration** / **Deactivate ad setup** — and the confirm behind it follows
+(*Deactivate "name"?*, the red `Deactivate`, the receipt *Deactivated*). **The ACT was
+renamed; the STATE was not.** `Off air` is this app's own word for where the thing lands
+and it stays that everywhere it is read back — the status chip, the version rail's
+*Taken off air*, the delete refusal's *On air — take it off air first*. Two words on
+purpose: you deactivate a thing, and then it is off air.
+
+**THE COUNTS LEFT THE REVIEW, AND THE HEADERS BECAME HEADERS (6 Sep, user).** The foot's
+`N changes` said what the list already shows; in its place a sheet may state what the
+list IS — the one fact the count never carried: `compared with v3 on air` (an old
+version), `what it changed when it went out` (the live one). And the titles name their
+OBJECT the way a header should: `Version 2` (kicker: who · when; the note quoted under
+it), `Publish “TOI VideoShow demand”` (kicker: `replaces v3 on air`) — never a count, a
+question mark, or a dash-chain doing a sentence's work in a title's place. (7 Sep, user
+call: the RAIL's per-version `N changes` followed the review's counts out — a version
+row is `v3 · on air · note · who/when`, and the sheet behind the click says the rest.
+The pending row keeps its count: how much goes out next IS that row's one fact.)
+
+**THE VERSIONING SURFACES, SQUARED UP (6 Sep, user — "badly placed IA, stacked one
+over another"):** (1) **The rail sits on ONE grid** — a row's head, note and who·when
+share a single left edge (the note had drifted 22px off it). (2) **The sheet's head is
+three things in three places**: the title names the comparison (`v2 — vs v3 on air`),
+the kicker carries provenance alone (`Rohit (monetization) · 1d ago`), and the person's
+note stands as its own quoted line under the title on the dialog's grid — the
+dash-chained four-fact kicker is gone, and `restoring lands as vN` left for the restore
+screen, which is where the act's facts belong. (3) **The note field joined the foot** —
+`1 change · [Add a note — optional] · Cancel · Publish`, one composed line; the
+floating full-width bar over the body's void is gone.
+
+**A VERSION'S SHEET IS THE DELTA FROM THE AIR, ONLY (6 Sep, user — two calls: "on v10,
+how do I know WHY I'd restore v7 when I can't visualize what would change?", then "don't
+show what it changed — only vs the current on air").** The two-view seg lasted an hour:
+the deciding question has one answer, so an old version's sheet opens straight on it —
+`v7 — vs v10 on air`, the counted delta restoring would move (prefetched from the same
+read-only preview the restore flow reads), kicker carrying who · when · the note ·
+`restoring lands as v11`. The version's own story survives where it belongs: the rail
+row's counted size, and the live/off-air rows' sheets (they have no delta to show). A
+version identical to the air says so in place of a list and offers NO restore door (it
+would only meet a refusal). Restore stays one further click, taken with the delta seen.
+
+**THE SESSION IS CAPTURED WHOLE, AND THE RAIL BECAME A TIMELINE (6 Sep, user — three
+calls in one round):**
+
+1. **Publish fails closed on unsaved edits.** The review reads what is SAVED, so edits
+   made after the last save were silently absent from it — the exact dishonesty the
+   review exists to prevent. Publish saves them itself (re-cut 7 Sep, user call: the
+   `Save your edits first?` dialog was a toll booth — a save writes only the draft, which
+   reaches no viewer, so it needs no confirmation of its own): one click saves quietly
+   and opens the review of the whole session; a cancelled review still receipts
+   `Saved — not published`, and a refused save stops the flow with its own message.
+   The Publish button is always live while editing (the count and the greyed state went
+   with the dialog — a disabled button can't see unsaved edits, since typing never
+   repaints the header); with nothing to ship, the review itself says
+   `Nothing to publish` and offers no act.
+   Both editors provide the seam (`PUB.dirty` / `PUB.saveNow({quiet})`); `pubReload` keeps it.
+   And a genuine diff hole closed with it: a POD's OWN deal never diffed (pod 1's
+   doubles as the slot's and was covered; later pods' weren't) — every pod's Direct now
+   answers for itself (`Default · Mid-roll group 2 · Direct`).
+2. **The changed KEY wears a quiet tint** in every review row (`.rvw-f`, the fact-pill
+   grammar) — scanning what moved is figure-ground, never weight.
+3. **The rail is a timeline; the sheet is the reader.** Inline diffs in a 260px column
+   were heavy at three changes and unreadable at ten. A rail row is one quiet entry —
+   version · counted size · the person's note · who and when — and clicking it opens
+   THE CHANGE REVIEW read-only: the same grouped room every change list is read in, at
+   any size, with `Restore this version…` as the sheet's one further door (and the
+   pending block opens the same way: `Saved, not published — goes out on the next
+   publish`). The chevron, the inline `.v-changes`, and the in-rail restore link died
+   with the old shape.
+
+**PUBLISH AND RESTORE ARE ONE SCREEN, AND A VERSION CAN CARRY YOUR OWN LINE (6 Sep,
+user call).** Restore's bespoke dialog (`.rst-*`) is deleted: both acts end on THE
+CHANGE REVIEW, identically — restore's list is what going back CHANGES, counted from
+what is on air now; its kicker carries provenance and destination in one line
+(`Rohit's v2, 1d ago — goes on air as v5; v4 stays in history`); the one warning worth
+a block is the counted draft work a restore would discard, read last (`.rvw-warn`).
+Between the evidence and the act sits ONE quiet line — `Note for the version history —
+optional` — written at the exact moment the person has re-read the session's changes
+and can name it. The note travels with the version (`entry.note`, clipped at 200, never
+refused; a note alone mints nothing) and reads back under it in the rail like a commit
+log: `v4 · ON AIR / "CAN paused while their endpoint flaps" / You · just now`. The
+review reads MORE like the session now too: `Waterfall` leads the group order,
+a setup's `Default · Pre-roll` groups sort break-first instead of alphabetically, a
+rung TOGGLE diffs as the one fact a person did (`TOI Video Backfill · off → on`, never
+remove-and-add), and the diffs speak seconds, never milliseconds (`1.5s → 2s`). The
+demo world seeds notes on as_1's history so the rail shows the grammar on day one.
++1 API test (128).
+
+**THE JOURNEY OUT MIRRORS THE JOURNEY IN (6 Sep, user call — the mirror's foot stacked
+a fact and two acts into one mumble, and leaving skipped the ceremony entering has).**
+Both directions are now stepwise, in the confirm grammar every destructive act here
+already speaks: FOLLOWING from a filled break ASKS first, counting the own units it
+replaces (`Removes 3 own ad units — it asks the waterfall’s 3 units instead`); from an
+empty break it stays one click — nothing to lose. LEAVING is the break's own **Clear** —
+one concept, no second door: on a linked break it is active, titled `Stops following
+the shared waterfall`, its confirm says the waterfall itself is untouched, and
+confirming empties the break so the journey restarts exactly where it began — the fork.
+The foot sentence died with the second door: the mirror now opens with ONE header in
+the ladder's own rule-line idiom — `SHARED WATERFALL · walks 2 of 3 units ——— view` —
+then the rows, then the levers. Nothing else. (The kept-units stash left the UI with
+this: what Clear removes, Clear says — nothing is silently remembered.) `Clear all ad
+units` detaches followers too, counted in its confirm.
+
+**THE LEVER STANDS IN EVERY BREAK, AND THE HOVERS WENT ON A DIET (6 Sep, user — two
+calls):** (1) `or Follow the shared waterfall (3)` was offered only on an EMPTY break —
+strictly the fork's decision moment, but nobody could find it in a world where every
+break has units. It now stands quietly in EVERY ladder break's foot, beside the add
+button: safe on a filled break because following keeps the break's own units, so it is
+always one click back. The fork principle survives — only one road ever SHOWS (ladder or
+mirror); the foot's lever is the road sign, not a mode tab. (2) **Hover titles, project
+pass**: a hover earns its place in the journey and says it in ≤5–6 words — counted facts
+and refusal reasons stay (`Removes 3 ad units`, `2 ad units still request through it`),
+restated visible text and paragraph-long explanations went, and the `(JSON: x)` tails
+left the hovers (the player-contract mapping lives in docs/PRODUCT-SCOPE.md). Swept: the setup
+editor whole (rung switches, the unit block's tiers, zones, Clear, pods,
+placements), both head sections, the templates table, and the drive's rows.
+
+**THREE POLISH CALLS (6 Sep, user):** (1) **Modified and Status swapped on both lists**
+— Modified sits mid-table on the pinned 190px the `who · when` pair actually needs, and
+Status closes the row at the right edge on the slack (the trailing-column treatment
+travels with the position). (2) **The unit fact line steps further back (fourth pass)**:
+full-ink values still pulled the eye off the unit names, so the whole line is an
+UNDER-LAYER now — values in soft ink at plain weight, pills a step smaller, and hovering
+the line lifts it back to readable-first. The ladder reads top-to-bottom by unit name;
+the facts are noticed in passing, attended at will. Prominence via figure-ground, never
+weight — the panel's own rule, applied once more. (3) **The head-row glimpses grew up**:
+the counted facts moved to the RIGHT edge beside the chevron — the break rows' own
+glimpse position — and dropped their prose tails (`none`, `none yet`; the explanation
+lives on the hover title). `AD UNIT TEMPLATES … 2 templates · 1 off ›`.
+
+**THE UAT'S SIXTEEN P2s (7 Sep, night, user call — "work on fixing these"):**
+*Consistency.* (1) The DEFAULT PLAYER BEHAVIOUR bulk act now ends on THE CHANGE REVIEW
+like its two siblings (`dcChanges`/`dcApply`) — this reverses the 3 Sep "one step" call,
+because SCOPE promises every cohort write is read field by field and this was the only
+one nobody read first; Back restores the sheet with its levers still set. (2) The
+Details card's two Playbacks are `Player type` (inline / redirect / YouTube) and
+`Playback mode` (Active / Passive). (3) "Template" meant three things: the create pages
+now say `Player preset`, the setup says `Delivery preset`, and only the request template
+is an `Ad unit template` — the closed unit line uses the settings tier's exact words, so
+`Companion position` → `Ad placement` and `Skip offset` → `Close button`. (4) The Ad
+Setups list pages at 50 with the Integrations pager's own control (`SPAGE`,
+`paintSetupPager`, `resetSetupPage`).
+*Text.* (5) Booleans say Yes / No, never True / False. (6) The unit fact line keeps its
+fixed set (4 Sep: nothing appears or vanishes) but a fact AT ITS DEFAULT is an
+under-layer (`.uf.dflt`) — ten units stopped reading as forty chips of noise, and a bent
+value is the one that carries ink. (7) Refusals speak the UI's words everywhere:
+`fieldWord` now covers the player's own fields (no more "passiveVolume must be…"), the
+publish refusal names breaks and pods rather than raw slot keys and "group N", and the
+resolved rows say pod. (8) The rotation row is `Banners take turns`, not two sentences.
+(9) The header slot says `none yet — pick one below`. (10) The last explainer hovers are
+gone (bulk Direct, cue points, the without-deals chip, Reset to setup trimmed to its
+consequence).
+*Honesty.* (11) Every seeded object carries an author — five setups (66 at scale) used to
+read `You · just now` out of a reset, which reads as a broken Modified column; as_1 is
+re-stamped after its seeded version history, which used to overwrite it. (12) An ad
+setup belongs to ONE property: the picker offers real properties only and Save refuses
+`Pick the property this setup belongs to` in the field, so "All properties" is never
+stored as a setup's property.
+*Missing.* (13) A closed break row shows its walk — four provider badges, `+N`, the pod
+named when a mid-roll has several — the grammar the list rows and the resolved rows
+already used. (14) A cue point the panel cannot read is refused by name where it was
+typed (`driveCueBadWhy`) and blocks Save; it used to drop silently. (15) TAKE OFF AIR
+exists (`takeOffAirClicked`, in publish.js beside its inverse) on both editors' ⋯ menus,
+so Delete's "take it off air first" finally points at a door; the seam still refuses a
+setup feeding a live surface. (16) The bulk sheet's `Set` is visible at rest — hidden
+until hover, five levers read as five grey facts beside a disabled button.
+128 green; every screen clean at 1440 and 1280 in both scenarios.
+
+**REFUSE IN PLACE — THE UAT'S SEVEN P1s (7 Sep, evening, user call after a PM-lens
+UAT of the panel):** (1) A refused template save stays in its dialog: `askForm` takes
+`submit`, runs the write while the form stands, and a refused field wears its reason
+under it (`data-dfield`); nothing is re-typed. (2) A setup another surface fills greys
+USE with the holder named ("“X” fills from it — one integration, one ad setup") and
+makes DUPLICATE & USE the card's act; the setup filling this integration wears
+`current`. No silent photocopy. (3) An empty pod a live mid-roll would go dark on says
+so ON ITS TAB the moment it is empty (`suPodDarkWhy`, `.stab.err`), and Save/Publish
+stop on the page with the placements open and the pod selected — before any review or
+request; the seam's own refusal lands in the same banner, in the UI's words ("Pod 2 in
+“Default” is empty — TOI Mweb VideoShow plays its mid-roll live, so every pod needs an
+ad unit"). (4) Every card picker past eight cards wears a search that filters in place
+(`dlgSearchHtml`/`dlgCardsFilter`), and honours the property scope — 67 cards is a
+list, not a wall. (5) What the page already knows is refused on the page BEFORE THE
+CHANGE REVIEW (`keyClientErrors`: name, domains for web platforms, package name for
+apps, a bad config key); `applyServerErrors` is silent when the refusal landed in its
+field (toast policy). (6) A break switch that cannot move is dead in place with the
+reason — "No out-stream demand for Default, Shorts feed — ad ops add it in “…”" — the
+same test `secSlotToggle` applies, so it never flips nothing and toasts "Left off".
+(7) A reserved or duplicate config key goes red where it was typed with the reason under
+it (`PC_BAD`), a duplicate placement name goes red on its tab (`SU_SEC_BAD`), and Save
+stops on the page while either stands. Server refusals say Mweb/Desktop, not the enum.
+128 green; verified headless.
+
+**THE PLACEMENTS GLIMPSE TALKS IN MARKS (7 Sep, later, user call — the counted prose
+`2 placements · 25 ad units · 1 break follows the shared waterfall` read as clutter):**
+the head row now wears the listing's own break chips (`PRE MID POST | OUT`, lit where a
+break carries demand) with a connected break in the waterfall's blue, and a quiet
+number chip when there is more than one placement (`suPlacementsGlimpse`, `.pl-glimpse`,
+`.uchip.linked`). The exact story rides the hover — the templates chip's own grammar.
+Nothing else on the line.
+
+**CLEAR IS A BUILD-TIME TOOL, AND PLACEMENTS JOINS THE FOLD (7 Sep, user — two calls):**
+(1) The break's `Clear` and the header's `Clear all ad units` exist only while the setup
+has NEVER been published (`suClearable`: no versions yet). Once a version has gone on
+air both are GONE — not greyed: emptying a live surface's demand wholesale is not an act
+this page offers; a published setup is changed unit by unit, deliberately. While they
+stand, the break's Clear left the gutter — a bare word floating at the row's edge was a
+second dialect — and sits behind the row's `⋯` (the templates rows' kebab grammar),
+dimmed when there is nothing to clear. One door survived publishing at the time — a
+LINKED break's `⋯` offering `Remove the shared waterfall`, because a one-way fork is a
+trap — **superseded later the same day**: the source seg stands in every break's INDIRECT
+zone whatever the publish state, so a published setup has NO break menu at all and the
+way off the waterfall is right there in the row, costing nothing. (2) PLACEMENTS wears
+the head sections' exact fold: `PLACEMENTS · PRE MID POST | OUT ⌄`
+— one disclosure grammar for the whole card. It differs in one deliberate way: it is the
+room's work area, so it OPENS on load where the shared plumbing rests closed; a refused
+save forces it open (fail visible), and the strip's standalone label died — the section
+head names it now.
+
+**THE HEAD SECTIONS FOLD (6 Sep, user call — open, AD UNIT TEMPLATES and the shared
+waterfall pushed PLACEMENTS below the fold).** Shared plumbing is read far less often
+than placements are worked in, so each head section rests as ONE line wearing its
+counted facts — `AD UNIT TEMPLATES · 2 templates · 1 off ›`, `SHARED WATERFALL ·
+3 units · followed by 1 break · 2 deep · pause Yes ›` — and opens in place: the break
+rows' own disclosure grammar, one page up (`SU_HEAD_OPEN`, `suHeadRowHtml`, `.shead`).
+Closed on every load; a refused save forces the section open (fail visible), and the
+mirror's `edit at the head of this page` door opens it before travelling. The whole
+editor — head, placements, all four breaks — now rests inside one 900px viewport.
+
+**THE POD STRIP WEARS THE PLACEMENTS STRIP'S GRAMMAR (6 Sep, user call).** The `Pods`
+eyebrow, the one-size-down tabs (`.grp-tabs`) and the right-edge `Remove pod N` link
+were a second dialect for the idea the placements strip already speaks. Now: full-size
+tabs, `+ Add pod` beside the last one, and remove is the × on the pod you are standing
+on (behind its confirm; never offered at one pod). The dead dialect's CSS
+(`.scope-eyebrow`, `.grp-tabs`) went with it — zero references verified before removal.
+
 **POST-HANDOFF CALLS (4 Sep, user — three, in order):**
 
 1. **Custom config rows carry a SWITCH, and Remove moved behind a ⋯.** Each row's right edge is
@@ -48,14 +1033,15 @@
    component (`suggestInput`/`suggestSyncRetry`/`suggestPick`/`SUGGEST_REGISTRY`/`slotSourceBadge`
    + its `.sug-*` CSS) whose empty-state "Sync GAM & retry" button this feature supersedes. Also
    unfused an orphaned `.lk-scope button.on` selector head that had left `.lk-note` unstyled.
-5. **The default player's three facts are ROW ZERO of the configs.** The Details card's last
-   row is drawn on the config table's own grid (`.pcfg-t` / `--pcfg-cols`, one source of truth):
-   a `Default player config` identity label where the table keeps its keys — bottom-aligned to
-   the control line, the same divider rule running through both cards — and Playback mode /
-   Expand MiniTV / Autoplay behaviour in the EXACT columns their forks take in the card below
-   (measured: identical x for all three control columns). The old `.frow.pfacts` even-share flex
-   row only approximated the columns; its CSS is gone. A fork now reads, visibly, as "this row,
-   under a key".
+5. **The default player's three facts are ROW ZERO of the configs.** *(Superseded 7 Sep — see
+   the head of this file: the row moved INTO the configs table, because drawing it on that
+   table's grid from a different card only approximated the columns and printed the three labels
+   twice.)* The Details card's last row was drawn on the config table's own grid (`.pcfg-t` /
+   `--pcfg-cols`, one source of truth): a `Default player config` identity label where the table
+   keeps its keys — bottom-aligned to the control line, the same divider rule running through
+   both cards — and Playback mode / Expand MiniTV / Autoplay behaviour in the columns their forks
+   take in the card below. The older `.frow.pfacts` even-share flex row approximated even less;
+   its CSS is gone too. A fork reads, visibly, as "this row, under a key".
 6. **Save/Publish/⋯ end exactly where the cards end.** `.ehead.with-rail` reserved
    `290px` (260 rail + 30 gap) but forgot the 26px its own full-bleed negative margin swallows,
    so the header actions overhung the form column's right edge by exactly 26px — now `316px`,
@@ -101,10 +1087,13 @@
    now (Skip while content pauses) dims in place with the reason on hover; a switched-off rung
    dims its line whole. The line is the SUMMARY, the ⚙ panel stays the EDITOR (user picked this
    over inline row-2 controls): clicking the line or the gear opens it, and while open the line
-   hides — the panel IS that row, expanded, on the same 126px left edge. Words are the panel's
+   hides — the panel IS that row, expanded, on the same 126px left edge. *(7 Sep: the gear and the
+   126px indent are both gone — the line and the panel are tiers inside one `.ad-unit` frame, and
+   focus opens the fold. See "THE AD UNIT IS ONE BLOCK" at the top.)* Words are the panel's
    exactly (`label('pause')`, `label('displaySlot')`, the template's name with its `· off`
    suffix), so glance and editor can never disagree. Applies to the indirect ladder AND the
-   direct-deal tier. `suRungFactsHtml` in views-setups.js, `.rung-facts` in 10-surfaces.css.
+   direct-deal tier. `suRungFactsHtml` in views-setups-rungs.js, `.ad-unit-facts` in
+   10-surfaces.css.
 
 10. **Templates table lost its In use column; the unit panel tightened.** The counted use
    still speaks where it acts (row hover, switch toast, ⋯ Delete's reason, dialog foot).
@@ -143,19 +1132,18 @@
 5. **Creating an integration maps existing demand only** — the "+ New ad setup" blank card is gone
    from create mode (in-section cards and the change modal both); it remains on the edit page,
    where the stash-and-return flow lives.
-6. **Details is two rows: short answers, then the three forkable facts.** Playback, Fallback media
-   and Passive volume are all short answers (a mode, a media id, a number), so they share one row
-   at their natural widths like Property · Platform above them — growing them split the row 50/50
-   and left a select adrift in half a row of nothing. Playback mode · Expand MiniTV · Autoplay
-   behaviour then own the row below, an even share each: the same three facts, in the same order,
-   as the columns of the configs table under them.
+6. **Details is ONE row of short answers** (re-cut 7 Sep — the forkable-facts row below it went
+   into the configs table; see the head of this file). Player type, Fallback media and Passive
+   volume are all short answers (a mode, a media id, a number), so they share one row at their
+   natural widths like Property · Platform above them — growing them split the row 50/50 and left
+   a select adrift in half a row of nothing.
 7. **The mapped setup rides the Ad behaviour TITLE ROW, at the right edge.** `FILLS FROM` eyebrow ·
    a prominent accent chip with the setup's name (click = the open-and-return trip, edits kept;
    hover = the demand summary) · the quiet meta (`who · when`, plus "becomes this integration's
    own copy at create" while held) · `change`. It briefly sat on its own line under the title and
    read as a second heading. Unmapped still says "nothing yet — every break fills from ONE ad
    setup; pick it below". `.ads-fills` / `.st-chip` survive so the probes' reads stay honest.
-8. **Custom player configs carries no byline** ("a player asking by key gets that row…"): the KEY
+8. **Player configs carries no byline** ("a player asking by key gets that row…"): the KEY
    heading over a mono key column says it, and the panel's rule is that facts wear micro-labels,
    not sentences.
 9. **Adding a custom config is typing a row, not answering a dialog.** `+ Add config key` is a
@@ -168,7 +1156,8 @@
    (one word · not `default` · not a key already here), an abandoned row is dropped by `keyPayload`
    instead of earning a server refusal, and its `×` asks nothing. `askName` had no callers left
    and is gone, with its CSS.
-10. **A map card offers two acts on hover: `Use` and `Duplicate & use`** — in the card's TOP-RIGHT
+10. **A map card offers two acts on hover** (*8 Sep: `Use` and `Use a copy`, and never a disabled
+   one — see the head of this file*) — in the card's TOP-RIGHT
    corner (3 Sep, second cut), where an "in use / free" pill used to sit saying what the foot
    already says in words ("fills X"). `Use` is the small solid button, `Duplicate & use` the
    outlined one beside it; they are absolutely placed and faded in, so the title never reflows,
@@ -189,24 +1178,36 @@
    defined twice: the later rule zeroed the margin of the earlier one but left its `border-top`
    and `padding-top`, so the separator hairline sat 11px under the URL field and read as a doubled
    input border. One definition now: a quiet hint with air above it and no rule line.
-12. **Every break can be cleared, and the whole setup at once.** `Clear` sits in the break's right
-   gutter and shows itself when the row is yours (the ad unit's gear grammar), greying where it
-   sits — not vanishing — when there is nothing to clear. `Clear all ad units` is in the setup's
-   `⋯` menu, which now renders while creating too. Clear means the DEMAND: the indirect ladder, the
-   direct deal, and on a mid-roll the extra pods, which collapse back to Pod 1. Placements, their
-   names and every delivery setting stay. Both confirms count first and name what goes ("Removes 15
-   ad units from 5 breaks across 2 placements (Default, Shorts feed)"), and nothing leaves the page
-   until Save.
+12. **Every break can be cleared, and the whole setup at once — while it is being built.** The
+   break's `Clear` sits behind a `⋯` at the row's right edge (the templates rows' grammar — 7 Sep,
+   the bare gutter word was a second dialect), dimmed when there is nothing to clear. `Clear all ad
+   units` is in the setup's `⋯` menu, which renders while creating too. BOTH ARE BUILD-TIME TOOLS
+   (7 Sep, user call): once a version has been published they are GONE — not greyed — because a
+   setup that has gone on air is emptied unit by unit, deliberately, never by one sweep. Clear
+   means the DEMAND: the indirect ladder, the direct deal, and on a mid-roll the extra pods, which
+   collapse back to Pod 1. Placements, their names and every delivery setting stay. Both confirms
+   count first and name what goes ("Removes 15 ad units from 5 breaks across 2 placements (Default,
+   Shorts feed)"), and nothing leaves the page until Save.
 
 
-## Layout (production handoff, 3 Sep 2026)
+## Layout (production handoff, 3 Sep 2026; api/ and test/ re-cut 7 Sep)
 
-Self-contained: `npm install && npm start` (port 4200), `npm test` (117 cases, ~1s,
-self-hosting on :4299). No build step — plain scripts in dependency order (`web/index.html`
+**`ARCHITECTURE.md` is the current map** — directory layout, the model, request flow, the
+two planes, web conventions, how-tos and the production gaps. The dated `*-SCOPE.md` decision
+records are now chapters of `docs/DECISION-RECORDS.md` (twelve scope documents merged into
+one), and `docs/SCOPE.md` is now `docs/PRODUCT-SCOPE.md`. The block below is kept as the
+handoff record; where it and ARCHITECTURE.md disagree, ARCHITECTURE.md is right.
+
+Self-contained: `npm install && npm start` (port 4200), `npm test` (128 cases, ~1s,
+self-hosting on :4299; `test/run.js` runs `test/cases/*.spec.js` over `test/harness.js`). No build step — plain scripts in dependency order (`web/index.html`
 documents the order). Everything invented lives in `api/mock/`; `POST /panel/mock/reset`
 rebuilds the world with the same ids.
 
-    api/server.js            HTTP surface (routes, views/serializers, bulk actions)
+    api/server.js            assembles the app: middleware, static web/, one router per subject
+    api/error-handler.js     handle(): a thrown Refusal → { error, message, ...details }
+    api/response-shapes.js   what the API answers with (keyView, setupView, tagView, …)
+    api/bulk.js              POST /panel/keys/bulk — the cohort acts
+    api/routes/*.js          meta · keys · setups · tags · publish (+ /panel/live) · gam · mock
     api/store.js             the model's front door — re-exports api/store/ whole
     api/store/state.js       the in-memory maps, vocabulary constants, ids, reset
     api/store/validate.js    shared refusal helpers (refused-by-name lives here)
@@ -215,30 +1216,32 @@ rebuilds the world with the same ids.
     api/store/setups.js      ad setups: placements, pods, deals, CRUD, GAM directory
     api/store/keys.js        integrations: identity, player, custom configs, the drive
     api/store/publish.js     THE PUBLISH PLANE + the seam checked at the boundary
-    api/store/diff.js        what changed, in words
+    api/store/version-changes.js  what changed, in words (was store/diff.js until 7 Sep)
     api/mock/world.js        the seeded world + named scenarios
     web/js/util.js           escaping, LABELS vocabulary, toasts, house dialogs
     web/js/api.js            every request as a named operation — no view writes a URL
     web/js/controls.js       shared form machinery (FORM session, selects, lookup, drag, segs)
     web/js/publish.js        THE PUBLISH PLANE (rail, versions, restore)
     web/js/review.js         THE CHANGE REVIEW (one screen every write ends on)
-    web/js/views-tags.js     the ad-tag lookup control
+    web/js/views-tag-lookup.js     the ad-tag lookup control
     web/js/views-setups-list.js  Ad Setups list + the new-setup chooser
-    web/js/views-setups.js       the ad setup EDITOR (ops room)
+    web/js/views-setups-editor.js       the ad setup EDITOR (ops room)
     web/js/views-keys-list.js    Integrations list, filters, selection, bulk bar
-    web/js/views-keys-bulk.js    the three bulk acts (ad / custom player / default player)
-    web/js/views-keys-form.js    one integration's page 1/4: load, accessors, setup mapping + return flow
-    web/js/views-keys-drive.js   2/4: Ad behaviour — the walk mirror, the drive, break tabs, the card
-    web/js/views-keys-player.js  3/4: the player fields + the custom-config table
-    web/js/views-keys-shell.js   4/4: page frame, payload/diff, save/create/delete, the chooser
+    web/js/views-keys-bulk-ads.js    the three bulk acts (ad / custom player / default player)
+    web/js/views-keys-editor-load.js    one integration's page 1/4: load, accessors, setup mapping + return flow
+    web/js/views-keys-editor-ad-behaviour.js   2/4: Ad behaviour — the walk mirror, the drive, break tabs, the card
+    web/js/views-keys-editor-player.js  3/4: the player fields + the custom-config table
+    web/js/views-keys-editor-frame.js   4/4: page frame, payload/diff, save/create/delete, the chooser
     web/js/main.js           hash router
     web/css/                 the stylesheet, split 01–10 (pure partition of app.css — numeric
                              load order IS the original cascade; later rules still win)
-    test/run.js              the 117-case suite
-    docs/                    Player-Config scope documents + STORE-SPLIT.md (the planned
-                             api/store.js split: module map, pinned rules, method)
+    test/run.js              the runner: boots the API, runs test/cases/*.spec.js (128 cases)
+    test/harness.js          req/test/eq/assert + shared fixtures
+    docs/PRODUCT-SCOPE.md    what the product does, for engineering and non-engineering readers
+    docs/DECISION-RECORDS.md every dated scope document, merged (incl. the store split's rules)
+    docs/FAQ.md              the engineering hand-off FAQ
 
-The four views-keys-form parts and the ten css files are PURE PARTITIONS (3 Sep): cut at
+The four parts of the integration page and the ten css files are PURE PARTITIONS (3 Sep): cut at
 section seams, byte-exact reassembly asserted before writing, nothing edited in the move.
 A computed-style snapshot of every element on seven screens (2,602 rows × 42 properties)
 was taken before and after the CSS split and is identical. api/store.js was split the
@@ -260,7 +1263,7 @@ uncovered one more pre-existing fused selector (`.rung-row.off .lookup input, �
 .rung-standby`) — repaired, and all ten CSS files now pass a parse validator so that
 disease cannot hide again. Proof of harmlessness: a 2,602-element computed-style snapshot
 across seven screens is byte-identical before and after, plus 117/117 and the 44-check
-UAT. `docs/SCOPE.md` is the product's scope document — written for engineering and
+UAT. `docs/PRODUCT-SCOPE.md` is the product's scope document — written for engineering and
 non-engineering readers, screenshots in `docs/img/`, covering the edges (seconds vs
 milliseconds, the GAM sync flow, the publish seam, every cap and refusal family).
 
@@ -300,16 +1303,14 @@ four breaks on a cohort is exactly what THE CHANGE REVIEW is for.)
 read-only preview was a second, poorer rendering of a screen that already exists. The integration
 page's Ad delivery section now has exactly three doors, one behaviour each:
 
-- **`open`** (on the mapped chip and on every card) **navigates to the ad setup's real editor** —
-  ladders, versions, the truth. Before leaving, the integration draft (create or edit mode, all
-  unsaved edits, the open break tab) is **stashed** (`KEY_RETURN`); the setup editor's ← becomes
-  "Back to “<integration>” — your edits there are kept" and **restores the draft exactly**
-  (`KEY_RESTORE`, consumed by `viewKeyForm`). Verified: name+domains typed on an unsaved create
-  page survive the round trip; so do unsaved edits on an existing integration.
-- **`change`** opens **the same card modal the New-ad-setup door uses**: `+ New ad setup` first,
+- **`open`** (on the mapped chip and on every card) **went to the ad setup's real editor**, with
+  the integration draft stashed (`KEY_RETURN`) and restored on the ← (`KEY_RESTORE`). *Superseded
+  8 Sep: `open ↗` opens the setup in a new tab, so nothing is stashed for a read; the stash now
+  serves only the create-a-setup trip.*
+- **`change`** opened **the same card modal the New-ad-setup door uses**: `+ New ad setup` first,
   then every setup as a card (in use/free · counted demand · who touched it · its own `open`).
-  One grammar for picking a setup, everywhere. `pickSetup`/`cardPickDialog` (the two-step picker
-  with the preview pane) are deleted.
+  `pickSetup`/`cardPickDialog` (the two-step picker with the preview pane) are deleted.
+  *Superseded 8 Sep: no blank card, and same-property setups only — see the head of this file.*
 - **The blank card opens the setup's real creation editor**, prefilled with "<integration> demand"
   and the integration's property, its header reading *for “X” — mapped there on Create*. Its
   Create runs the normal review, then **returns to the integration page with the new setup
@@ -321,7 +1322,9 @@ a header. `viewSetupReadOnly`, `setupPreviewHtml`, `setupReadOnlyHtml` and the `
 are deleted with their callers.
 
 **UNIT SETTINGS: BELOW THE FOLD, SETTLED (3 Sep, user call — fourth cut; supersedes "the
-waterfall is a table" below, kept for its lessons).** The full table put fifty controls on screen —
+waterfall is a table" below, kept for its lessons. The FOLD and its grammar stand; its GEAR and
+its bounds were re-cut 7 Sep — see "THE AD UNIT IS ONE BLOCK" at the top: the door is focus now,
+and the panel is a tier inside the unit's own frame.)** The full table put fifty controls on screen —
 the cognitive load moved, it didn't leave. The user's call: settings go back below the fold, but
 with clean IA and *intuitive discovery*. The settled anatomy:
 
@@ -667,13 +1670,15 @@ on both editors, at rest and scrolled; the band's hairline passes through the ga
 rail's head row, never through a version. The setups editor's "Assigned to …" line moved inside
 the form column so both editors share the exact geometry the alignment depends on.
 
-**Global property scope (19 Aug):** a **dropdown** at the sidebar top (workspace-switcher pattern:
-brand → scope → nav), rendered from `meta.propertyScopes` so it scales past 10 properties (menu
-scrolls; chips were replaced for that reason). Selection persists in localStorage and scopes the
-whole panel: integration lists (property pill hides when scoped), shared
-object lists (All-scoped objects show for every property), attach pickers, bulk pickers, nav
-counts, and new-object property defaults. A TOI ops person flips to TOI once and the panel is
-theirs.
+**RETIRED: the global property scope (19 Aug; removed 7 Sep, user call).** A **dropdown** at the
+sidebar top and later the header band's right seat (workspace-switcher pattern: brand → scope →
+nav), rendered from `meta.propertyScopes`, persisted in localStorage, scoping the whole panel:
+integration lists (the property pill hid itself when scoped), shared object lists, attach pickers,
+bulk pickers, nav counts, and new-object property defaults. **The profile mark holds that seat now**
+— whose properties these are is a question auth answers, not a switcher — so nothing narrows
+globally, both lists always offer the Properties filter, and `inScope()` stays as the seam the
+session's grant will answer through. The seat now holds the profile menu (View profile · Log out).
+See the head of this file.
 
 The second StreamAds surface: a self-serve panel where ad ops / publisher ops change player and
 ad configuration in real time, without engineering. Built fresh 17 Aug 2026 (the earlier `player/`
@@ -1293,6 +2298,9 @@ the break IS, and it is stable.
 
 ## THE DRIVE + THE 1:1 PROMISE (26 Aug, DRIVING-SCOPE.md is the record of why)
 
+> *Half superseded 8 Sep: an integration still asks from ONE ad setup, but a setup may now fill
+> MANY integrations — see the head of this file. The drive is untouched.*
+
 **Manager review, via the user, in the manager's own image:** driving a car you get two or
 three controls — a switch and preconfigured gears; anything finer means stopping the car.
 Ad delivery had become a workshop (drag positions, mute tags, bend numbers). Two decisions
@@ -1423,10 +2431,14 @@ Ad Tag      =  name + type (video | display) + provider + a GAM ad unit or endpo
     needs `podAds`. Fifteen pod fields became five, four times over, and a slot only ever
     shows the fields it can have — a mid-roll has no "plays at start", a rotation has no
     pod. The full field map is `SLOT_BEHAVIOUR_FIELDS` + `PLACEMENT_RULE_FIELDS`.
-  - **A new placement is a CLONE of Default** — its behaviour and its ladders — so it
-    starts from something that works and what differs is an edit you can see. Enforced
-    server-side too: a placement that arrives without behaviour inherits Default's, and a
-    partial patch never resets what it did not mention.
+  - **A new placement is a CLONE of Default's SETTINGS, never its demand** (amended
+    7 Sep, user call — every break must open at the fork). Behaviour, cadence and pod
+    structure carry over so it starts from something that works; ladders, links and
+    direct deals start EMPTY (`suBareSlots`), so each break opens on the source seg
+    (`Waterfall │ Custom`) with `+ Add custom waterfall` under it — units are trafficked
+    per placement.
+    Server-side inheritance unchanged: a placement that arrives without behaviour
+    inherits Default's, and a partial patch never resets what it did not mention.
   - **A cross-room check stays counted:** pods are the setup's and the countdown is the
     player's, so "3 ads in a row with the countdown hidden" can only be seen by the
     integration — and that is where it warns, on save.
@@ -1725,7 +2737,9 @@ Ad Tag      =  name + type (video | display) + provider + a GAM ad unit or endpo
   | `adjacentRefresh` `adjacentInterval` `adjacentViewability` | the page's display units | not ours to serve |
 
   `ADJACENT_MODES` and the `adjacentModes` meta key went with those fields.
-- **The 1:1 promise, spoken (27 Aug).** A setup fills ONE integration (enforced since
+- **The 1:1 promise, spoken (27 Aug)** — *reversed 8 Sep in the direction that mattered: a
+  setup fills as many integrations as it is mapped to, and the plural apparatus below came back
+  as counts.* A setup fills ONE integration (enforced since
   26 Aug), so the plural apparatus that survived it is gone: the amber *"Fills N
   integrations — applies to all of them immediately"* banner is a quiet line naming the
   one surface, the save dialog asks *"Apply to 'TOI Mweb VideoShow'?"*, the list's Fills
@@ -2024,7 +3038,7 @@ each is sometimes exactly what ops meant:
   unit. Now: *"10 would lose their display unit here — it is the only one they have (TOI Mweb
   VideoShow · Default, …)"*. Only counted when it is their **only** unit of that family, because
   replacing one of two is not a surprise.
-- **With the switcher on "All properties", a TOI tag can be pushed onto NBT integrations.** Now:
+- **A bulk push can reach integrations of another property.** Now:
   *"32 are ET/NBT integrations and this is a TOI tag"*. Not refused — a shared backfill tag really
   does span properties, and the fixtures have one.
 
@@ -2830,8 +3844,38 @@ change, not a data-model one.
 `1–50 of 342 ‹ ›` range in the toolbar. The header checkbox selects **this page only**; when the
 page is full and more rows match, the selection bar offers the rest as one explicit act. Bulk
 changes reach live traffic, so a 342-integration selection is never something you arrive at by
-accident. **Changing a filter or the search clears the selection and returns to page 1**, so a bulk
-change can never reach integrations the current filters no longer show.
+accident. Changing a filter or the search returns to page 1.
+
+**A selection survives its filter (8 Sep, user call).** Changing a filter used to **clear** the
+selection — the fail-closed reading, so a bulk change could never reach rows the current filters no
+longer showed. In use it was the wrong trade twice over: a cohort that lives in two searches ("these
+three TOI surfaces and that one NBT one") could not be assembled at all, and the work vanished
+without a word — the one thing a control plane must never do quietly. The selection now **carries**,
+and carrying it is what makes it safe: on every filter, search and Breaks-grid change, everything
+selected is **pinned to the top of the table** in its own block, ticked, above the new matches —
+
+    SELECTED  3
+    ☑ TOI Mweb VideoShow …
+    ☑ TOI Mweb ArticleShow …
+    ☑ NBT iOS MiniTV …
+    Show all 67 selected            ← only when the block is longer than 8
+    MATCHING  12
+    ☐ ET Desktop ArticleShow …
+
+Nothing is off-screen, nothing is counted twice (a pinned row leaves the paged list, and the pager
+counts what is left), and the bulk bar's count is the whole cohort. Three rules keep it from
+surprising anyone: the block is snapshotted **on filter changes only**, so ticking a row never makes
+it jump away from under the cursor; **unticking a pinned row drops it out of the block**, which is
+the way back for one row — untick them all and the block closes and the table is plain again; and
+**Clear** empties both the selection and the block. The header checkbox governs the **Matching**
+block only, in the ticks it writes as much as in the ids it holds (8 Sep: it first wrote every
+checkbox in the table, so switching it off emptied the carried rows' boxes while the bar still
+counted them — and the next click on one re-ticked it instead of releasing it). Each group line
+counts **its own rows**; the bar counts the whole cohort, which is why a row ticked in place under
+`MATCHING` shows in the bar's count before it shows in the block. Above eight
+carried rows the block shows its head and offers the rest — a cohort of 342 does not get to push the
+table off the screen. The carried rows wear the faintest wash of the bulk bar's notice yellow, so
+the block and the bar read as one temporary state.
 
 **One bar, not two (19 Aug).** The offer first shipped as a second strip below the selection bar.
 Two stacked lines about the same selection, each stating its own count — *"50 integrations
@@ -3145,18 +4189,20 @@ the old name-reference showed nothing.
 7. Reset is deterministic: same ids, same key strings, every rebuild.
 
 ## Web code layout (no build, plain scripts, everything global)
-`web/js/` in load order: `util.js` (labels, toasts, `ask` dialog — never native confirm),
-`api.js` (every request is a named operation — no view writes a URL), `controls.js` (segmented
-enums, toggles, number+unit fields, domain chips, attach-picker cards, form diff),
-`cardPickDialog` (a card grid then a spec preview — the editors' attach flow; the `stepDialog`
-control was deleted 21 Aug when the bulk tabs made it callerless),
+**The file list in this paragraph is history** — several of the files named below were merged
+or deleted between 21 Aug and 7 Sep. For the current one, see ARCHITECTURE.md §5.
+As of 19 Aug the load order was: `util.js` (labels, toasts, `ask` dialog — never native
+confirm), `api.js` (every request is a named operation — no view writes a URL),
+`controls.js` (segmented enums, toggles, number+unit fields, domain chips, attach-picker
+cards, form diff), `cardPickDialog` (a card grid then a spec preview — the editors' attach
+flow; the `stepDialog` control was deleted 21 Aug when the bulk tabs made it callerless),
 `publish.js` (the version rail and the publish plane, one implementation for both rooms),
-`review.js` (THE CHANGE REVIEW — the one screen bulk Apply, Save and Publish all confirm on),
-`views-keys.js`, `views-behaviours.js`, `views-policies.js`, `views-tags.js`,
-`views-waterfalls.js`, `views-activity.js`, `main.js` (hash router + nav counts). `rungRowHtml`
-lives in `views-waterfalls.js` and is drawn by both ladder editors, so a waterfall reads
-identically wherever it appears. List toolbars paint once; filters repaint rows only, so the
-search caret survives.
+`review.js` (THE CHANGE REVIEW — the one screen bulk Apply, Save and Publish all confirm
+on), `views-keys.js`, `views-behaviours.js`, `views-policies.js`, `views-tags.js`,
+`views-waterfalls.js`, `views-activity.js`, `main.js` (hash router + nav counts).
+`rungRowHtml` then lived in `views-waterfalls.js` and was drawn by both ladder editors, so a
+waterfall reads identically wherever it appears (today it is in `views-setups-rungs.js`).
+List toolbars paint once; filters repaint rows only, so the search caret survives.
 
 **Visual language (19 Aug review):** the grammar stays a dense console — the refresh added weight,
 not chrome. A deeper neutral ramp and real elevation tokens (`--shadow-1..3`); a sidebar that is

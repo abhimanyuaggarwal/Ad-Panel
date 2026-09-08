@@ -15,11 +15,16 @@
 .dlg.bulk h3 { font-size: 18px; font-weight: 650; letter-spacing: -.1px; }
 /* One body height for every tab AND for the review that follows (2 Sep): the sheet used
    to grow and shrink as you moved between tabs, and step 2 arrived as a different-sized
-   object. Same number here and on `.rvw-body`. */
+   object. Same number here and on `.rvw-body`.
+   THE FLOOR IS NOW `.steady`, AND ONLY THE MULTI-STEP SHEETS WEAR IT (7 Sep, user call):
+   the tabbed ad sheet and the master-detail player sheet change content as you move
+   inside them, so they earn it. Default player behaviour was ONE screen paying 221px of
+   air for stability against nothing — it took the `.sheet` frame instead. */
 .dlg.bulk .dlg-body {
-  flex: 1; min-height: 340px; max-height: calc(100vh - 260px);
+  flex: 1; max-height: calc(100vh - 260px);
   overflow-y: auto; padding-right: 2px;
 }
+.dlg.bulk.steady .dlg-body { min-height: 340px; }
 .dlg.bulk .dlg-foot { margin-top: 12px; }
 /* Tighter rhythm than the key editor: this dialog holds a whole slot on one screen, so
    every row gives back a few pixels and the tallest tab (mid-roll) fits without a scroll. */

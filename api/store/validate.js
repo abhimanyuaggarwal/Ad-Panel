@@ -1,8 +1,6 @@
-// store/validate.js — shared refusal helpers — numbers in range, enums, names, refused-by-name.
-// Split from store.js (3 Sep, docs/STORE-SPLIT.md): a MOVE, not a rewrite — units
-// relocated whole, bodies untouched. store.js re-exports everything, so the HTTP
-// surface, the tests and the mock world see the exact same module they always did.
-import { Refusal } from './state.js';
+// store/validate.js — shared refusal helpers: numbers in range, enums, names, URLs,
+// `mustGet`, and the field-level `diff` a save reports back.
+import { Refusal, fieldWord } from './state.js';
 
 
 export function str(v) {
@@ -12,7 +10,7 @@ export function str(v) {
 export function intIn(v, field, min, max, errors) {
   const n = Number(v);
   if (!Number.isFinite(n) || !Number.isInteger(n) || n < min || n > max) {
-    errors.push({ field, message: `${field} must be a whole number between ${min} and ${max} (got ${v})` });
+    errors.push({ field, message: `${fieldWord(field)} must be a whole number between ${min} and ${max} (got ${v})` });
     return min;
   }
   return n;
@@ -20,7 +18,7 @@ export function intIn(v, field, min, max, errors) {
 
 export function oneOf(v, field, allowed, errors) {
   if (!allowed.includes(v)) {
-    errors.push({ field, message: `${field} must be one of ${allowed.join(', ')} (got ${v})` });
+    errors.push({ field, message: `${fieldWord(field)} must be one of ${allowed.join(', ')} (got ${v})` });
     return allowed[0];
   }
   return v;

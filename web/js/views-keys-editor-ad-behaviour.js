@@ -1,7 +1,11 @@
-// views-keys-drive.js — part 2 of 4 — AD BEHAVIOUR: the client-side walk mirror, THE DRIVE (per-break
-// switches and decisions), the four break tabs, and the ads card itself.
-// Split 3 Sep as a pure partition of views-keys-form.js — order preserved, nothing edited.
-
+// views-keys-editor-ad-behaviour.js — the integration page's AD BEHAVIOUR card: the four
+// break tabs with their switches, THE DRIVE (this surface's per-break quick decisions —
+// who is asked and in what order, waterfall depth, direct, start offset, impressions),
+// and beside it the RESOLVED WATERFALL each placement would walk.
+//
+// The walk is mirrored client-side here (`clientDriveWalk`) to match the server's
+// `driveWalkRungs` exactly, so the number on screen is the number that serves. This page
+// never holds a ladder: the ladders live in the ad setup, one click away.
 // ---------- sections: switches + inline field groups ----------
 
 
@@ -56,14 +60,14 @@ function clientDriveWalk(i, t, gi = 0) {
   if (ask && !rot) {
     // The client mirror of `driveWalk` — same rule, so the page never promises a walk
     // the server would resolve differently. TIERS (31 Aug): the primary is a position,
-    // never displaced — the ask filters and orders the FALLBACK, the one ordered thing
+    // never displaced — the ask filters and orders the WATERFALL, the one ordered thing
     // left. Stable sort keeps ad ops' order inside a partner's own rungs.
     const primary = ladder[0] && !ladder[0].opsOff ? ladder[0] : null;
     const tail = ladder.slice(1).filter(r => !r.opsOff);
     const mine = tail.filter(r => ask.includes(r.provider));
     if (!mine.length) {
-      // None of those partners in the fallback — loud. A ladder with no fallback at all
-      // honours any fallback decision by definition (1 Sep): primary only, nothing to say.
+      // None of those partners in the waterfall — loud. A ladder with no waterfall at
+      // all honours any order decision by definition (1 Sep): primary only, nothing to say.
       fellBack = tail.length > 0;
     } else {
       const ordered = [...mine].sort((a, b) => ask.indexOf(a.provider) - ask.indexOf(b.provider));
@@ -94,7 +98,8 @@ function secSlotToggle(t) {
   }
   clearErr('sections');
   FORM.rerender();
-  if (skipped.length) toast(`Nothing to run in ${skipped.join(', ')} — left off`, 'warn');
+  // The sections it passed over repaint switched-off in place, and grey says so.
+  if (skipped.length) toast(`${skipped.length} left off`, 'warn');
 }
 
 // ---------- THE DRIVE: switches and preconfigured decisions (26 Aug, DRIVING-SCOPE) ----------
@@ -110,6 +115,13 @@ function secSlotToggle(t) {
 const QF_TEXT = {}; // caret-safe text buffers (the player fields still use them)
 
 function driveOf(t) { return (FORM.data.drive || {})[t] || {}; }
+
+// A drive key touched this session — the quiet tint's predicate (7 Sep, user call).
+function driveDirty(t, ...fields) {
+  if (!FORM.saved) return false;
+  return fields.some(f =>
+    JSON.stringify(FORM.data.drive?.[t]?.[f] ?? null) !== JSON.stringify(FORM.saved.drive?.[t]?.[f] ?? null));
+}
 
 // Writes are sparse: null (or 'setup' / 'All') drops the field, so the break starts
 // following the setup again — dropping a decision is not "setting it back".
@@ -182,11 +194,10 @@ function askChipsHtml(t) {
     const why = absent
       ? `No ${provWord(p)} tags behind this break — switching it on changes nothing until ad ops add one`
       : last
-        ? `The only partner left on — a break that asks nobody would go dark`
-        : isOn ? `Asked ${i === 0 ? 'first' : i === 1 ? 'second' : 'third'}. Drag to reorder, click to switch off.`
-        : `Skipped at this break. Click to switch it back on — it joins at the end.`;
+        ? 'The only partner left on — a break that asks nobody would go dark'
+        : '';
     return `
-      <span class="pchip ${isOn ? 'on' : 'skip'} ${absent ? 'absent' : ''}" title="${esc(why)}"
+      <span class="pchip ${isOn ? 'on' : 'skip'} ${absent ? 'absent' : ''}"${why ? ` title="${esc(why)}"` : ''}
         ${isOn && on.length > 1 ? dragAttrs(dragKey, i) : ''}
         onclick="${last || absent ? '' : `askToggle('${t}', '${p}')`}">
         ${isOn && on.length > 1 ? '<span class="pchip-grip">⠿</span>' : ''}
@@ -206,7 +217,7 @@ function askChipsHtml(t) {
 function askToggle(t, p) {
   const { on, off } = askOrder(t);
   if (on.includes(p)) {
-    if (on.length === 1) { toast('A break has to ask somebody — switch another partner on first', 'warn'); return; }
+    if (on.length === 1) { toast('One partner must stay on', 'warn'); return; }
     driveSet(t, 'ask', on.filter(x => x !== p));
   } else {
     void off;
@@ -243,8 +254,12 @@ function driveStampAll(t) {
   clearErr('sections');
   clearErr('drive');
   FORM.rerender();
-  if (!took.length && !skipped.length) { toast('No other break has demand to decide over', 'warn'); return; }
-  toast(`${took.length ? `${took.join(', ')} take this decision` : 'Nothing taken'}${skipped.length ? ` — ${skipped.join(', ')} left alone (none of those partners there)` : ''}`);
+  if (!took.length && !skipped.length) { toast('No other breaks apply', 'warn'); return; }
+  // The breaks it took and the breaks it passed over both repaint in place, named, on
+  // the tabs right above — so the pill counts and stops (7 Sep, user call).
+  toast(skipped.length ? `${took.length} applied · ${skipped.length} skipped`
+    : `Applied to ${took.length} break${took.length === 1 ? '' : 's'}`,
+    skipped.length ? 'warn' : undefined);
 }
 
 // The warning is a door: the exact placement and break in the ad setup, an empty rung
@@ -252,8 +267,7 @@ function driveStampAll(t) {
 function addLinkHtml(setup, secName, t, provider) {
   if (!setup) return '';
   return `<button type="button" class="zlink wp-fix"
-    onclick="goAddRung('${setup.id}', ${jsLit(secName)}, '${t}', '${provider}')"
-    title="Open “${esc(secName)}” in “${esc(setup.name)}”, ready to add a ${esc(provWord(provider))} tag to this break">add ${esc(provWord(provider))} →</button>`;
+    onclick="goAddRung('${setup.id}', ${jsLit(secName)}, '${t}', '${provider}')">add ${esc(provWord(provider))} →</button>`;
 }
 
 async function goAddRung(setupId, secName, t, provider) {
@@ -297,18 +311,6 @@ function slotState(t) {
     kind: !has ? 'none' : onN === 0 ? 'off' : onN === picked.length ? 'on' : 'part' };
 }
 
-function slotStateWords(t) {
-  const s = slotState(t);
-  const setup = sectionSetup(0);
-  const name = label('slotType', t);
-  if (s.kind === 'none') {
-    return setup ? `${name} — nothing to run; ad ops add demand to “${setup.name}”`
-      : `${name} — no ad setup attached yet`;
-  }
-  if (s.kind === 'part') return `${name} — on in ${s.onN} of ${s.total} sections`;
-  return `${name} — ${s.kind === 'on' ? 'active' : 'inactive'}`;
-}
-
 // The state dots are GONE (1 Sep, user call — a legend nobody had). What remains is
 // words: a break with nothing to run dims, its reason on hover; the only dot left is
 // AMBER and means exactly one thing — this tab holds unsaved changes.
@@ -335,18 +337,29 @@ function breakTabsHtml() {
         const picked = keySecs();
         const anyOn = picked.some(j => FORM.data.sections[j].slots[t].on);
         const has = picked.some(j => clientWalk(j, t).length);
+        // The switch can move only if some picked placement has a full walk — the same
+        // test secSlotToggle applies. Dead in place with the reason otherwise (7 Sep,
+        // UAT P1: it used to flip nothing and toast "Left off").
+        const can = picked.some(j => clientAllGroupsWalk(j, t));
+        const live = anyOn || can;
         const vacant = slotState(t).kind === 'none';
-        const why = !setup ? 'Attach an ad setup first — ad ops fill it in their room'
-          : `Nothing to run — ad ops add ${label('slotType', t).toLowerCase()} demand to “${setup.name}”`;
+        // Two lengths of the same refusal (7 Sep, user call): `why` is the whole reason
+        // and rides title=, where there is room to read it; `whyShort` is what the pill
+        // says on a click, because a pill gets three to five words and no more.
+        const why = !setup ? 'Attach an ad setup first'
+          : !has ? 'No demand yet — ask ad ops'
+          : `No ${label('slotType', t).toLowerCase()} demand for ${picked.map(j => FORM.data.sections[j].name).join(', ')} — ad ops add it in “${setup.name}”`;
+        const whyShort = !setup ? 'Attach an ad setup first'
+          : !has ? 'No demand yet' : 'No demand for these';
         const active = keySlot() === t;
         // Grey says SWITCHED OFF, never "not the tab you're on" — the label follows the
         // same truth its mini toggle shows.
         return `<button type="button" class="stab wswitch ${active ? 'on' : ''} ${anyOn ? '' : 'off'} ${vacant ? 'vacant' : ''}"
-          title="${esc(slotStateWords(t))}" onclick="keySlotSet('${t}')"
+          onclick="keySlotSet('${t}')"
           >${esc(label('slotType', t))}
-          <span class="toggle mini ${anyOn ? 'on' : ''} ${(active && (has || anyOn)) ? '' : 'dead'}"
-            ${active ? `onclick="event.stopPropagation(); ${has || anyOn ? `secSlotToggle('${t}')` : `toast('${esc(why)}', 'warn')`}"` : ''}
-            title="${!active ? 'Open this tab first — then switch it' : anyOn ? `The ${esc(label('slotType', t).toLowerCase())} runs on this surface — switch off to stop asking, every section` : has ? `Switch the ${esc(label('slotType', t).toLowerCase())} on — every section with something to run` : esc(why)}"><span class="track"></span></span>
+          <span class="toggle mini ${anyOn ? 'on' : ''} ${(active && live) ? '' : 'dead'}"
+            ${active ? `onclick="event.stopPropagation(); ${live ? `secSlotToggle('${t}')` : `toast('${esc(whyShort)}', 'warn')`}"` : ''}
+            ${!active ? 'title="Open this tab first — then switch it"' : !live ? `title="${esc(why)}"` : ''}><span class="track"></span></span>
           ${slotEdited(t) ? '<i class="edot" title="Unsaved changes on this break"></i>' : ''}</button>`;
       }).join('')}
     </div>`;
@@ -359,8 +372,9 @@ function breakTabsHtml() {
 // field follows the workshop again, so a later ops change still arrives.
 function driveControlsHtml(t) {
   if (isRotation(t)) {
-    return `<div class="sg-empty" style="padding:4px 0"
-      title="Which banners, when they show and how they pace themselves: the ad setup">Banners take turns — nothing to decide beyond the switch.</div>`;
+    // A ROTATION HAS NOTHING TO DECIDE (7 Sep, UAT P2 — this row was a sentence
+    // explaining itself). The switch is on the tab; the row just names the shape.
+    return `<div class="sg-empty" style="padding:4px 0">Banners take turns</div>`;
   }
   const d = driveOf(t);
   const base = slotBhv(0, t) || {};
@@ -371,42 +385,33 @@ function driveControlsHtml(t) {
   const dFacts = keySecs().map(j => FORM.data.sections[j]).map(s2 => s2?.slots?.[t]?.direct).find(Boolean)
     || KEY_ORIGINAL?.sections?.[0]?.slots?.[t]?.direct;
   const dOn = d.direct !== false;
-  // The Direct row is FIXED on every break (1 Sep, user call) — with no deals behind
-  // it, the switch is dead in place with the reason, never absent. Nothing appears or
-  // vanishes as ops stage demand.
-  const directRow = accRow('Direct', dFacts ? `
-      <span class="toggle tiny ${dOn ? 'on' : ''}" onclick="driveSet('${t}', 'direct', ${dOn ? 'false' : 'null'})"
-        title="${dOn ? 'Switch this break\u2019s direct campaigns off on this surface — it starts at its primary' : 'Switch them on — the tier is tried before the primary'}"><span class="track"></span></span>
+  // The Special row is FIXED on every break (1 Sep, user call; named Direct until 7 Sep)
+  // — with no deals behind it, the switch is dead in place with the reason, never
+  // absent. Nothing appears or vanishes as ops stage demand.
+  const directRow = accRow(label('slotType', 'direct'), dFacts ? `
+      <span class="toggle tiny ${dOn ? 'on' : ''}" onclick="driveSet('${t}', 'direct', ${dOn ? 'false' : 'null'})"><span class="track"></span></span>
       <span class="glimpse-walk${dOn ? '' : ' dim'}">${(dFacts.walk || []).slice(0, 4).map(x => providerBadge(x.provider)).join('<i class="gsep">›</i>')}</span>`
     : `
-      <span class="toggle tiny dead" onclick="toast('No direct deals behind this break — ad ops add them in the ad setup\u2019s Direct zone', 'warn')"
-        title="No direct deals behind this break — ad ops add them in the ad setup\u2019s Direct zone"><span class="track"></span></span>
-      <span class="sg-empty">no direct deals</span>`,
-    dFacts
-      ? 'The break\u2019s sold-direct deal — tried before its primary each time the break fires. The deal is the ad setup\u2019s; whether it runs here is this switch.'
-      : 'Sold-direct demand for this break — none staged yet; the deal lives in the ad setup\u2019s Direct zone.');
+      <span class="toggle tiny dead" onclick="toast('No special deals yet', 'warn')"
+        title="No special deals yet — ad ops add them"><span class="track"></span></span>
+      <span class="sg-empty">no special deals</span>`, null, driveDirty(t, 'direct'));
   return `
     ${directRow}
-    ${accRow('Fallback order', askChipsHtml(t),
-      'Who is asked once the primary returns nothing, and in what order — the tiers set the rest: Direct first, then the primary, then this. Drag to reorder; click a chip to skip it at this break.')}
+    ${accRow('Waterfall order', askChipsHtml(t), null, driveDirty(t, 'ask'))}
     ${accRow('Waterfall depth', accSeg(d.tries ?? 'all', [1, 2, 3, 'all'], ['1', '2', '3', 'Full'],
-      o => `driveSet('${t}', 'tries', ${o === 'all' ? 'null' : o})`),
-      'How far down the waterfall this break goes before giving up and playing the video. Shallower starts the video sooner; deeper fills more often. “Full” walks the whole waterfall, however deep ad ops make it.')}
+      o => `driveSet('${t}', 'tries', ${o === 'all' ? 'null' : o})`), null, driveDirty(t, 'tries'))}
     ${cueRowHtml(t)}
     ${t === 'preroll' ? accRow('Start offset', `${accSeg(d.start ?? base.start, ['start', 'deferred'],
       ['Immediate', 'Delayed'], o => `driveSet('${t}', 'start', '${o}')`)}
       <div class="num-wrap${deferOff ? ' off' : ''}"><input value="${esc(driveDeferText(t, base))}" inputmode="numeric"
-        ${deferOff ? 'disabled' : ''} oninput="driveDeferInput(this, '${t}')"><span class="unit">sec</span></div>`,
-      'Whether the ad plays the moment the video opens, or a set number of seconds in (JSON: init).') : ''}
-    ${accRow('Impressions per break', accSeg(d.podAds ?? base.podAds ?? 1, [1, 2, 3], ['1', '2', '3'],
-      o => `driveSet('${t}', 'podAds', ${o})`),
-      'How many ads this one break aims to serve, back to back (JSON: impression).')}
+        ${deferOff ? 'disabled' : ''} oninput="driveDeferInput(this, '${t}')"><span class="unit">sec</span></div>`, null, driveDirty(t, 'start', 'deferSec')) : ''}
+    ${accRow(fieldName('podAds'), accSeg(d.podAds ?? base.podAds ?? 1, [1, 2, 3], ['1', '2', '3'],
+      o => `driveSet('${t}', 'podAds', ${o})`), null, driveDirty(t, 'podAds'))}
     <div class="zrow drive-foot">
-      ${usable.length > 1 ? `<button type="button" class="zlink" onclick="driveStampAll('${t}')"
-        title="Stamp this break's partners and depth onto every break with demand behind it — a break missing one of the partners is left alone, named">Apply to all breaks</button>` : '<span></span>'}
+      ${usable.length > 1 ? `<button type="button" class="zlink" onclick="driveStampAll('${t}')">Apply to all breaks</button>` : '<span></span>'}
       <button type="button" class="btn ghost sm drive-reset" ${bent ? '' : 'disabled'}
         onclick="driveResetSlot('${t}')"
-        title="${bent ? 'Drop every decision on this break — it follows the ad setup again, and later ops changes arrive on their own' : 'Nothing decided on this break — it already follows the ad setup'}">Reset to setup</button>
+        ${bent ? 'title="Drops every decision on this break"' : ''}>Reset to setup</button>
     </div>`;
 }
 
@@ -438,14 +443,33 @@ function midCadence() {
 
 // Typed positions are parsed on the way in and only reformatted on blur — the caret
 // rule. An empty box drops the decision: the break follows the ad setup again.
+let DRIVE_CUE_BAD = null;
+function driveCueBadWhy(text) {
+  const bad = parseCuepointsText(text).filter(x => typeof x !== 'number');
+  if (!bad.length) return null;
+  return `“${bad[0]}” is not a time — write 2:00, or 120 for seconds`;
+}
 function driveCueInput(el) {
   QF_TEXT['drive:cuepoints'] = el.value;
+  DRIVE_CUE_BAD = driveCueBadWhy(el.value);
+  const wrap = el.closest('.cue-in');
+  el.classList.toggle('err', !!DRIVE_CUE_BAD);
+  wrap?.parentElement?.querySelector('.cue-msg')?.remove();
+  if (DRIVE_CUE_BAD) {
+    el.title = DRIVE_CUE_BAD;
+    wrap?.insertAdjacentHTML('afterend', `<span class="field-err cue-msg">${esc(DRIVE_CUE_BAD)}</span>`);
+    return; // a list we cannot read is not written — Save says so too
+  }
+  el.title = '';
   const cps = parseCuepointsText(el.value).filter(x => typeof x === 'number');
   if (!el.value.trim()) driveSetQuiet('midroll', 'cuepoints', null);
   else driveSetQuiet('midroll', 'cuepoints', cps.length ? cps : null);
 }
 
 function driveCueBlur(el) {
+  // A bad list keeps its text and its reason — reformatting it away would hide the
+  // refusal and lose what the person typed.
+  if (DRIVE_CUE_BAD) return;
   delete QF_TEXT['drive:cuepoints'];
   FORM.rerender();
   void el;
@@ -481,7 +505,8 @@ function cueRowHtml(t) {
       oninput="driveCueInput(this)" onblur="driveCueBlur(this)"></div>
     ${set ? `<button type="button" class="zlink" onclick="driveSet('${t}', 'cuepoints', null)">use the setup’s</button>`
       : `<span class="sg-dim">${esc(cad.differs ? 'set by placement' : 'as set up')}</span>`}`,
-    'Where this surface’s mid-roll breaks fall. Empty follows the ad setup’s own positions; a list here overrides them on every placement.');
+    null,
+    driveDirty(t, 'mode', 'cuepoints', 'every'));
 }
 
 // ONE act, whole break (1 Sep, user call — the per-field "use the setup's" links were
@@ -494,7 +519,6 @@ function driveResetSlot(t) {
   clearErr('sections');
   clearErr('drive');
   FORM.rerender();
-  toast(`${label('slotType', t)} follows the ad setup again`);
 }
 
 // The seconds are the surface's now (27 Aug, user call — reversing "seconds stay ops'"
@@ -533,7 +557,7 @@ function driveConsHtml(t) {
     // own ladder, and every one answers for itself.
     const gs = clientGroupDefs(j, t);
     return gs.map((g, gi) => {
-      const rowName = gs.length > 1 ? `${s.name} · group ${gi + 1}` : s.name;
+      const rowName = gs.length > 1 ? `${s.name} · pod ${gi + 1}` : s.name;
       const { walk, fellBack } = clientDriveWalk(j, t, gi);
       const base = g.behaviour || {};
       const n = walk.length;
@@ -589,10 +613,17 @@ function breakPanelHtml(t) {
 // The mapped setup is the fact this section exists for, so it rides the TITLE ROW at the
 // right edge (3 Sep, user call — a strip on its own line under the title read as a second
 // heading). Re-cut 4 Sep (user call): the eyebrow says AD SETUP — what the chip IS, not
-// what it does — and the chip alone: clicking it opens the setup's real editor (← there
-// keeps your edits). The who·when byline is gone (the setup's own page carries its
-// history), and `change` — the rare act — stepped back into a ⋯ beside the chip.
-// Nothing mapped still says so in words.
+// what it does — and the chip alone; the who·when byline is gone, since the setup's own
+// page carries its history.
+// THE CHIP IS THE CHANGE DOOR, AND "OPEN ↗" STANDS BESIDE IT (8 Sep, user call — *"on
+// the click of the ad setup name chip open the change ad setup modal, and rather than 3
+// dots use a preview that opens in a new tab — a mature icon with a name, clean, and
+// understood by a layman"*). The rare act was hidden behind a ⋯ while the chip did the
+// common one backwards: clicking the NAME of the thing you want to swap opened a second
+// tab. Now the chip swaps (a ⌄ says a picker is behind it) and reading the setup is its
+// own labelled button — the word `Open` with the arrow that means "elsewhere", the same
+// `open ↗` every card in the picker wears. Nothing hides in a kebab; nothing is a glyph
+// on its own. Nothing mapped still says so in words.
 function adsCardHtml(meta) {
   const setup = sectionSetup(0);
   return `
@@ -605,46 +636,15 @@ function adsCardHtml(meta) {
         <div class="ads-fills fills-strip">
           <span class="fs-l">Ad setup</span>
           ${setup
-            ? `<button type="button" class="st-chip fs-setup" onclick="openSetupFromKey('${setup.id}')"
-                 title="${esc(setupSummary(setup))} — open “${esc(setup.name)}” in its own editor; ← there brings you back with your edits kept">
-                 <span class="fs-name">${esc(setup.name)}</span><i class="fs-arr">›</i></button>
-               ${!KEY_ORIGINAL && (setup.usedBy || FORM.data.copyAtCreate) ? `<span class="podl">becomes this integration's own copy at create</span>` : ''}
-               <span class="rmenu">
-                 <button type="button" class="row-kebab" onclick="rmenuToggle(event, this)" title="More actions" aria-label="More actions">⋯</button>
-                 <div class="rmenu-list">
-                   <div class="eh-item" onclick="rmenuShut(this); changeSetupJourney()">Change ad setup…</div>
-                 </div>
-               </span>`
-            : `<span class="sg-empty">nothing yet — every break fills from ONE ad setup; pick it below</span>`}
+            ? `<button type="button" class="st-chip fs-setup" onclick="changeSetupJourney()">
+                 <span class="fs-name">${esc(setup.name)}</span><i class="fs-arr">⌄</i></button>
+               ${!KEY_ORIGINAL && FORM.data.copyAtCreate ? `<span class="podl">${FORM.data.copyName
+                 ? `becomes “${esc(FORM.data.copyName)}” at create`
+                 : `becomes this integration's own copy at create`}</span>` : ''}
+               <button type="button" class="zlink fs-open" onclick="openSetupTab('${setup.id}')">Open <i class="fs-arr">↗</i></button>`
+            : `<span class="sg-empty">none yet — pick one below</span>`}
         </div>
       </div>
       ${setup ? `${breakTabsHtml()}${breakPanelHtml(keySlot())}` : setupPickCardsHtml()}
     </div>`;
 }
-
-
-
-
-
-
-
-
-
-function pSet(f, val) {
-  FORM.data.player[f] = val;
-  clearErr(f);
-  FORM.rerender();
-}
-
-function pNum(el, f) {
-  FORM.data.player[f] = Number(el.value);
-  QF_TEXT[`p:${f}`] = el.value;
-}
-
-function pText(el, f) {
-  FORM.data.player[f] = el.value;
-  QF_TEXT[`p:${f}`] = el.value;
-}
-
-
-

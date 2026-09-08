@@ -12,13 +12,12 @@
 // { kind, id, name, versions, liveVersion, unpublished } for whatever editor is open.
 let PUB = null;
 let PUB_FILTER = 'all';   // all · published
-let PUB_OPEN = null;      // which version's changes are unfolded
+
 
 async function loadPublish(kind, id, name) {
   const r = await API.versions(kind, id);
   PUB = { kind, id, name, ...r };
   PUB_FILTER = 'all';
-  PUB_OPEN = null;
   return PUB;
 }
 
@@ -31,10 +30,8 @@ function pubStateChipHtml() {
   const n = (PUB.unpublished || []).length;
   const live = PUB.liveVersion != null;
   return `
-    <span class="stat ${live ? 'live' : 'off'}" title="${live
-      ? `On air as v${PUB.liveVersion} — this is what the player is being served`
-      : 'Not on air — the player is served nothing for this'}">${live ? `On air · v${PUB.liveVersion}` : 'Off air'}</span>
-    ${n ? `<span class="stat pending" title="Saved but not published — the player has not seen ${n === 1 ? 'it' : 'them'} yet">${n} unpublished</span>` : ''}`;
+    <span class="stat ${live ? 'live' : 'off'}">${live ? `On air · v${PUB.liveVersion}` : 'Off air'}</span>
+    ${n ? `<span class="stat pending">${n} unpublished</span>` : ''}`;
 }
 
 // WHERE IT STANDS, AS A LIST CELL (4 Sep, user call — the round-28 column cut reversed,
@@ -48,14 +45,18 @@ function pubStateChipHtml() {
 // editor header's chip, so a row and its editor never disagree.
 function statusCellHtml(o) {
   const state = o.live
-    ? `<span class="stat live sm2" title="On air as v${o.liveVersion}${o.liveRestoredFrom
-        ? ` — a restore of v${o.liveRestoredFrom}` : ''} — this is what the player is being served">v${o.liveVersion}${o.liveRestoredFrom
+    ? `<span class="stat live sm2">v${o.liveVersion}${o.liveRestoredFrom
         ? `<i class="st-from">· from v${o.liveRestoredFrom}</i>` : ''}</span>`
     : o.everPublished
-      ? '<span class="stat off sm2" title="Taken off air — the player is served nothing">Off air</span>'
-      : '<span class="stat off sm2" title="Never published — the player is served nothing yet">Unpublished</span>';
-  return `${state}${o.unpublishedCount
-    ? `<div class="st-gap" title="Saved but not published — the player has not seen ${o.unpublishedCount === 1 ? 'it' : 'them'}">${o.unpublishedCount} unpublished</div>` : ''}`;
+      ? '<span class="stat off sm2">Off air</span>'
+      : '<span class="stat off sm2">Unpublished</span>';
+  // NO COUNT ON THE LISTING (8 Sep, user call): how MANY changes wait is a fact for the
+  // page that can act on them — the rail counts them there. A list is scanned, and what
+  // it needs to say is only whether this one has work waiting. Suppressed where the
+  // state word already says it, so a never-published draft never reads "Unpublished"
+  // twice down one cell.
+  return `${state}${o.unpublishedCount && (o.live || o.everPublished)
+    ? '<div class="st-gap">Unpublished</div>' : ''}`;
 }
 
 // The two buttons, in the form's foot. Publish carries the weight whenever there is
@@ -84,48 +85,88 @@ function pubFilterHtml() {
 }
 
 function pubSetFilter(v) { PUB_FILTER = v; FORM.rerender(); }
-function pubToggle(v) { PUB_OPEN = PUB_OPEN === v ? null : v; FORM.rerender(); }
 
-// The pending block is the "saved" half of the timeline: everything Save has written
-// that Publish has not sent. One entry, however many saves made it — what matters is
-// the gap between the draft and the air, not how many times someone pressed Save.
+// THE RAIL IS A TIMELINE, THE SHEET IS THE READER (6 Sep, user call — inline diffs in
+// a 260px column were heavy at three changes and unreadable at ten; the per-version
+// change count followed 7 Sep — it said nothing the sheet doesn't). A rail row is one
+// quiet entry: version · the person's note · who and when. Clicking it
+// opens THE CHANGE REVIEW read-only — the same grouped room every change list here is
+// read in, at any size — with Restore as the sheet's one further door.
 function pubPendingHtml() {
   const n = (PUB.unpublished || []).length;
   if (!n) return '';
-  const open = PUB_OPEN === 'pending';
   return `
-    <div class="v-item pending ${open ? 'open' : ''}">
+    <div class="v-item pending">
       <span class="v-dot"></span>
-      <div class="v-head" onclick="pubToggle('pending')">
+      <div class="v-head" onclick="pubPendingClicked()">
         <span class="v-t">Saved, not published</span>
         <span class="v-n">${n} change${n === 1 ? '' : 's'}</span>
-        <span class="v-chev">›</span>
       </div>
-      ${open ? `<div class="v-changes">${PUB.unpublished.map(pubChangeLine).join('')}</div>` : ''}
     </div>`;
+}
+
+async function pubPendingClicked() {
+  await reviewChanges({
+    title: 'Saved, not published',
+    kicker: 'goes out on the next publish',
+    changes: PUB.unpublished,
+    readOnly: true,
+  });
 }
 
 function pubVersionsHtml() {
   return (PUB.versions || []).map(v => {
-    const open = PUB_OPEN === v.v;
     const isLive = v.v === PUB.liveVersion;
     return `
-      <div class="v-item ${v.offAir ? 'offair' : ''} ${isLive ? 'islive' : ''} ${open ? 'open' : ''}">
+      <div class="v-item ${v.offAir ? 'offair' : ''} ${isLive ? 'islive' : ''}">
         <span class="v-dot"></span>
-        <div class="v-head" onclick="pubToggle(${v.v})" title="${open ? 'Hide what this version changed' : 'See what this version changed'}">
+        <div class="v-head" onclick="pubVersionClicked(${v.v})">
           <span class="v-t">${v.offAir ? 'Taken off air' : `v${v.v}`}${v.restoredFrom ? ` <span class="v-from">from v${v.restoredFrom}</span>` : ''}</span>
           ${isLive ? '<span class="v-live">on air</span>' : ''}
-          <span class="v-n">${v.changes.length ? `${v.changes.length} change${v.changes.length === 1 ? '' : 's'}` : '—'}</span>
-          <span class="v-chev">›</span>
         </div>
+        ${v.note ? `<div class="v-note">${esc(v.note)}</div>` : ''}
         <div class="v-who">${esc(v.actor)} · ${relWhen(v.ts)}</div>
-        ${open ? `
-          <div class="v-changes">${v.changes.map(pubChangeLine).join('') || '<div class="vc muted">no field changes</div>'}</div>
-          ${!isLive && !v.offAir ? `<button type="button" class="zlink v-restore" onclick="restoreClicked(${v.v})"
-            title="See what going back to v${v.v} would change, before committing to it">Restore this version…</button>` : ''}
-        ` : ''}
       </div>`;
   }).join('');
+}
+
+async function pubVersionClicked(n) {
+  const ver = (PUB.versions || []).find(x => x.v === n);
+  if (!ver) return;
+  // ONE READING (6 Sep, user call — the two-view seg lasted an hour): an old version's
+  // sheet shows only the DELTA FROM THE AIR — the question a person standing on v10
+  // actually has — fetched from the same read-only preview the restore flow reads.
+  // The live and off-air rows keep their own story: there is no delta to show.
+  if (ver.offAir || PUB.liveVersion == null || ver.v === PUB.liveVersion) {
+    await reviewChanges({
+      title: ver.offAir ? `Version ${ver.v} — taken off air`
+        : `Version ${ver.v}${ver.v === PUB.liveVersion ? ' — on air' : ''}${ver.restoredFrom ? ` · restored from v${ver.restoredFrom}` : ''}`,
+      kicker: `${ver.actor} · ${relWhen(ver.ts)}`,
+      subline: ver.note ? `“${ver.note}”` : '',
+      changes: ver.changes,
+      readOnly: true,
+      foot: ver.offAir ? '' : 'what it changed when it went out',
+    });
+    return;
+  }
+  let compare = null;
+  try { compare = await API.restorePreview(PUB.kind, PUB.id, ver.v); } catch { /* not restorable */ }
+  if (!compare) {
+    await reviewChanges({ title: `Version ${ver.v}`, kicker: `${ver.actor} · ${relWhen(ver.ts)}`, subline: ver.note ? `“${ver.note}”` : '', changes: ver.changes, readOnly: true, foot: 'what it changed when it went out' });
+    return;
+  }
+  const res = await reviewChanges({
+    title: `Version ${ver.v}${ver.restoredFrom ? ` · restored from v${ver.restoredFrom}` : ''}`,
+    kicker: `${ver.actor} · ${relWhen(ver.ts)}`,
+    subline: ver.note ? `“${ver.note}”` : '',
+    changes: compare.changes,
+    emptyText: 'Identical to what is on air — nothing would change.',
+    readOnly: true,
+    foot: `compared with v${PUB.liveVersion} on air`,
+    // Identical to the air = nothing to restore — the door would only meet a refusal.
+    thirdAct: compare.changes.length ? 'Restore this version…' : null,
+  });
+  if (res === 'act') restoreClicked(n);
 }
 
 function pubRailHtml() {
@@ -145,27 +186,51 @@ function pubRailHtml() {
 // ---------- the acts ----------
 
 async function publishClicked() {
+  // THE WHOLE SESSION, OR NOTHING (6 Sep, user bug; re-cut 7 Sep, user call): the
+  // review reads what is SAVED, so unsaved edits are saved first — QUIETLY, as part of
+  // the same act, no interposing dialog (a save writes only the draft, which reaches no
+  // viewer, so it needs no confirmation of its own; the publish review that follows is
+  // where the whole session is read). A refused save stops the flow with its own message.
+  let saveWarnings = [];
+  let savedQuietly = false;
+  if (PUB.dirty && PUB.dirty()) {
+    const r = await PUB.saveNow({ quiet: true });
+    if (PUB.dirty()) return; // the save was refused — its own message stands
+    saveWarnings = r?.warnings || [];
+    savedQuietly = true;
+  }
   const n = (PUB.unpublished || []).length;
   const live = PUB.liveVersion != null;
   // THE REVIEW SCREEN, not a paragraph (2 Sep): publishing is the act that moves
   // traffic, so what is about to move is grouped by break and read before it goes.
-  const ok = await reviewChanges({
-    title: live ? `Publish ${n} change${n === 1 ? '' : 's'} to “${PUB.name}”?` : `Put “${PUB.name}” on air?`,
+  const res = await reviewChanges({
+    title: live ? `Publish “${PUB.name}”` : `Put “${PUB.name}” on air`,
     changes: PUB.unpublished,
     kicker: live ? `replaces v${PUB.liveVersion} on air` : 'first version — goes on air',
     okLabel: live ? 'Publish' : 'Go on air',
     cancelLabel: 'Cancel',
     emptyText: 'Nothing to publish — what is on air is what you see.',
+    // The quiet save just ran: whatever it flagged is read HERE, before the act.
+    caution: pubFlagsHtml(saveWarnings),
+    // The note (6 Sep, user call): one line in the person's own words, written at the
+    // moment they have just re-read the session's changes — kept with the version.
+    withNote: true,
+    notePlaceholder: 'Add a note for the version history — optional',
   });
-  if (!ok) return;
+  if (!res) {
+    // The quiet save DID happen, so it gets its receipt — and its flags were already
+    // read on the screen just cancelled.
+    if (savedQuietly) toast('Saved, not published');
+    return;
+  }
   try {
-    const r = await API.publish(PUB.kind, PUB.id);
-    toast(`Published — v${r.version.v} is on air`);
-    (r.warnings || []).forEach(w => toast(w, 'warn'));
+    const r = await API.publish(PUB.kind, PUB.id, res.note);
+    toast(`Published · v${r.version.v}`);
     await pubReload();
   } catch (e) {
-    // The seam refuses by name; a refusal that names surfaces shows them whole.
-    toast(e.usedBy?.length ? `${e.message}` : e.message, 'bad');
+    // A refusal with no home in the page: the seam's own sentence, whole (the one
+    // text the pill still carries — see toast() in util.js).
+    toast(e.message, 'bad');
   }
 }
 
@@ -179,6 +244,19 @@ async function publishClicked() {
 //   3. Where am I going back to? — whose version, from when.
 //   4. Can I undo it? — yes, and the dialog says so by naming the number this lands as
 //      and the number that stays behind.
+// SOFT FLAGS, READ BEFORE THE ACT INSTEAD OF AFTER IT (7 Sep, user call). A save's
+// warnings used to ride the receipt as extra lines — "Saved" and then a paragraph in a
+// two-second pill nobody is looking at. They are levers, not walls, so they belong on THE
+// CHANGE REVIEW: the one screen where the traffic about to move is already being read,
+// with room to read them and no clock. Amber, under the change list, above the act.
+function pubFlagsHtml(flags) {
+  if (!flags || !flags.length) return '';
+  return `<div class="rvw-warn soft">
+      <b>Worth a look</b>
+      ${flags.map(f => `<div class="vc">${esc(f)}</div>`).join('')}
+    </div>`;
+}
+
 async function restoreClicked(v) {
   let pre;
   try {
@@ -199,36 +277,29 @@ async function restoreClicked(v) {
     return;
   }
 
-  const n = pre.changes.length;
   const lost = pre.discards.length;
-  const body = `
-    <div class="rst">
-      <div class="rst-hop">
-        <span class="rst-a">Current<b>v${pre.liveVersion}</b></span>
-        <span class="rst-arrow">→</span>
-        <span class="rst-b">Restore to<b>v${v}</b></span>
-        <span class="rst-when">${esc(pre.actor)} · ${relWhen(pre.ts)}</span>
-      </div>
-      <div class="rst-t">${n} configuration change${n === 1 ? '' : 's'}</div>
-      <div class="cons rst-list">${pre.changes.map(pubChangeLine).join('')}</div>
-      ${lost ? `<div class="rst-warn">
-        <b>${lost} unpublished change${lost === 1 ? '' : 's'} in your draft will be discarded.</b>
-        Restoring overwrites the draft with v${v}. Publish or note ${lost === 1 ? 'it' : 'them'} first if you want to keep ${lost === 1 ? 'it' : 'them'}.
-        <div class="cons rst-lost">${pre.discards.map(pubChangeLine).join('')}</div>
-      </div>` : ''}
-      <p class="dlg-note">Goes on air as <b>v${pre.nextVersion}</b>. v${pre.liveVersion} stays in the history, so this is undoable the same way.</p>
-    </div>`;
-
-  const ok = await ask({
+  // ONE SCREEN FOR BOTH ACTS (6 Sep, user call): restore reads back on THE CHANGE
+  // REVIEW, exactly like publish — the list is what going back CHANGES, counted from
+  // what is on air now; the kicker carries whose version and where this lands; the one
+  // warning worth a block is the counted draft work a restore would discard, read last.
+  const res = await reviewChanges({
     title: `Restore v${v}?`,
-    body,
-    okLabel: `Restore & publish as v${pre.nextVersion}`,
+    kicker: `goes on air as v${pre.nextVersion} — v${pre.liveVersion} stays in history`,
+    changes: pre.changes,
+    caution: lost ? `<div class="rvw-warn">
+        <b>${lost} unpublished draft change${lost === 1 ? '' : 's'} will be discarded</b>
+        ${pre.discards.map(pubChangeLine).join('')}
+      </div>` : '',
+    okLabel: `Restore — on air as v${pre.nextVersion}`,
+    cancelLabel: 'Cancel',
     danger: lost > 0,
+    withNote: true,
+    notePlaceholder: 'Why you went back — optional, kept with the version',
   });
-  if (!ok) return;
+  if (!res) return;
   try {
-    const r = await API.restoreVersion(PUB.kind, PUB.id, v);
-    toast(`v${v} restored — live as v${r.version.v}`);
+    const r = await API.restoreVersion(PUB.kind, PUB.id, v, res.note);
+    toast(`Restored · v${r.version.v}`);
     // The draft followed the restore, so the editor is re-read, never patched.
     if (typeof PUB.onRestored === 'function') PUB.onRestored();
   } catch (e) {
@@ -237,8 +308,38 @@ async function restoreClicked(v) {
 }
 
 async function pubReload() {
-  const onRestored = PUB.onRestored;
+  const { onRestored, dirty, saveNow } = PUB;
   await loadPublish(PUB.kind, PUB.id, PUB.name);
-  PUB.onRestored = onRestored;
+  Object.assign(PUB, { onRestored, dirty, saveNow });
   FORM.rerender();
+}
+
+
+// ---------- TAKE OFF AIR (7 Sep, UAT P2) ----------
+// The publish plane always had unpublish; nothing in the UI reached it, so a live
+// integration could never be deleted — Delete just kept saying "take it off air first".
+// It is the inverse of Publish, so it lives here, behind a confirm that names the
+// consequence: the player stops being served, the draft and every version stay.
+// RENAMED 8 Sep (user call): the ACT is *Deactivate* — the word an operator looks for
+// when they want something to stop. The STATE it leaves is still `Off air`, which is
+// this app's own word for it everywhere it is read back (the status chip, the version
+// rail's "Taken off air", the delete refusal). Act and state, two words, on purpose.
+async function takeOffAirClicked(kind, id, name) {
+  const ok = await ask({
+    title: `Deactivate “${name}”?`,
+    body: kind === 'key'
+      ? 'The player stops being served for this surface. Its draft and every version stay — Publish puts it back.'
+      : 'Every break filling from it stops being served. Its draft and every version stay — Publish puts it back.',
+    okLabel: 'Deactivate',
+    danger: true,
+  });
+  if (!ok) return;
+  try {
+    await API.unpublish(kind, id);
+    await pubReload();
+    toast('Deactivated');
+  } catch (e) {
+    // The seam refuses a setup still feeding a live surface, and names it.
+    toast(e.message, 'bad');
+  }
 }

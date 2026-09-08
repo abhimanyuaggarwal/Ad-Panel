@@ -3,3 +3,6 @@ node_modules/
 .DS_Store
 shots/
 err.mjs
+# Office lock files (docs/~$FAQ.docx and the like)
+~$*
+test/snapshots/

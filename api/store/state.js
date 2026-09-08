@@ -1,9 +1,8 @@
-// store/state.js — the in-memory maps, the vocabulary constants, deterministic ids, and reset.
-// Split from store.js (3 Sep, docs/STORE-SPLIT.md): a MOVE, not a rewrite — units
-// relocated whole, bodies untouched. store.js re-exports everything, so the HTTP
-// surface, the tests and the mock world see the exact same module they always did.
-
-// panel/api/store.js — in-memory state + rules for the Integrations Panel.
+// store/state.js — the in-memory maps, the VOCABULARY (every enum, cap and seller-facing
+// word the model uses), deterministic ids, the Refusal error, and reset.
+//
+// Every other store module imports from here and this file imports from nothing, so it
+// is the one place a new enum value or cap is added.
 //
 // TWO ROOMS (24 Aug rework, AD-SETUP-SCOPE.md). The one rule, in three parts:
 //   AD OPS supply WHAT can fill    — the Ad Setup (ladders of tags), their own room
@@ -49,14 +48,13 @@ export const MIDROLL_MODES = ['cuepoints', 'interval'];
 // whether a banner may only end the break or sit anywhere in it. The budget pair
 // (breakSec/overrun) was cut 31 Aug with the squeeze-back — see DEAD_BEHAVIOUR_FIELDS.
 export const POD_NEXT_AD = ['top', 'next'];
-export const POD_BANNER = ['last', 'any'];
 // `status` (active/paused) is GONE (27 Aug, user call). It was the one field that
 // reached a viewer without going through the publish plane, and everything it did is
 // what Unpublish does — see THE PUBLISH PLANE at the foot of this file. A payload still
 // carrying it is refused by name.
 
 // THE SQUEEZE-BACK IS GONE (31 Aug, user call). A banner over playing content is a
-// break's display fallback (a rung); the idle player's rotation is Out-stream. The
+// rung of the break's waterfall; the idle player's rotation is Out-stream. The
 // slot is removed, not hidden — a payload still carrying one is refused by name.
 export const SLOT_TYPES = ['preroll', 'midroll', 'postroll', 'outstream'];
 // Every tag is either a video tag or a display tag; the family decides what fits where.
@@ -85,7 +83,7 @@ export const AD_UNIT_EXAMPLE = '/7176/toi/mweb/videoshow/preroll';
 // FOUR ad slots (user call, 20 Aug). The separate `display` slot is gone: a display ad is
 // not a placement of its own, it is what a break falls back to — so a display tag is a
 // RUNG inside pre/mid/post, at any position. The squeeze-back slot (once `lband`) was
-// REMOVED 31 Aug (user call): a banner over playing content is a break's fallback rung,
+// REMOVED 31 Aug (user call): a banner over playing content is a waterfall rung,
 // and the idle player's rotation is Out-stream.
 export const SLOT_FAMILY = {
   preroll: 'video', midroll: 'video', postroll: 'video',
@@ -103,6 +101,13 @@ export const SLOT_ALSO_TAKES = { preroll: 'display', midroll: 'display', postrol
 export const SLOT_KIND = {
   preroll: 'ladder', midroll: 'ladder', postroll: 'ladder',
   outstream: 'rotation',
+};
+// The slot in seller words — a raw key never reaches a message (7 Sep, user call:
+// "Shorts feed: midroll …" in a receipt read as engineering). Capitalized like the
+// client's labels for wheres/headings; `.toLowerCase()` mid-sentence.
+export const SLOT_WORD = {
+  preroll: 'Pre-roll', midroll: 'Mid-roll', postroll: 'Post-roll',
+  outstream: 'Out-stream',
 };
 // WHERE ON THE PAGE a banner the panel serves lands (31 Aug, AD-JSON-SCOPE). A fixed
 // vocabulary from the player team — a typed position is a dark ad nobody discovers
@@ -126,6 +131,33 @@ export const MAX_SECTIONS = 5;
 export const MAX_RUNGS = 10; // 1 primary + 9 waterfall rungs (user call, 25 Aug — was 4)
 // A full pass down the ladder asks this many servers in a row — past this the player visibly stalls.
 export const WORST_CASE_WARN_MS = 6000;
+
+// The words a refusal uses for a behaviour field — the UI's labels, not its keys.
+export const FIELD_WORDS = {
+  start: 'when the pre-roll plays', deferSec: 'the pre-roll delay',
+  wait: 'when the video starts', waitMs: 'the viewer wait',
+  mode: 'how mid-roll breaks fall', cuepoints: 'the break positions',
+  firstAt: 'the first break', every: 'the break interval',
+  podAds: 'the target impressions count',
+  nextAd: 'where the next ad comes from',
+  tagTimeoutMs: 'how long each tag waits',
+  ask: 'the ad partners', tries: 'the waterfall depth', direct: 'special campaigns',
+  times: 'the show times', hold: 'the hold',
+  refresh: 'the rotation', perSession: 'how many a session',
+  fillTimeoutSec: 'when the break gives up',
+  hideOnInStream: 'hiding during video ads',
+  displaySlot: 'the display slot', pause: 'whether content pauses',
+  showAfterSec: 'the request delay', closeAfterSec: 'when its close button appears',
+  hideAfterSec: 'when it hides',
+  // The player's own five (7 Sep, UAT P2 — these printed their JSON key at people).
+  passiveVolume: 'Passive volume', autoplay: 'Autoplay behaviour',
+  playbackMode: 'Player type', playback: 'Playback mode',
+  expandInMini: 'Expand MiniTV for ads', redirectUrl: 'Redirect URL',
+  name: 'Name', domains: 'Domains', packageName: 'Package name',
+};
+
+// The UI's word for a behaviour field, so a refusal from any surface reads the same.
+export function fieldWord(f) { return FIELD_WORDS[f] || f; }
 
 export const state = {
   keys: new Map(),

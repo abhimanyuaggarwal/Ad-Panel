@@ -56,7 +56,30 @@ function applyServerErrors(err) {
   }
   FORM.rerender();
   const first = (err.errors || [])[0];
-  toast(first ? first.message : err.message, 'bad');
+  // Silent when the result is visible in place (toast policy, 7 Sep): a refusal that
+  // landed in its field is not said twice. The pill speaks only for what has no field.
+  const placed = first && first.field
+    && document.querySelector(`[data-field="${first.field}"].err, [data-err-for="${first.field}"]`);
+  if (!placed) toast(first ? first.message : err.message, 'bad');
+}
+
+// ---------- WHAT THIS SESSION TOUCHED (7 Sep, user call) ----------
+// Every key changed since the last save wears a quiet background tint, in both
+// editors — figure-ground, never weight, cleared naturally by Save (the rail's
+// pending block then owns the saved-vs-air story). `FORM.saved` is the baseline each
+// editor sets at load and after every save; a create page has none, so nothing tints.
+function chgIf(cond) { return cond ? ' chg' : ''; }
+
+// The generic pass: any control wrapped in a `data-field` div (name, domains, the
+// player's own fields via dot paths) is compared straight against the baseline.
+function paintChg() {
+  if (typeof FORM === 'undefined' || !FORM || !FORM.saved) return;
+  const get = (o, path) => path.split('.').reduce((x, k) => (x == null ? x : x[k]), o);
+  document.querySelectorAll('#main [data-field]').forEach(el => {
+    const f = el.dataset.field;
+    el.classList.toggle('chg',
+      JSON.stringify(get(FORM.data, f) ?? null) !== JSON.stringify(get(FORM.saved, f) ?? null));
+  });
 }
 
 function fieldHtml(labelText, inner, opts = {}) {
@@ -71,21 +94,12 @@ function fieldHtml(labelText, inner, opts = {}) {
 }
 
 
-// ---------- segmented enum ----------
-
-
-
-
-// ---------- toggle ----------
-
-
-
-
 // ---------- text + number ----------
 
 function textInput(el, field) {
   FORM.data[field] = el.value;
   clearErr(field);
+  paintChg();
 }
 
 
@@ -146,10 +160,6 @@ function removeChip(field, i) {
   repaintChips(field, true);
 }
 
-// ---------- attach picker (radio cards) ----------
-
-
-
 // ---------- custom select (our own, never native) ----------
 
 let SELECT_SEQ = 0;
@@ -201,8 +211,8 @@ document.addEventListener('click', e => {
   if (!e.target.closest('.fpill')) {
     document.querySelectorAll('.fpill.open').forEach(m => m.classList.remove('open'));
   }
-  if (!e.target.closest('.pswitch')) {
-    document.getElementById('prop-global')?.classList.remove('open');
+  if (!e.target.closest('.me')) {
+    document.getElementById('me')?.classList.remove('open');
   }
 });
 
@@ -263,8 +273,7 @@ function lookupGamRowHtml(id, gam) {
     </div>`;
   }
   return `
-    <div class="lk-sync" onmousedown="lookupGamSync(event, '${id}')"
-      title="Pulls newly trafficked ad units from GAM — takes 10–20 seconds; you can keep working">
+    <div class="lk-sync" onmousedown="lookupGamSync(event, '${id}')">
       ${GAM_SYNC_ICON}
       <div><div class="lk-sync-t">Sync ad units from GAM</div>
         <div class="lk-sync-m">${gam.lastSync ? `directory synced ${esc(relWhen(gam.lastSync))}` : 'directory not synced yet'}</div></div>
@@ -278,7 +287,7 @@ async function lookupGamSync(e, id) {
   lookupInput(id); // repaint in place: the action row becomes the progress line
   try {
     const { added } = await API.gamSync();
-    toast(added ? `${added} new ad unit${added > 1 ? 's' : ''} pulled from GAM` : 'GAM is up to date — nothing new');
+    toast(added ? `${added} new ad unit${added > 1 ? 's' : ''}` : 'Nothing new');
   } catch (err) {
     toast(err.message, 'bad');
   } finally {
@@ -324,7 +333,7 @@ function lookupHtml(opts) {
             onmousedown="lookupPick2(event, '${id}', '${esc(o.v)}')">${esc(o.label)}</div>`).join('')}</div>` : ''}
     </span>` : '';
   return `
-    <div class="lookup ${opts.wide ? 'wide' : ''} ${pre ? 'has-pre' : ''}" id="${id}">
+    <div class="lookup ${opts.wide ? 'wide' : ''} ${pre ? 'has-pre' : ''}" id="${id}"${opts.quiet ? ' data-quiet="1"' : ''}>
       ${pre}
       <input value="${esc(opts.value || '')}" placeholder="${esc(opts.placeholder || 'type to search…')}"
         oninput="lookupInput('${id}')" onfocus="lookupFocus('${id}')"
@@ -367,12 +376,25 @@ function lookupScope(e, id, v) {
   lookupInput(id);
 }
 
-// Focusing a field opens its menu — except when the screen focused it for you. Landing
-// on a form with a full-height menu already covering it is not a head start.
+// Focusing a field opens its menu — except when it is marked QUIET. Two callers want
+// that: a screen that focused the field for you (landing on a form with a full-height
+// menu already covering it is not a head start), and a field that ALREADY HOLDS its
+// answer (7 Sep — an ad unit's name field, whose focus now opens that unit's settings:
+// covering them with a one-row menu naming the unit you already picked is noise, not
+// help). Quiet costs nothing: the value is still selected, so typing replaces it and
+// the menu opens on the first keystroke, and a second click opens it outright.
 function lookupFocus(id) {
   const box = document.getElementById(id);
   if (!box) return;
-  if (box.dataset.quiet) { delete box.dataset.quiet; return; }
+  if (box.dataset.quiet) {
+    delete box.dataset.quiet;
+    // The click that CAUSED this focus must not reopen what focus just declined to
+    // open; a later click (or a Tab that never clicks) is a real ask. Stamped rather
+    // than flagged, so a keyboard landing never swallows the next click.
+    box.dataset.quietAt = String(Date.now());
+    box.querySelector('input').select();
+    return;
+  }
   box.querySelector('input').select();
   lookupInput(id);
 }
@@ -383,6 +405,10 @@ function lookupOpen(id) {
   const box = document.getElementById(id);
   const menu = box?.querySelector('.lk-menu');
   if (!menu || menu.classList.contains('open')) return;
+  if (box.dataset.quietAt && Date.now() - Number(box.dataset.quietAt) < 500) {
+    delete box.dataset.quietAt;
+    return;
+  }
   lookupInput(id);
 }
 
@@ -501,6 +527,22 @@ function dragEnd() {
     .forEach(el => el.classList.remove('dragging', 'drop-above', 'drop-below'));
 }
 
+// ---------- ONE BREAK-CHIP ROW, THREE SCREENS (both lists + the placements glimpse) ----------
+// Every slot type in meta order, with a split drawn where the family changes. The caller
+// says only how its own chip reads; the walk and the split rule live here once.
+
+function slotChipRowHtml(chipClass) {
+  let last = null;
+  const out = [];
+  for (const t of KL_META.slotTypes) {
+    const fam = slotFamily(t);
+    if (last && fam !== last) out.push('<span class="uchip-split"></span>');
+    last = fam;
+    out.push(`<span class="uchip ${chipClass(t)}">${esc(label('slotShort', t))}</span>`);
+  }
+  return `<span class="uchips">${out.join('')}</span>`;
+}
+
 // ---------- diff (drives the confirm dialog) ----------
 
 function formDiff(original, data, fields) {
@@ -537,9 +579,9 @@ const jsLit = v => (typeof v === 'string' ? `'${v}'` : v);
  * @param {string} [why] title text
  * @returns {string} html
  */
-function accRow(l, c, why) {
+function accRow(l, c, why, changed) {
   return `
-    <div class="lr rule"${why ? ` title="${esc(why)}"` : ''}>
+    <div class="lr rule${chgIf(changed)}"${why ? ` title="${esc(why)}"` : ''}>
       <span class="lr-grip ghost"></span>
       <span class="lr-l">${esc(l)}</span>
       <span class="lr-ctl form">${c}</span>
@@ -554,21 +596,30 @@ function accRow(l, c, why) {
  * @param {*[]} opts                  option values
  * @param {string[]} labels           same order as opts
  * @param {(o: *) => string} click    builds the onclick code string
- * @param {string} [why]              disables the control, reason on hover
+ * @param {string} [why]              disables the WHOLE control, reason on hover
+ * @param {(o: *) => string} [whyFor]  disables ONE option, reason on hover (7 Sep, user
+ *   review — a seg whose other answer is merely unavailable used to grey whole, which
+ *   dimmed the live answer too and read as "nothing is chosen". The refused option now
+ *   greys where it sits with its reason, the house rule everywhere else on the page.)
  * @returns {string} html
  */
-function accSeg(cur, opts, labels, click, why) {
-  return `<div class="seg small${why ? ' off' : ''}"${why ? ` title="${esc(why)}"` : ''}>${opts.map((o, ix) =>
-    `<button type="button"${why ? ' disabled' : ''} class="${String(cur) === String(o) ? 'on' : ''}"${why ? '' : ` onclick="${click(o)}"`}>${esc(labels[ix])}</button>`).join('')}</div>`;
+function accSeg(cur, opts, labels, click, why, whyFor) {
+  const per = o => (why ? '' : (whyFor && whyFor(o)) || '');
+  return `<div class="seg small${why ? ' off' : ''}"${why ? ` title="${esc(why)}"` : ''}>${opts.map((o, ix) => {
+    const dead = why || per(o);
+    return `<button type="button"${dead ? ' disabled' : ''}${per(o) ? ` title="${esc(per(o))}"` : ''} class="${String(cur) === String(o) ? 'on' : ''}"${dead ? '' : ` onclick="${click(o)}"`}>${esc(labels[ix])}</button>`;
+  }).join('')}</div>`;
 }
 
 
 
 // ---------- ONE BREAK, ONE FIXED LIST OF ROWS (25 Aug night, user call) ----------
-// `a.only` (an array of field names) narrows the rows to the ones the caller may set —
-// the integration passes the locally-overridable set, the ops editor passes nothing and
-// gets all of them. `a.local(f)` decorates a row the caller has overridden. ONE renderer,
-// both rooms, so the two never drift into looking like different products.
+// `a` is the adapter the caller supplies (see suBhvAdapter in views-setups-editor.js):
+//   a.v(f) / a.tv(f) / a.tvSec(f)   the value, its typed text, its text in seconds
+//   a.set(f, o) / a.num(f) / a.numSec(f) / a.text(f)   inline-handler STRINGS for writes
+//   a.dirty(f)                       changed since the last save (tints the row)
+//   a.differs(f), a.differsWord      set differently on another placement (the marker)
+//   a.rungCount()                    live rungs, for the counted timeout note
 //
 // THE LAYOUT IS FIXED BY BREAK TYPE AND NEVER BY A VALUE. A mid-roll has no "plays at
 // start" — that is what the break IS, and it is stable. But a control that merely cannot
@@ -578,17 +629,13 @@ function accSeg(cur, opts, labels, click, why) {
 // call — four different reveal grammars had grown around one idea, and one of them was
 // hiding a live control (see `Break lasts` below).
 function behaviourRowsHtml(t, a) {
-  const shows = f => !a.only || a.only.includes(f);
   // `why` non-empty = this control cannot apply right now. It greys, it does not go.
-  const row = (key, l, c, why, hint) => (shows(key) ? `
-    <div class="lr rule ${a.local && a.local(key) ? 'bent' : ''} ${why ? 'dim' : ''} ${a.pick && !a.picked(key) ? 'idle' : ''}"${why || hint ? ` title="${esc(why || hint)}"` : ''}>
-      ${a.pick
-        ? `<span class="tickbox ${a.picked(key) ? 'on' : ''}" onclick="${a.pick(key)}"
-            title="${a.picked(key) ? 'This one will be set on the picked sections' : 'Leave as it is'}">${a.picked(key) ? '✓' : ''}</span>`
-        : '<span class="lr-grip ghost"></span>'}
+  const row = (key, l, c, why) => `
+    <div class="lr rule ${why ? 'dim' : ''}${chgIf(a.dirty && a.dirty(key))}"${why ? ` title="${esc(why)}"` : ''}>
+      <span class="lr-grip ghost"></span>
       <span class="lr-l">${esc(l)}${a.differs && a.differs(key) ? `<i class="bdot" title="${esc(a.differsWord || 'Set differently elsewhere')}"></i>` : ''}</span>
-      <span class="lr-ctl form">${c}${a.localChip && !why ? a.localChip(key) : ''}</span>
-    </div>` : '');
+      <span class="lr-ctl form">${c}</span>
+    </div>`;
   const seg = (f, opts, labels, why) => `<div class="seg small${why ? ' off' : ''}">${opts.map((o, ix) =>
     `<button type="button"${why ? ' disabled' : ''} class="${String(a.v(f)) === String(o) ? 'on' : ''}"${why ? '' : ` onclick="${a.set(f, o)}"`}>${esc(labels[ix])}</button>`).join('')}</div>`;
   const mix = f => (a.v(f) === undefined ? 'mixed' : '');
@@ -599,7 +646,6 @@ function behaviourRowsHtml(t, a) {
   const text = (f, ph, why) => `<span class="rule-text${why ? ' off' : ''}"><input type="text" value="${esc(a.tv(f))}" placeholder="${esc(mix(f) || ph)}"${why ? ' disabled' : ''} oninput="${a.text(f)}"></span>`;
   const note = (s, why) => `<span class="podl${why ? ' off' : ''}">${esc(s)}</span>`;
   const rj = (s, why) => `<span class="rj${why ? ' off' : ''}">${esc(s)}</span>`;
-  const mixed = f => (a.mixed ? a.mixed(f) : '');
   const pods = Number(a.v('podAds')) || 1;
   // The one thing a break plays more than one ad for. Two of the four fields that used
   // to hide behind it are NOT pod-only, so only these two grey out.
@@ -611,14 +657,12 @@ function behaviourRowsHtml(t, a) {
   const whenPre = () => {
     const off = a.v('start') !== 'deferred' ? 'Only when the pre-roll is deferred' : '';
     return row('start', 'Start offset', `${seg('start', ['start', 'deferred'], ['Immediate', 'Delayed'])}
-      ${rj('by', off)}${num('deferSec', 'sec', off)}${mixed('start')}`, '',
-      'When the pre-roll plays — immediately, or a set number of seconds in (JSON: init)');
+      ${rj('by', off)}${num('deferSec', 'sec', off)}`);
   };
   const videoStarts = () => {
     const off = a.v('wait') !== 'timed' ? 'Only when the video waits a set time for the ad' : '';
     return row('wait', 'Hold video for the ad', `${seg('wait', KL_META.prerollWaits, KL_META.prerollWaits.map(w => label('wait', w)))}
-      ${numSec('waitMs', off)}${mixed('wait')}`, '',
-      'How long the video is held back waiting for the pre-roll before it starts anyway (JSON: maxWait)');
+      ${numSec('waitMs', off)}`);
   };
   // The pre-roll's head start (the JSON's minPreRenderTime): at least this much video
   // plays before the ad may render — nothing ever covers the first frame.
@@ -628,8 +672,7 @@ function behaviourRowsHtml(t, a) {
     const held = a.v('wait') !== 'immediate';
     const why = held ? 'The video is held for the ad, so nothing plays before it — set “Hold video for the ad” to No hold' : '';
     return row('minContentSec', 'Min content playback',
-      `${num('minContentSec', 'sec', why)}${mixed('minContentSec')}${note('of video plays first', why)}`, why,
-      'At least this much video plays before the pre-roll renders — nothing covers the first frame (JSON: minPreRenderTime)');
+      `${num('minContentSec', 'sec', why)}${note('of video plays first', why)}`, why);
   };
   // Cadence is one decision in two shapes, so BOTH shapes are always on screen and the
   // unchosen one greys — where the old editor swapped one row's control type outright.
@@ -639,10 +682,9 @@ function behaviourRowsHtml(t, a) {
     // Break cap died 1 Sep (user call): a cadence runs the video out — at set positions
     // the positions are the cap. Refused by name at the door, like every cut field.
     return `
-      ${row('mode', 'Scheduling', `${seg('mode', KL_META.midrollModes, KL_META.midrollModes.map(m => label('mode', m)))}${mixed('mode')}`)}
+      ${row('mode', 'Scheduling', `${seg('mode', KL_META.midrollModes, KL_META.midrollModes.map(m => label('mode', m)))}`)}
       ${row('cuepoints', 'Cue points', text('cuepoints', '2:00, 6:00, 9:30', byPos), byPos)}
-      ${row('firstAt', 'First break offset', `${num('firstAt', 'sec', byInt)}${rj('repeat every', byInt)}${num('every', 'sec', byInt)}`, byInt,
-        'The first break, then the repeat interval (JSON: init, repeat)')}`;
+      ${row('firstAt', 'First break offset', `${num('firstAt', 'sec', byInt)}${rj('repeat every', byInt)}${num('every', 'sec', byInt)}`, byInt)}`;
   };
   // Ad audio is CUT (2 Sep, user call): how a player starts is the surface's own
   // Player config now, per placement — nothing about it left to decide on the slot.
@@ -651,17 +693,14 @@ function behaviourRowsHtml(t, a) {
   // so a 60s budget discards a 90s ad and tries the next rung on a ONE-ad break too.
   // They used to hide at `podAds = 1`, which made a live length cap unreachable.
   const takesRows = () => `
-    ${row('podAds', 'Impressions per break', `${seg('podAds', [1, 2, 3], ['1', '2', '3'])}${mixed('podAds')}`, '',
-      'Ads this one break aims to serve, back to back (JSON: impression)')}`;
+    ${row('podAds', fieldName('podAds'), `${seg('podAds', [1, 2, 3], ['1', '2', '3'])}`)}`;
   // How we go and get them: how deep, how long each try, and — once there is more than
-  // one ad — where the next comes from and where a still may sit.
+  // one ad — where the next one comes from. `Display ad position` was cut here 8 Sep:
+  // it said "position" about the pod while the unit's own `Ad placement` says it about
+  // the screen. Removed, not hidden — a payload still carrying it is refused by name.
   const fillRows = () => {
     const cfg = a.rungCount ? a.rungCount() : 0;
     const ms = Number(a.v('tagTimeoutMs')) || 0;
-    const worst = fmtMs(worstCaseMs(cfg, ms));
-    // The arithmetic moved to the row's own hover (3 Sep, user call): a sentence of
-    // sums beside a number field is noise while you are setting the number.
-    const pNote = '';
     // The unreachable tail, counted from the two numbers on screen (31 Aug).
     const fillNote = () => {
       const fill = Number(a.v('fillTimeoutSec')) || 0;
@@ -671,13 +710,10 @@ function behaviourRowsHtml(t, a) {
       return reachable < cfg ? `the last ${cfg - reachable} ${cfg - reachable === 1 ? 'try' : 'tries'} would never run` : '';
     };
     return `
-      ${t !== 'preroll' ? row('prefetchSec', 'Prefetch', `${num('prefetchSec', 'sec early')}${mixed('prefetchSec')}`, '',
-        'The break\u2019s first ad is fetched this early, so the break opens with something in hand (JSON: prefetch)') : ''}
-      ${row('tagTimeoutMs', 'Request timeout', `${numSec('tagTimeoutMs')}${mixed('tagTimeoutMs')}${note(pNote)}`, '', `How long one tag may take before the next is tried (JSON: timeout)${cfg ? ` — ${cfg} × ${fmtMs(ms)}, up to ${worst} to fill` : ''}`)}
-      ${row('fillTimeoutSec', 'Total timeout', `${num('fillTimeoutSec', 'sec')}${mixed('fillTimeoutSec')}${note(fillNote())}`, '',
-        'A cap on the whole ladder\'s asking — once spent, the break gives up and the video plays (JSON: totalTimeout)')}
-      ${row('nextAd', 'Pod fill order', seg('nextAd', KL_META.podNextAds, KL_META.podNextAds.map(x => label('podNextAd', x)), podOnly), podOnly, podWalkNote(a.v('nextAd')))}
-      ${row('podBanner', 'Display ad position', seg('podBanner', KL_META.podBanners, KL_META.podBanners.map(x => label('podBanner', x)), podOnly), podOnly, 'One display ad per pod')}`;
+      ${t !== 'preroll' ? row('prefetchSec', 'Prefetch', `${num('prefetchSec', 'sec early')}`) : ''}
+      ${row('tagTimeoutMs', 'Request timeout', `${numSec('tagTimeoutMs')}${note('')}`)}
+      ${row('fillTimeoutSec', 'Total timeout', `${num('fillTimeoutSec', 'sec')}${note(fillNote())}`)}
+      ${row('nextAd', fieldName('nextAd'), seg('nextAd', KL_META.podNextAds, KL_META.podNextAds.map(x => label('podNextAd', x)), podOnly), podOnly)}`;
   };
 
   // A BREATH BETWEEN CLUSTERS (31 Aug, design pass): the order is unchanged — when it
@@ -695,14 +731,37 @@ function behaviourRowsHtml(t, a) {
   // Out-stream: banners while nothing plays. Its show times are its own schedule, and
   // one switch of its own — whether it steps aside while a video ad has the screen.
   return `
-    ${row('times', 'Schedule', `${text('times', '8:00, 16:00')}${mixed('times')}`, '',
-      'The moments a banner shows (JSON: init, repeat — as one list)')}
-    ${row('hold', 'Display duration', `${num('hold', 'sec')}${mixed('hold')}`)}
-    ${row('perSession', 'Impression cap', `${num('perSession', '/session')}${mixed('perSession')}`, '',
-      'The most banners a session may show (JSON: totalImpression)')}
+    ${row('times', 'Schedule', `${text('times', '8:00, 16:00')}`)}
+    ${row('hold', 'Display duration', `${num('hold', 'sec')}`)}
+    ${row('perSession', 'Impression cap', `${num('perSession', '/session')}`)}
     ${row('hideOnInStream', 'Hide during in-stream',
-      seg('hideOnInStream', [true, false], ['Hide it', 'Keep showing']), '',
-      'An out-stream banner fills the idle player — when an in-stream ad takes the screen it steps aside (JSON: hideOnInStream)')}
-    ${row('tagTimeoutMs', 'Request timeout', `${numSec('tagTimeoutMs')}${note(cfg ? `${cfg} × ${fmtMs(ms)}` : '')}`, '',
-      'How long one tag may take before the next is tried (JSON: timeout)')}`;
+      seg('hideOnInStream', [true, false], ['Hide it', 'Keep showing']))}
+    ${row('tagTimeoutMs', 'Request timeout', `${numSec('tagTimeoutMs')}${note(cfg ? `${cfg} × ${fmtMs(ms)}` : '')}`)}`;
+}
+
+
+// ---------- CARD PICKERS SEARCH ONCE THEY PASS A HANDFUL (7 Sep, UAT P1) ----------
+// The choosers and the setup map were a wall of 67 cards in the scale scenario. Above
+// eight cards a search sits over the grid and filters in place — no rerender, the caret
+// stays. Cards carry their words in data-q; the create card never hides.
+function dlgSearchHtml(n, placeholder) {
+  if (n <= 8) return '';
+  return `<input class="search dlg-search" type="search" placeholder="${esc(placeholder || 'Search…')}"
+    oninput="dlgCardsFilter(this)" aria-label="${esc(placeholder || 'Search')}">`;
+}
+function dlgCardsFilter(el) {
+  const q = (el.value || '').trim().toLowerCase();
+  const grid = el.parentElement.querySelector('.dlg-cards');
+  if (!grid) return;
+  let shown = 0;
+  grid.querySelectorAll('.dlg-card').forEach(c => {
+    if (c.classList.contains('create')) return;
+    const hit = !q || (c.dataset.q || c.textContent).toLowerCase().includes(q);
+    c.hidden = !hit;
+    if (hit) shown++;
+  });
+  let none = grid.parentElement.querySelector('.dlg-none');
+  if (!shown && q) {
+    if (!none) grid.insertAdjacentHTML('afterend', '<div class="dlg-none">Nothing matches</div>');
+  } else if (none) none.remove();
 }

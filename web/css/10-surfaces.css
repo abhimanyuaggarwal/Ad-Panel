@@ -29,11 +29,17 @@
 .card table.t-keys th:nth-child(3), .card table.t-setups th:nth-child(2) { width: 128px; }
 .card table.t-keys th:nth-child(4) { width: 13%; }
 .card table.t-keys th:nth-child(5) { width: 22%; }
-.card table.t-setups th:nth-child(3) { width: 22%; }
-/* Demand holds four fixed-width chips — a % column outgrows or clips them; Status
-   (4 Sep, the round-28 cut reversed with version + provenance) is short and fixed. */
-.card table.t-setups th:nth-child(4) { width: 190px; }
-.card table.t-keys th:nth-child(6), .card table.t-setups th:nth-child(5) { width: 118px; }
+.card table.t-setups th:nth-child(3) { width: 16%; }
+/* DEMAND TAKES THE CHIP COLUMN'S SHARE (7 Sep, user call — "listing demand and modified
+   are too close to each other"). It was a fixed 190px holding 203px of chips, so the
+   chips overflowed their own cell padding and sat ~18px off the Modified label while
+   every other gap was ~100px — and the fix was not in Modified but in the two columns
+   either side: Integration was spending 305px on 147px of names. Demand now takes the
+   SAME 22% share as the keys list's Active breaks — identical chips, identical share,
+   so the two lists breathe alike — and Integration takes the 16% its longest name
+   actually needs (measured 147px; 16% never falls under it from 1200px up). */
+.card table.t-setups th:nth-child(4) { width: 22%; }
+.card table.t-keys th:nth-child(6), .card table.t-setups th:nth-child(5) { width: 190px; } /* Modified (swapped with Status, 6 Sep) — Status closes the row on the slack */
 .card table.t-keys th:last-child, .card table.t-setups th:last-child,
 .card table.t-keys td:last-child, .card table.t-setups td:last-child { text-align: right; }
 
@@ -85,9 +91,8 @@
 /* ---------- PODS, ROW FACTS AND THE TEMPLATE FORM (3 Sep) ---------- */
 /* The pods strip stands even at one pod — that is what makes "everything is in pod 1"
    visible — and it scopes every zone under it, so it spans the slot's full width. */
-/* PODS sits in the zone gutter, so it lines up with DIRECT and INDIRECT under it. */
+/* The pod strip wears the placements strip's exact grammar (6 Sep, user call). */
 .pod-tabs { margin: 2px 0 10px; padding-left: 0; }
-.pod-tabs .scope-eyebrow { padding-right: 10px; }
 
 
 /* The template form: the name takes the row, the provider is a fixed narrow column, and
@@ -187,75 +192,247 @@
 .pl-tabs { margin-top: 0; }
 .pl-tabs .stab:first-child { margin-left: 0; }
 
-/* ---------- UNIT SETTINGS, BELOW THE FOLD (3 Sep, user call — settled) ---------- */
-/* The door is a GEAR that shows itself when the row is yours — hover, or the caret in
-   the unit's field — and stays lit while its panel is open. Same reveal the remove ✕
-   beside it has always used, so the row's two actions arrive together. */
-.unit-settings {
-  border: 0; background: none; cursor: pointer; flex: none;
+/* ---------- THE AD UNIT IS ONE BLOCK (7 Sep, user call) ---------- */
+/* "The ad unit and its read only settings have to be treated as a single block — it
+   needs to feel as a single block, and once the settings are opened it should be
+   aligned with the ad unit." Three cuts got us here and each one was a row plus strays:
+   a gear-doored panel (3 Sep), a fact line under the row (4 Sep), and a panel that ran
+   60px PAST the unit's right edge into the row's own `⋯` gutter. All three are now TIERS
+   OF ONE SHAPE, and the shape inherits nothing from the page it sits on.
+   RE-CUT on review (same day — "the one block can be improved … easy on the eyes and on
+   the page does not feel cluttered"). The first shape was an OUTLINED WHITE CARD with a
+   tinted, hairline-topped footer: on a nine-unit ladder that is nine outlines plus
+   eighteen internal hairlines on a card that already has borders and zone rules — every
+   unit shouting its own edges. Inverted: the block is now one SOFT TINTED SURFACE with
+   no outline and no internal divider, and the unit's field is the one WHITE thing on it.
+   Figure and ground do the work the hairlines were doing, the ad unit's name is the
+   brightest thing in its own block, and a ladder reads as a stack of soft shapes.
+   `.ad-unit`, not `.unit`: that name is already the suffix inside a number+unit field
+   (`<span class="unit">sec</span>`) and a dialog section's spacer. */
+/* CALM, NOT CLUTTERED (8 Sep, user call — *"the background colour of the ad unit is quite
+   distracting and cluttery feeling; make it easy on the eyes, maybe 2–3% black, very light
+   and calm, and an outline that too light and calm"*). The block wore `#eff2f7` — a ~5%
+   BLUE-grey. Two problems compound on a nine-unit ladder: it is a hue (it reads as a
+   state, like the accent-soft `wants` row two lines up), and at 5% each block is a
+   distinctly darker slab, so nine of them are nine slabs stacked on a white card.
+   TONED AGAIN, TO NOTHING (same day, user call — *"tone down the background more, it is
+   still visually distracting when seeing too many ad units on screen"*). Even 2.4% of a
+   neutral black is a fill, and a fill REPEATS: one block is calm, ten stacked are ten
+   grey bands the eye counts on its way to the name it wants. So at rest there is NO
+   FILL — the block is the page, and a ~4.5% hairline is the whole of it. The fill is
+   what the block does when TOUCHED (hover) or OPENED, which is the only time it has
+   something to say. The ring is an inset shadow, not a border, so the block's box does
+   not grow and `--unit-x` keeps meaning what it measures.
+   The trade is the exact opposite of the 7 Sep cut (which dropped the outline because
+   the fill was heavy enough to carry the shape): with no fill at all, the outline is
+   the only thing that says "one unit" — and one hairline per block is cheaper to the
+   eye than one band per block, because hairlines do not stack into a texture. */
+/* TWO COLUMNS, AND THE RAIL IS CENTRED (8 Sep, user call — *"the drag & drop icon, the
+   count nos and the switch should be vertically aligned for the ad unit card; currently
+   it is on top, it should be vertically in the middle so that the card feels as one"*).
+   Those three answer for the WHOLE unit — its order, its position, whether it serves —
+   but they were the first three cells of the HEAD ROW, so on a two-tier block they sat
+   at the top, level with one of the two tiers they govern, and the card read as a row
+   with something hanging under it. The block is a two-column GRID now: the `.unit-rail`
+   in column 1 spanning every row, so it centres against the block's whole height, and
+   the three tiers stacked in column 2.
+   WHILE THE FOLD IS OPEN the rail spans the HEAD ROW ONLY (`grid-row: 1`) and centres on
+   that — against a 250px settings panel it would strand the switch beside `Ad placement`,
+   four rows from the unit it switches. The grid is what makes that exact without a magic
+   number: the rail's area IS the head row's row, so `align-self: center` lands it on the
+   field's own centre line whatever the field's height turns out to be.
+   This retires `--unit-x`: the fact line and the settings hang off the BODY, so the x
+   they share with the unit's field is structural, not a measured 90px that any change to
+   a gap could silently invalidate. */
+.ad-unit {
+  --unit-ring: inset 0 0 0 1px rgba(19, 27, 46, .045);
+  display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto;
+  align-items: center; column-gap: 7px;
+  background: transparent; border-radius: 10px;
+  box-shadow: var(--unit-ring);
+  transition: background .12s, box-shadow .12s;
+}
+/* Column 1, every row — the leading group stands beside the whole card. */
+.unit-rail { grid-column: 1; grid-row: 1 / -1; display: flex; align-items: center; padding-left: 2px; }
+/* The position sits ON the handle (8 Sep, user call — *"remove the space between the drag
+   and the number, maybe the number can be centre aligned"*): no gap between those two at
+   all, and the switch keeps the row's own 7px. */
+.unit-rail .toggle { margin-left: 7px; }
+/* Column 2: the head row, then whichever lower tier is showing. */
+.ad-unit > .rung-row { grid-column: 2; grid-row: 1; }
+.ad-unit-facts, .ad-unit-panel { grid-column: 2; grid-row: 2; }
+/* Open: the rail's area narrows to the head row, so it centres on the field, not on the
+   settings panel it does not belong to. */
+.ad-unit.open .unit-rail { grid-row: 1; }
+/* The fill is a RESPONSE, not a resting state: ~3% under the pointer, a shade less while
+   the fold is open (that one wears a firmer hairline instead, because it stays). */
+.ad-unit:hover { background: rgba(19, 27, 46, .03); }
+.ad-unit.open {
+  background: rgba(19, 27, 46, .024); box-shadow: inset 0 0 0 1px rgba(19, 27, 46, .075);
+}
+/* The ✕ answers the whole block's hover now, not one row inside it. */
+.ad-unit:hover .rung-acts, .ad-unit:focus-within .rung-acts { opacity: 1; }
+.ad-unit.off { opacity: .6; }
+.ad-unit.dragging { opacity: .45; }
+/* The drop line replaces the fill's own ring, so it carries it (one box-shadow property). */
+.ad-unit.drop-above { box-shadow: inset 0 2px 0 0 var(--accent), var(--unit-ring); }
+.ad-unit.drop-below { box-shadow: inset 0 -2px 0 0 var(--accent), var(--unit-ring); }
+/* A pending change marks the whole unit — the fact that moved may be in either tier.
+   Inside the block's own edge: the tint it used to wear was the hover colour. */
+.ad-unit.chg::before { left: 0; top: 0; bottom: 0; border-radius: 10px 0 0 10px; }
+/* The rung someone was sent here to fill. */
+.ad-unit.wants { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+
+/* THE HEAD ROW: handle · position · switch · the unit itself · caret · ✕. Tight gaps and
+   a narrow position column, because the 42px of void between the handle and the unit's
+   field was the whole of the "move the ad unit a bit to the left" call. */
+.ad-unit .rung-row { gap: 7px; padding: 5px 6px 5px 0; min-height: 36px; }
+/* The digit is CENTRED in its own column, flush against the handle — the two read as one
+   leading group instead of a number floating between two gaps. */
+.ad-unit .rung-n { text-align: center; }
+/* THE FIELD IS THE FIGURE: white on the block's tint. At 2.5% the ground is nearly white,
+   so the field can no longer float bare on it — it wears the block's own hairline at rest
+   (it is an input; it has to look typeable) and the accent only where the caret is. */
+.ad-unit .lookup.has-pre {
+  background: #fff; border: 1px solid rgba(19, 27, 46, .07); border-radius: 8px; box-shadow: none;
+}
+.ad-unit .lookup.has-pre:hover { border-color: #dfe4ee; box-shadow: none; }
+.ad-unit .lookup.has-pre:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+.ad-unit .lk-pre { background: transparent; border-radius: 0; padding-left: 8px; }
+.ad-unit .lookup input { padding: 7px 4px 7px 10px; }
+
+/* A REAL HANDLE (7 Sep, user call — "make the drag and drop more prominent, currently
+   it is hardly discoverable"). It was 14px at opacity 0 until the row was hovered, so
+   the one control that changes a waterfall's order was invisible to anyone who had not
+   already found it. Six drawn dots now stand at the block's leading edge and answer to
+   the pointer like a button: the order of a ladder is its most consequential fact, and
+   reordering has to look possible before it is tried. */
+.ad-unit .rung-grip {
+  opacity: 1; width: 22px; height: 26px; cursor: grab;
   display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; border-radius: 6px; color: var(--ink-faint);
-  opacity: 0; transition: opacity .12s, color .12s, background .12s;
+  border-radius: 6px; color: #a7afbf; transition: color .12s, background .12s;
 }
-.rung-row:hover .unit-settings, .rung-row:focus-within .unit-settings,
-.unit-settings:focus-visible, .unit-settings.open { opacity: 1; }
-.unit-settings:hover { background: var(--accent-soft); color: var(--accent); }
-.unit-settings.open { color: var(--accent); }
+.ad-unit:hover .rung-grip { color: #6d7789; }
+.ad-unit .rung-grip:hover { color: var(--accent); background: #fff; }
+.ad-unit .rung-grip:active { cursor: grabbing; }
 
-/* THE UNIT'S FACT LINE (4 Sep, user call — Ui/UX_Changes): row two of every ad unit.
-   Micro-labels faint and tiny, values in ink, hairline dots between pairs — the same
-   quiet weight as every fact byline in the product, indented to the unit-panel's own
-   left edge so summary and editor open on the same x. The whole line is a door to the
-   gear panel; a fact that cannot apply right now dims in place (.na), and a switched-off
-   rung dims its line whole (.dim). */
-/* Re-cut on user review (4 Sep, third pass): QUIET TINTED PAIRS. Bold values read heavy
-   and the free-flowing line ran past the ad unit's field — each fact is now a soft
-   pill (label faint, value medium ink, no separators to typeset), so prominence comes
-   from figure-ground, not weight, and the line ends where the field above it ends
-   (66px right gutter = the rows' gear/✕ gutter). Full labels stand (the second pass's
-   "complete context" call). */
-.rung-facts {
-  margin: 2px 66px 7px 126px;
-  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px;
-  cursor: pointer;
+/* THE FOLD'S STATE, AND THE WAY BACK (7 Sep, user question — "if the settings block is
+   opened how to close it?", then "I still cannot find any way to close it"). The first
+   answer was this caret as a 15px glyph plus "the head row is the toggle", and the
+   measurement is the whole story: 14×15px of pale text, and only 82px of the head row's
+   894px is not one of its own controls (the unit's field is 742px of it). A 26×26
+   BUTTON now, standing at rest, and while the fold is open it wears a WHITE surface —
+   on the block's tint that reads as a control that is pressed and can be pressed again.
+   It is a DISCLOSURE, not the gear that went: it names the fold's state, not a room. */
+.unit-chev {
+  flex: none; width: 26px; height: 26px; padding: 0; border: 0; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 7px; background: transparent; color: #98a1b3;
+  font-family: inherit; font-size: 15px; line-height: 1;
+  transition: transform .14s, color .12s, background .12s, box-shadow .12s;
 }
-.rung-facts .uf {
+.unit-chev:hover { background: #fff; color: var(--accent); }
+.unit-chev:focus-visible { background: #fff; color: var(--accent); box-shadow: 0 0 0 2px var(--ring); }
+.ad-unit.open .unit-chev {
+  transform: rotate(90deg); background: #fff; color: var(--accent);
+  box-shadow: 0 1px 2px rgba(21, 32, 54, .07);
+}
+
+/* THE LOWER TIER — the read-only facts, or the settings that edit them. Both hang off
+   the BODY's own left edge (8 Sep — `--unit-x` retired), so the summary and the editor
+   open on the same x as the unit's name for free; only
+   one of them ever shows, and the block's own ground carries both (no divider, no
+   second tint — the tier IS the block, further down). */
+.ad-unit .ad-unit-panel { display: none; }
+.ad-unit.open .ad-unit-panel { display: grid; }
+.ad-unit.open .ad-unit-facts { display: none; }
+
+/* THE FACT LINE: every fact of the unit's TYPE, fixed order, defaults included — so
+   reading a ladder never needs a fold opened per unit. Two things went with the re-cut:
+   the tinted PILLS (they were chips on a tint — two grounds saying one thing) and the
+   ragged flow. Each fact now holds a COLUMN of its own (`data-f`), so `Content pause`
+   sits at one x down the whole ladder and the repeated labels read as a column the eye
+   learns once. A fact that cannot apply right now dims in place, reason on hover. */
+.ad-unit-facts {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 2px 10px;
+  padding: 0 12px 8px 0; cursor: pointer;
+}
+.ad-unit-facts .uf {
   display: inline-flex; align-items: baseline; gap: 5px; white-space: nowrap;
-  padding: 2.5px 9px; border-radius: 6px; background: var(--bg-soft, #f4f6fa);
-  font-size: 11.5px; transition: background .12s;
+  font-size: 10.5px; min-width: 0;
 }
-.rung-facts:hover .uf { background: #ecf0f7; }
-.rung-facts .uf i { font-style: normal; font-size: 10.5px; font-weight: 400; color: var(--ink-faint); }
-.rung-facts .uf b { font-weight: 500; color: var(--ink); }
-.rung-facts .uf.na { opacity: .55; }
-.rung-facts.dim { opacity: .45; }
+.ad-unit-facts .uf i { font-style: normal; font-size: 10px; font-weight: 400; color: #98a1b3; }
+.ad-unit-facts .uf b { font-weight: 500; color: var(--ink-soft, #5a6272); }
+.ad-unit-facts:hover .uf b { color: var(--ink); }
+.ad-unit-facts .uf.na { opacity: .5; }
+/* The columns, in the order the line emits them: the four facts every unit has, then
+   the banner-only pair. Widths are the longest label + value each fact can hold. */
+.ad-unit-facts .uf[data-f="pause"] { min-width: 104px; }
+.ad-unit-facts .uf[data-f="delay"] { min-width: 106px; }
+.ad-unit-facts .uf[data-f="slot"]  { min-width: 148px; }
+.ad-unit-facts .uf[data-f="tpl"]   { min-width: 156px; }
+.ad-unit-facts .uf[data-f="close"] { min-width: 92px; }
+.ad-unit-facts .uf[data-f="hide"]  { min-width: 0; }
 
-/* The panel speaks the Delivery-settings rows' own language — a label column and one
-   control per line, one height — inside a bounded card that starts where the unit's
-   name starts. It describes ONE unit, so the label column is the permanent label the
-   table taught us values need. */
-/* Stretched to the SLOT's own right edge (4 Sep, user review): the rows stop 60px short
-   of the head line (the reserved ⋯/Clear gutter), and the panel inheriting that edge
-   read as inset — it now runs past the ad unit to where the slot's head row ends.
-   TIGHTENED (4 Sep, user review — "taken too much space"): shallower rows, compact
-   controls scoped to the panel alone, so six fields read as one sleek block instead of
-   a page of form. The page's own controls elsewhere keep their full size. */
-.unit-panel {
-  margin: 2px -60px 8px 126px; padding: 3px 14px;
-  border: 1px solid var(--line); border-radius: 10px;
-  background: var(--bg-soft, #f7f8fb);
+/* THE SETTINGS: the Delivery-settings rows' own language — a label column, one control,
+   one height — hanging off the unit's name. It describes ONE unit, so the label column
+   is the permanent label the values need.
+   TWO COLUMNS (7 Sep, user call — "easy on the eyes"): six one-per-line rows made the
+   open block 440px tall against a 100px closed one, and the whole right two-thirds of
+   it was empty — the fold shoved the rest of the ladder off screen to show six short
+   answers. Paired, it is ~250px and the pairs fall out honestly row-major: the two
+   clocks that decide WHEN, the two facts that decide WHERE and THROUGH WHAT, and (on a
+   banner) the two that decide how it leaves. The row grammar is untouched — there are
+   simply two of them per line, and one per line again when the width is not there. */
+/* `display` is set by the open/closed pair above (which outranks this rule), so the
+   grid's shape lives here and its `display: grid` lives there — together, not split. */
+.ad-unit-panel {
+  padding: 0 12px 9px 0;
+  grid-template-columns: repeat(auto-fit, minmax(316px, 372px)); column-gap: 22px;
 }
-.up-r { display: flex; align-items: center; gap: 12px; min-height: 30px; }
+.up-r { display: flex; align-items: center; gap: 12px; min-height: 28px; }
 .up-r.off { opacity: .45; }
 /* Labels not bold (4 Sep, user review) — the value and its control carry the weight. */
-.up-l { flex: 0 0 140px; font-size: 12px; font-weight: 400; color: var(--ink-soft); }
-.unit-panel .select { padding: 4px 10px; min-width: 190px; font-size: 12px; }
-.unit-panel .seg.small button { padding: 2px 8px; }
-.unit-panel .num-wrap.sm { height: 26px; width: 76px; flex-basis: 76px; }
-.unit-panel .num-wrap.sm input { height: 24px; font-size: 12px; width: 46px; }
+.up-l { flex: 0 0 124px; font-size: 11.5px; font-weight: 400; color: var(--ink-soft); }
+.ad-unit-panel .select { padding: 4px 10px; min-width: 178px; font-size: 12px; }
+.ad-unit-panel .seg.small button { padding: 2px 8px; }
+.ad-unit-panel .num-wrap.sm { height: 26px; width: 76px; flex-basis: 76px; }
+.ad-unit-panel .num-wrap.sm input { height: 24px; font-size: 12px; width: 46px; }
 .up-c { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .up-c .select { background: #fff; }
 .up-c .num-wrap { background: #fff; }
+
+/* ---------- A SWITCHED-OFF UNIT STANDS DOWN (8 Sep, user call) ---------- */
+/* "The ad unit which is disabled is technically made inactive — it should be treated in
+   an intuitive manner, i.e. maybe by tweaking the row by collapsing it and only showing
+   a sleek minimal info about it so that we can read it to enable it." The DIM was the
+   whole problem: a full three-tier block at 60% opacity spent a live unit's worth of ink
+   on a unit that serves nobody, and made the one line you actually need to read — which
+   unit is this? — the faintest on the ladder. One thin line at FULL contrast instead,
+   on a tint a shade below the live blocks so the units that serve stay the figure. */
+/* Now that a live block is also fill-free, the off line recedes by its HAIRLINE — a
+   third lighter than the live ring, which is enough to read as "standing by" in a stack
+   and nothing like the 60% dim it wore before. */
+.ad-unit.off.collapsed {
+  opacity: 1; background: transparent;
+  --unit-ring: inset 0 0 0 1px rgba(19, 27, 46, .03);
+}
+.ad-unit.off.collapsed:hover { background: rgba(19, 27, 46, .022); }
+/* The row keeps the live block's leading columns — handle, position (empty), switch — so
+   a collapsed unit's switch sits on the same x as every other unit's on the ladder. */
+.ad-unit.collapsed .rung-row { gap: 7px; padding: 2px 6px 2px 0; min-height: 28px; }
+.ad-unit.collapsed .rung-grip { height: 22px; }
+/* The minimal info: the partner, the unit's name, and the word that says why it is thin. */
+.uq { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
+.uq-name {
+  min-width: 0; font-size: 12px; color: var(--ink-soft, #5a6272);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.uq-off {
+  flex: none; font-size: 9.5px; font-weight: 700; letter-spacing: .4px;
+  text-transform: uppercase; color: var(--ink-faint);
+  background: rgba(19, 27, 46, .055); border-radius: 4px; padding: 1px 5px;
+}
 
 
 /* ---------- THE BULK SHEET IS A CLEAN SLATE (3 Sep, user call) ---------- */
@@ -264,11 +441,14 @@
 .bqf-r.closed { cursor: pointer; }
 .bqf-r.closed:hover { background: var(--bg-soft, #f7f8fb); }
 .bqf-r.closed .bqf-today { justify-self: start; }
+/* Visible at rest (7 Sep, UAT P2): hidden until hover, five levers read as five grey
+   facts beside a disabled Review button — nothing said the sheet was editable. */
 .bqf-set {
   justify-self: end; font-size: 11px; font-weight: 650; color: var(--accent);
-  opacity: 0; transition: opacity .12s; padding: 2px 4px;
+  opacity: .75; transition: opacity .12s, background .12s;
+  padding: 2px 8px; border: 1px solid var(--line); border-radius: 6px;
 }
-.bqf-r.closed:hover .bqf-set { opacity: 1; }
+.bqf-r.closed:hover .bqf-set { opacity: 1; border-color: var(--accent); background: #f3f7ff; }
 .bqf-r.open .bqf-s { display: inline-flex; align-items: center; gap: 8px; justify-self: end; }
 .bqf-r.open .bqs-x.on { opacity: .6; }
 /* A set row reads its own change back — the one-step sheet's honesty. */
@@ -290,10 +470,15 @@
    its keys, the same divider rule through both cards. The label bottom-aligns with the
    controls (each fact carries its own label above), and the rule spans the row so it
    reads as the table's rule, not a tick. */
-.dflt-t { margin-top: 4px; }
-.dflt-r { padding-bottom: 0; }
-.dflt-r .pcfg-id { align-self: stretch; align-items: flex-end; padding-bottom: 7px; }
-.dflt-id { font-size: 12px; font-weight: 650; color: var(--ink-soft); white-space: nowrap; }
+/* ROW ZERO (7 Sep, user call — the Details strip that half-aligned with this table is
+   gone; the default is a row IN it now). It reads as the row the others fork from: the
+   identity is a word, not a typed key, and the row sits on the quietest tint so the eye
+   finds it first without it shouting. */
+.pcfg-r.pcfg-dflt { background: #fbfcfe; }
+/* The identity column is a flex COLUMN (it stacks a key with its error), so the default's
+   one word needs the cross axis to line up with the key inputs under it, not centre. */
+.pcfg-dflt .pcfg-id { justify-content: center; align-items: flex-start; }
+.pcfg-dname { font-size: 12.5px; font-weight: 700; color: var(--ink); padding-left: 2px; }
 
 /* The mapped ad setup is the page's headline relationship, so it rides the TITLE ROW at
    the right edge — an eyebrow, the setup as a PROMINENT chip that opens it, the meta
@@ -313,6 +498,11 @@
 }
 .fs-setup:hover { border-color: var(--accent); box-shadow: var(--shadow-1, 0 1px 3px rgba(16,24,43,.08)); }
 .fs-setup .fs-arr { font-style: normal; font-size: 12px; opacity: .7; }
+/* Reading the setup is its own labelled act beside the chip (8 Sep) — the word, then the
+   arrow that means "elsewhere". It sits at link weight: the chip is the decision here,
+   this is the way out to another room. */
+.fs-open { display: inline-flex; align-items: center; gap: 4px; margin-left: 2px; }
+.fs-open .fs-arr { font-style: normal; font-size: 11px; }
 
 
 /* ---------- THE MAP CARD'S TWO ACTS (3 Sep, user call — second cut) ---------- */
@@ -339,3 +529,126 @@
 .sc-act.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .sc-act.primary:hover { background: var(--accent-ink, #1c4fd6); border-color: var(--accent-ink, #1c4fd6); color: #fff; }
 .sc-act:focus-visible { outline: 0; box-shadow: 0 0 0 3px var(--ring); }
+
+/* ---------- THE HEAD SECTIONS FOLD (6 Sep, user call) ---------- */
+/* Ad unit templates and the Shared waterfall rest as one counted line each — the break
+   rows' own disclosure grammar — so PLACEMENTS stays near the top of the page. */
+.shead { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 2px 0 6px; }
+.shead .pl-head { padding: 0 0 0 2px; }
+/* The counted facts sit at the RIGHT edge beside the chevron — the break rows' own
+   glimpse position and voice (6 Sep, user call: trailing the title they read as a
+   byline, not a fact column). */
+.shead-glimpse { margin-left: auto; font-size: 12px; color: var(--ink-faint); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+/* Glimpses talk in marks, not sentences (7 Sep, user call): a folded section wears a
+   quiet count chip or a badge walk; the exact story rides the hover. */
+.shead-n {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--bg-soft, #f0f2f6); color: var(--ink-soft);
+  font-size: 10.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.shead:hover .slot-chev { color: var(--accent); }
+/* Placements folded: the listing's break chips, a linked chip wearing the shared-
+   waterfall's own blue so "follows the head of the page" needs no sentence. */
+.pl-glimpse { display: inline-flex; align-items: center; gap: 8px; vertical-align: middle; }
+.pl-glimpse .uchip.linked { background: #eef3fe; color: var(--accent); border-color: #c7d6f8; }
+.tpl-sec.closed, .wf-sec.closed, .pl-sec.closed { padding-bottom: 6px; }
+.tpl-sec .shead, .wf-sec .shead, .pl-sec .shead { margin-bottom: 2px; }
+/* Placements is the card's last section — same fold anatomy, no rule under it. */
+.pl-sec { padding: 2px 0 4px; }
+
+
+/* ---------- THE CHANGE MODAL SELECTS; ITS FOOT ACTS (8 Sep, user call) ---------- */
+/* A selected card is the figure on the page: accent border, a faint accent ground, and
+   the lift held so it stays put while the foot beneath it changes. The foot's reason
+   line sits hard left, in the count's own voice, where a dead button used to stand. */
+.dlg-card.sel { border-color: var(--accent); background: var(--accent-soft, #eef2fd); }
+.dlg-card.sel:hover { transform: none; }
+.chg-why { margin-right: auto; align-self: center; font-size: 12.5px; color: var(--ink-faint); }
+
+/* ---------- USE A COPY, SAID BEFORE IT RUNS (8 Sep, user call) ---------- */
+/* Two facts in a label column — what is copied, what it will fill — above the field that
+   names the new setup. The label column is the review rail's voice at dialog scale: the
+   reader's eye runs down the labels, not through a sentence. */
+.cpy-facts { margin: 0 0 14px; display: grid; gap: 7px; }
+.cpy-line { display: grid; grid-template-columns: 92px 1fr; align-items: baseline; gap: 10px; font-size: 13px; }
+.cpy-l {
+  font-size: 10px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+  color: var(--ink-faint); text-align: right;
+}
+.cpy-v { min-width: 0; color: var(--ink); }
+.cpy-v .podl { margin-left: 6px; }
+
+/* ---------- REFUSE IN PLACE (7 Sep, UAT P1 — recut 8 Sep) ---------- */
+/* The greyed "Use" is gone: a map card now only carries acts it can actually perform
+   (see setupMapCardHtml), so there is no dead button to explain. A card whose body has
+   no plain pick — the current setup, or one another integration holds — reads instead
+   of clicking: it keeps its hover border (its own acts and "open" still live there) but
+   loses the cursor and the lift that promise "press me anywhere". */
+.dlg-card.sc-read { cursor: default; }
+.dlg-card.sc-read:hover { transform: none; }
+.dlg-card.current { border-color: #c7d6f8; background: #fbfcff; }
+/* A tab whose thing is refused — an empty pod a live mid-roll would go dark on, a
+   placement name already here — goes red with the reason on hover. */
+.stab.err, .stab.on.err { color: var(--bad); border-bottom-color: var(--bad); }
+.pl-name.err { color: var(--bad); }
+/* A bad config key: red field, reason under it, what was typed still there. */
+.pcfg-key.err { border-color: var(--bad) !important; color: var(--bad); }
+.pcfg-id { display: flex; flex-direction: column; gap: 3px; }
+.pcfg-msg { font-size: 11.5px; line-height: 1.3; }
+/* Pickers past a handful search in place; the create card never hides. */
+.dlg-search { width: 100%; margin: 0 0 10px; box-sizing: border-box; }
+.setup-pick .dlg-search { max-width: 420px; }
+.dlg-none { font-size: 12.5px; color: var(--ink-faint); padding: 14px 2px; }
+.dlg-err { margin-bottom: 12px; }
+
+
+/* ---------- P2 ROUND (7 Sep, UAT) ---------- */
+/* ONE COLOUR FOR EVERY VALUE (8 Sep, user call — *"the settings read-only beneath the ad
+   unit: the colour of the value should be the same; currently text fields are a different
+   colour and the integer keys are a different colour — use the integer key colour in the
+   text values as well"*). Until now a fact sitting at its DEFAULT receded (`--ink-faint`,
+   weight 400) and a fact somebody had SET stood at `--ink-soft`/500 — an under-layer, so
+   ten units did not read as forty chips of identical noise (7 Sep, UAT P2). What the call
+   reports is how that lands when you are reading rather than auditing: the seeded units
+   happen to have their clocks set and their words left alone, so the split reads as
+   *numbers are dark, words are pale* — an inconsistency in the type of the value, which
+   is not a thing this line means. One weight, one colour, and the line lifts as a whole
+   on hover. The `.dflt` class is still emitted (it is a true fact about the value, and
+   restoring the under-layer is this one rule) — deliberately unstyled, not forgotten.
+   `.uf.na` keeps its dim: that is a fact that CANNOT apply right now, with its reason on
+   hover — a refusal, not a default. */
+/* A cue-point list the panel cannot read wears its reason where it was typed. */
+.cue-in input.err { border-color: var(--bad); color: var(--bad); }
+.cue-msg { display: block; margin-top: 3px; font-size: 11.5px; }
+/* The closed break row's walk sits in the glimpse, at the glimpse's own weight. */
+.slot-glimpse .glimpse-walk { vertical-align: middle; }
+.slot-glimpse .sg-dim + .glimpse-walk { margin-left: 6px; }
+
+/* ---------- A SELECTION THAT SURVIVES ITS FILTER (8 Sep, user call) ---------- */
+/* Filters used to empty the selection, so a cohort could never be built out of two
+   searches. Now the selection carries, and the carried rows stand at the TOP of the
+   table under their own thin line — the enterprise move, in its simplest form: two
+   blocks in one table, each saying what it is and how many. The block only exists when
+   something is carried; the ordinary table is untouched. */
+/* the two lists right-align their last cell, and a group line's cell IS the last one —
+   it has to out-rank that rule to sit under the names it labels. */
+.card table.t-keys tr.grp td, .card table.t-keys tr.grp-more td { text-align: left; }
+tr.grp td {
+  padding: 6px 14px; background: #f7f8fb; border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+}
+tr.grp:first-child td { border-top: 0; }
+tbody tr.grp:hover td { background: #f7f8fb; }   /* a label is not a row — it never lights up */
+.grp-l { font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: var(--ink-faint); }
+.grp-n {
+  margin-left: 7px; font-size: 11px; font-weight: 700; color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+/* The carried rows wear the faintest wash of the bulk bar's notice colour — enough to
+   read as the same temporary state the bar is counting, not enough to shout over eight
+   rows of it. The ticks and the block's own line do the telling. */
+tr.pinned td { background: #fffdf4; }
+tbody tr.pinned:hover td { background: #fdf6e2; }
+tr.grp-more td { padding: 7px 14px 8px 43px; background: #fffdf4; border-bottom: 1px solid var(--line); }
+tbody tr.grp-more:hover td { background: #fdf6e2; }

@@ -1,7 +1,7 @@
 // views-setups-list.js — the Ad Setups LIST and the ways INTO a setup: the table with
 // its filters, the demand chips both lists share (setupChipsHtml/setupSummary), and the
-// new-setup CHOOSER (blank / copy — it lands in the real editor, views-setups.js).
-// Load order: before views-setups.js and the views-keys trio (they call these at runtime).
+// new-setup CHOOSER (blank / copy — it lands in the real editor, views-setups-editor.js).
+// Load order: before views-setups-editor.js and the views-keys trio (they call these at runtime).
 
 // ---------- list ----------
 
@@ -22,16 +22,7 @@ function setupBreakCount(s, t) {
 }
 
 function setupChipsHtml(s) {
-  let last = null;
-  const out = [];
-  for (const t of KL_META.slotTypes) {
-    const fam = slotFamily(t);
-    if (last && fam !== last) out.push('<span class="uchip-split" title="video units | display units"></span>');
-    last = fam;
-    const n = setupBreakCount(s, t);
-    out.push(`<span class="uchip ${n ? 'on' : ''}" title="${esc(label('slotType', t))} — ${n ? `${n} ad source${n === 1 ? '' : 's'}` : 'nothing here yet'}">${esc(label('slotShort', t))}</span>`);
-  }
-  return `<span class="uchips">${out.join('')}</span>`;
+  return slotChipRowHtml(t => (setupBreakCount(s, t) ? 'on' : ''));
 }
 
 function setupSummary(s) {
@@ -75,11 +66,10 @@ async function newSetupChooser() {
   const rows = setups.filter(s => inScope(s.property))
     .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
   const card = s => `
-    <div class="dlg-card" data-id="${s.id}" onclick="chooseSetupCopy('${s.id}')"
-      title="A photocopy — placements, ad units, deals and settings; nothing changes on “${esc(s.name)}”">
+    <div class="dlg-card" data-id="${s.id}" data-q="${esc(`${s.name} ${s.property}`)}" onclick="chooseSetupCopy('${s.id}')">
       <div class="dc-top"><span class="dc-title">${esc(s.name)}</span>
         <span class="dc-reach">${esc(s.usedBy ? 'in use' : 'free')}</span></div>
-      <div class="dc-sum">${propBadge(s.property)} <span>${esc((s.usedByNames || [])[0] || 'not mapped yet')}</span></div>
+      <div class="dc-sum">${propBadge(s.property)} <span>${esc((s.usedByNames || []).join(', ') || 'not mapped yet')}</span></div>
       <div class="sc-foot">${setupChipsHtml(s)}
         <span class="podl">${esc(s.updatedBy || 'ad ops')} · ${relWhen(s.updatedAt)}</span></div>
     </div>`;
@@ -87,6 +77,7 @@ async function newSetupChooser() {
     <div class="dlg-veil"><div class="dlg wide autoh">
       <h3>New ad setup<span class="dlg-kicker">blank, or from a copy — it takes shape in the editor</span></h3>
       <div class="dlg-body">
+        ${dlgSearchHtml(rows.length, 'Search ad setups…')}
         <div class="dlg-cards">
           <div class="dlg-card create" onclick="chooseSetupBlank()">
             <div class="dc-plus">+</div>
@@ -131,6 +122,12 @@ async function chooseSetupCopy(id) {
 // _orig: -1 marks each placement as new, so the counted chips never claim a saved past.
 function setupSeedSections(src, meta) {
   const clone = v => JSON.parse(JSON.stringify(v || []));
+  // The editor holds a break's OWN units; a linked break carries its kept units and
+  // the link — the copy's waterfall (cloned by the caller) is what it follows.
+  const indirect = g => ({
+    rungs: clone(g.ownRungs ?? g.rungs),
+    waterfallSource: g.waterfallSource || 'own',
+  });
   return (src.sections || []).map((sec, i) => ({
     name: sec.name, isDefault: i === 0, _orig: -1,
     slots: Object.fromEntries(meta.slotTypes.map(t => {
@@ -139,9 +136,9 @@ function setupSeedSections(src, meta) {
       const direct = slotKind(t) === 'ladder' ? { rungs: clone(s.direct && s.direct.rungs) } : null;
       return [t, t === 'midroll'
         ? { direct, groups: (s.groups && s.groups.length ? s.groups : [s]).map(g => ({
-            rungs: clone(g.rungs), behaviour: bhv(g), direct: { rungs: clone(g.direct && g.direct.rungs) },
+            ...indirect(g), behaviour: bhv(g), direct: { rungs: clone(g.direct && g.direct.rungs) },
           })) }
-        : { rungs: clone(s.rungs), behaviour: bhv(), direct }];
+        : { ...indirect(s), behaviour: bhv(), direct }];
     })),
   }));
 }
@@ -157,6 +154,12 @@ function setupCreateChangeList() {
   rows.push({ where: '', field: 'property', fromText: '—', toText: d.property === 'All' ? 'All properties' : d.property });
   if (!d.copiedFrom && d.presetName) {
     rows.push({ where: '', field: 'preset', label: 'Delivery settings', fromText: '—', toText: `${d.presetName} preset` });
+  }
+  const wfN = ((d.waterfall || {}).rungs || []).filter(r => r.tagId).length;
+  if (wfN) {
+    const followed = suWfFollowers();
+    rows.push({ where: '', field: 'waterfall', label: 'Waterfall', fromText: '—',
+      toText: `${wfN} unit${wfN === 1 ? '' : 's'}${followed ? ` · followed by ${followed} break${followed === 1 ? '' : 's'}` : ''}` });
   }
   for (const sec of d.sections || []) {
     const n = KL_META.slotTypes.reduce((a, t) => a + suSeedRungCount(sec, t), 0);
@@ -175,7 +178,9 @@ function setupCreateChangeList() {
 
 function suSeedRungCount(sec, t) {
   const s = sec.slots[t] || {};
-  const own = (s.groups && s.groups.length) ? s.groups.reduce((a, g) => a + (g.rungs || []).length, 0) : (s.rungs || []).length;
+  // A linked break's serving units are the waterfall's — counted on its own row.
+  const ownOf = g => (g.waterfallSource === 'setup' ? 0 : (g.rungs || []).length);
+  const own = (s.groups && s.groups.length) ? s.groups.reduce((a, g) => a + ownOf(g), 0) : ownOf(s);
   return own + ((s.direct && s.direct.rungs) || []).length;
 }
 
@@ -185,6 +190,23 @@ function suSeedRungCount(sec, t) {
 // `assigned` names an INTEGRATION now, not a yes/no (3 Sep); on air and modified were
 // cut, the way they were on the integrations list.
 const SF = { q: '', property: 'all', assigned: 'all', demand: 'all' };
+// ONE PAGER GRAMMAR FOR BOTH LISTS (7 Sep, UAT P2 — Integrations paged at 50 while Ad
+// Setups dumped all 67 on one page). Same size, same range-and-arrows control.
+const SPAGE = { page: 0, size: 50 };
+function filteredSetups() { return SETUPS_LIST.filter(setupMatches); }
+function pagedSetups() {
+  const all = filteredSetups();
+  const start = SPAGE.page * SPAGE.size;
+  return all.slice(start, start + SPAGE.size);
+}
+function gotoSetupPage(delta) {
+  const pages = Math.max(1, Math.ceil(filteredSetups().length / SPAGE.size));
+  SPAGE.page = Math.min(pages - 1, Math.max(0, SPAGE.page + delta));
+  repaintSetupRows();
+}
+// Any filter or search change lands the reader on page 1 — page 4 of a set they just
+// narrowed is a blank screen.
+function resetSetupPage() { SPAGE.page = 0; repaintSetupRows(); }
 let SETUPS_LIST = [];
 
 function setupMatches(o) {
@@ -208,12 +230,27 @@ function setupMatches(o) {
   return true;
 }
 
+function paintSetupPager(total) {
+  const el = document.getElementById('setup-pager');
+  if (!el) return;
+  if (!total) { el.innerHTML = ''; return; }
+  const from = SPAGE.page * SPAGE.size + 1;
+  const to = Math.min(total, (SPAGE.page + 1) * SPAGE.size);
+  const pages = Math.ceil(total / SPAGE.size);
+  el.innerHTML = `
+    <span class="pg-range">${from}–${to} of ${total}</span>
+    <button class="pg-btn" ${SPAGE.page === 0 ? 'disabled' : ''} onclick="gotoSetupPage(-1)">‹</button>
+    <button class="pg-btn" ${SPAGE.page >= pages - 1 ? 'disabled' : ''} onclick="gotoSetupPage(1)">›</button>`;
+}
+
 function repaintSetupRows() {
   const tbody = document.getElementById('setup-rows');
   if (!tbody) return;
-  const rows = SETUPS_LIST.filter(setupMatches);
-  const count = document.getElementById('setup-count');
-  if (count) count.textContent = `${rows.length} of ${SETUPS_LIST.filter(o => inScope(o.property)).length}`;
+  const all = filteredSetups();
+  const pages = Math.max(1, Math.ceil(all.length / SPAGE.size));
+  if (SPAGE.page > pages - 1) SPAGE.page = pages - 1;
+  const rows = pagedSetups();
+  paintSetupPager(all.length);
   if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="6"><div class="empty">No ad setups match — clear a filter or create one.</div></td></tr>';
     return;
@@ -226,11 +263,11 @@ function repaintSetupRows() {
       <td>${propCell(o.property)}</td>
       <td class="cell-plain">${o.usedBy ? esc((o.usedByNames || []).join(', ')) : '<span class="sg-dim">not mapped yet</span>'}</td>
       <td>${setupChipsHtml(o)}</td>
-      <td>${statusCellHtml(o)}</td>
       <td>
         <div class="cell-plain" style="font-weight:600">${esc(o.updatedBy || '—')}</div>
         <div class="cell-sub">${relWhen(o.updatedAt)}</div>
       </td>
+      <td>${statusCellHtml(o)}</td>
     </tr>`).join('');
 }
 
@@ -242,7 +279,7 @@ async function viewSetupsList() {
   KL_META = meta;
   SETUPS_LIST = setups;
   KEYS_CACHE = keys;
-  FILTER_CTX = { state: SF, repaint: repaintSetupRows };
+  FILTER_CTX = { state: SF, repaint: resetSetupPage };
   const pill = (name, labelText, options) => filterPillHtml(name, labelText,
     [{ v: 'all', label: `All ${labelText.toLowerCase()}` }, ...options]);
   const main = document.getElementById('main');
@@ -256,21 +293,21 @@ async function viewSetupsList() {
     </div>
     <div class="filter-bar">
       <input class="search" placeholder="Search ad setups…" value="${esc(SF.q)}"
-        oninput="SF.q = this.value; repaintSetupRows()">
-      ${window.GLOBAL_PROP === 'All' ? pill('property', 'Properties', meta.properties.map(v => ({ v, label: v }))) : ''}
+        oninput="SF.q = this.value; resetSetupPage()">
+      ${pill('property', 'Properties', meta.properties.map(v => ({ v, label: v })))}
       ${pill('assigned', 'Integrations', [
         ...KEYS_CACHE.filter(k => inScope(k.property)).map(k => ({ v: k.id, label: k.name })),
         { v: 'none', label: 'Not mapped yet' },
       ])}
       ${pill('demand', 'Demand', [
-        { v: 'direct', label: 'With direct deals' }, { v: 'nodirect', label: 'No direct deals' },
+        { v: 'direct', label: 'With special deals' }, { v: 'nodirect', label: 'No special deals' },
         { v: 'outstream', label: 'With out-stream' },
       ])}
       <span style="flex:1"></span>
-      <span class="pg-range" id="setup-count"></span>
+      <div id="setup-pager" class="pager"></div>
     </div>
     <div class="card"><table class="t-setups">
-      <thead><tr><th>Ad setup</th><th>Property</th><th>Integration</th><th>Demand</th><th>Status</th><th>Modified</th></tr></thead>
+      <thead><tr><th>Ad setup</th><th>Property</th><th>Integration</th><th>Demand</th><th>Modified</th><th>Status</th></tr></thead>
       <tbody id="setup-rows"></tbody>
     </table></div>`;
   repaintSetupRows();
@@ -307,29 +344,33 @@ function suTemplatesRowHtml() {
     const n = t.usedBy || 0;
     const units = `${n} ad unit${n === 1 ? '' : 's'}`;
     return `
-    <div class="tpl-r${off ? ' off' : ''}" onclick="tplOpen('${t.id}')"
-      title="Open “${esc(t.name)}” — its name, provider and request URL${n ? ` · ${units} request through it` : ''}">
+    <div class="tpl-r${off ? ' off' : ''}" onclick="tplOpen('${t.id}')">
       <span class="tpl-id">${providerBadge(t.provider)}<span class="tpl-n">${esc(t.name)}</span></span>
       <span class="tpl-url"><span class="mono" title="${esc(t.url)}">${esc(t.url)}</span></span>
       <span class="pcfg-acts" onclick="event.stopPropagation()">
-        <span class="toggle tiny ${off ? '' : 'on'}" onclick="tplToggle('${t.id}')"
-          title="${off
-            ? esc(`Switched off — ${n ? `its ${units} request` : 'an ad unit picking it requests'} through the provider's standard. On reaches players from the next request.`)
-            : esc(`Switched on — ad units picking it request through this URL. Off: the provider's standard, from the next request.`)}"><span class="track"></span></span>
+        <span class="toggle tiny ${off ? '' : 'on'}" onclick="tplToggle('${t.id}')"><span class="track"></span></span>
         <span class="rmenu">
-          <button type="button" class="row-kebab" onclick="rmenuToggle(event, this)" title="More actions" aria-label="More actions">⋯</button>
+          <button type="button" class="row-kebab" onclick="rmenuToggle(event, this)" aria-label="More actions">⋯</button>
           <div class="rmenu-list">
             <div class="eh-item danger ${n ? 'dim' : ''}" ${n
-              ? `title="${units} request through it — point them elsewhere first"`
+              ? `title="${units} still request through it"`
               : `onclick="rmenuShut(this); tplDelete('${t.id}')"`}>Delete template</div>
           </div>
         </span>
       </span>
     </div>`;
   };
+  // FOLDED AT REST, AND THE FOLD SAYS NOTHING (glimpse re-cut 7 Sep, then the count chip
+  // dropped the same review, user call — "don't show these counts on the Ad unit
+  // templates, Waterfall and Placements headers"): a number you cannot act on is
+  // not a fact worth a chip. The title carries the section; opening it is the story.
+  const open = SU_HEAD_OPEN.has('tpl');
+  const glimpse = '';
+  const head = suHeadRowHtml('tpl', 'Ad unit templates', glimpse, open);
+  if (!open) return `<div class="tpl-sec closed">${head}</div>`;
   return `
     <div class="tpl-sec">
-      <div class="pl-head" title="Named request URLs an ad unit fires through — shared across every ad setup. A unit that picks none uses its provider's standard template.">Ad unit templates</div>
+      ${head}
       ${mine.length ? `
       <div class="tpl-t">
         <div class="tpl-h">
@@ -339,8 +380,7 @@ function suTemplatesRowHtml() {
       </div>`
         : '<div class="pcc-empty">None — ad units request through their provider’s standard template</div>'}
       <div class="pcc-foot">
-        <button type="button" class="slot-add pcc-add" onclick="tplNew()"
-          title="A named request URL ad units can pick, in their own settings">+ Add template</button>
+        <button type="button" class="slot-add pcc-add" onclick="tplNew()">+ Add template</button>
       </div>
     </div>`;
 }
@@ -352,20 +392,44 @@ function askForm(opts, readFn) {
     const root = document.getElementById('dialog-root');
     root.innerHTML = `
       <div class="dlg-veil">
-        <div class="dlg">
+        <div class="dlg ${esc(opts.cls || '')}">
           <h3>${esc(opts.title)}</h3>
           <div class="dlg-body">${opts.body || ''}</div>
           <div class="dlg-foot">
-            <button class="btn ghost" data-act="no">Cancel</button>
+            <button class="btn ghost" data-act="no">${esc(opts.cancelLabel || 'Cancel')}</button>
             <button class="btn" data-act="yes">${esc(opts.okLabel || 'Confirm')}</button>
           </div>
         </div>
       </div>`;
     root.querySelector('[data-act=no]').onclick = () => { root.innerHTML = ''; resolve(null); };
-    root.querySelector('[data-act=yes]').onclick = () => {
+    // A REFUSAL STAYS IN THE DIALOG (7 Sep, UAT P1): with `opts.submit`, the write runs
+    // while the form still stands — a refused field wears its reason where it was typed,
+    // nothing is re-typed. Only a write that lands closes the dialog.
+    root.querySelector('[data-act=yes]').onclick = async () => {
       const out = readFn(root);
-      root.innerHTML = '';
-      resolve(out);
+      if (!opts.submit) { root.innerHTML = ''; resolve(out); return; }
+      const ok = root.querySelector('[data-act=yes]');
+      ok.disabled = true;
+      root.querySelectorAll('.field.err').forEach(f => { f.classList.remove('err'); f.querySelector('.field-err')?.remove(); });
+      root.querySelector('.dlg-err')?.remove();
+      try {
+        await opts.submit(out);
+        root.innerHTML = '';
+        resolve(out);
+      } catch (e) {
+        ok.disabled = false;
+        const errs = (e.errors && e.errors.length) ? e.errors : [{ message: e.message }];
+        let loose = [];
+        for (const er of errs) {
+          const f = er.field && root.querySelector(`[data-dfield="${er.field}"]`);
+          if (f && !f.classList.contains('err')) {
+            f.classList.add('err');
+            f.insertAdjacentHTML('beforeend', `<div class="field-err">${esc(er.message)}</div>`);
+            f.querySelector('input')?.focus();
+          } else if (!f) loose.push(er.message);
+        }
+        if (loose.length) root.querySelector('.dlg-body').insertAdjacentHTML('afterbegin', `<div class="banner bad dlg-err">${esc(loose[0])}</div>`);
+      }
     };
     root.querySelector('.dlg-veil').onclick = e => {
       if (e.target.classList.contains('dlg-veil')) { root.innerHTML = ''; resolve(null); }
@@ -379,13 +443,13 @@ function tplFormBody(t) {
   const macros = (KL_META.templateMacros || []).map(m => `[${m}]`).join(' · ');
   TPL_PROVIDER = t?.provider || 'ima';
   return `
-    <div class="frow tpl-form"><div class="field grow"><label>Name</label>
+    <div class="frow tpl-form"><div class="field grow" data-dfield="name"><label>Name</label>
       <input type="text" id="tpl-name" value="${esc(t?.name || '')}" placeholder="e.g. GAM low-latency"></div>
     <div class="field tpl-prov"><label>Provider</label>
       ${selectHtml(TPL_PROVIDER, window.KL_PROVIDERS.map(v => ({ v, label: label('tagProvider', v) })), v => { TPL_PROVIDER = v; })}</div></div>
-    <div class="frow tpl-form"><div class="field grow"><label>Request URL</label>
+    <div class="frow tpl-form"><div class="field grow" data-dfield="url"><label>Request URL</label>
       <input type="text" id="tpl-url" class="mono" value="${esc(t?.url || '')}" placeholder="https://…?cb=[CACHEBUSTER]"></div></div>
-    <p class="dlg-note" title="The player fills these at request time — anything else is refused by name">Macros the player fills: ${esc(macros)}</p>`;
+    <p class="dlg-note">Macros the player fills: ${esc(macros)}</p>`;
 }
 
 async function tplNew() {
@@ -393,20 +457,15 @@ async function tplNew() {
     title: 'New ad unit template',
     body: tplFormBody(null),
     okLabel: 'Create',
+    submit: b => API.createTemplate(b),
   }, root => ({
     name: root.querySelector('#tpl-name')?.value ?? '',
     provider: TPL_PROVIDER,
     url: root.querySelector('#tpl-url')?.value ?? '',
-    property: window.GLOBAL_PROP === 'All' ? 'All' : window.GLOBAL_PROP,
+    property: 'All',
   }));
   if (!body) return;
-  try {
-    await API.createTemplate(body);
-    toast('Template created — ad units pick it in their own settings');
-    await tplRefresh();
-  } catch (e) {
-    toast((e.errors && e.errors[0]?.message) || e.message, 'bad');
-  }
+  await tplRefresh();
 }
 
 
@@ -429,6 +488,7 @@ async function tplOpen(id) {
         ${t.usedBy ? `<span class="podl">${t.usedBy} ad unit${t.usedBy === 1 ? '' : 's'} request through it</span>` : ''}
       </div>`,
     okLabel: 'Save',
+    submit: b => API.updateTemplate(t.id, b),
   }, root => ({
     name: root.querySelector('#tpl-name')?.value ?? '',
     provider: TPL_PROVIDER,
@@ -436,17 +496,12 @@ async function tplOpen(id) {
     property: t.property,
   }));
   if (!body) return;
-  try {
-    await API.updateTemplate(t.id, body);
-    toast('Saved');
-    await tplRefresh();
-  } catch (e) {
-    toast((e.errors && e.errors[0]?.message) || e.message, 'bad');
-  }
+  await tplRefresh();
 }
 
-// The row's switch writes NOW (templates have no draft plane — they resolve live), so
-// the toast carries the counted, from-the-next-request consequence instead of a review.
+// The row's switch writes NOW (templates have no draft plane — they resolve live).
+// The row itself shows on/off; the receipt fires only when units elsewhere are moved
+// by it — the one consequence this screen cannot show.
 async function tplToggle(id) {
   const t = SU_TPLS.find(x => x.id === id);
   if (!t) return;
@@ -455,9 +510,7 @@ async function tplToggle(id) {
   const units = `${n} ad unit${n === 1 ? '' : 's'}`;
   try {
     await API.updateTemplate(t.id, { on: to });
-    toast(to
-      ? `“${t.name}” on${n ? ` — its ${units} request through it again, from the next request` : ''}`
-      : `“${t.name}” off${n ? ` — its ${units} request through the provider's standard, from the next request` : ''}`);
+    if (n) toast(to ? `On for ${units}` : `Off for ${units}`); // 4 words, and the count is the point
     await tplRefresh();
   } catch (e) {
     toast((e.errors && e.errors[0]?.message) || e.message, 'bad');

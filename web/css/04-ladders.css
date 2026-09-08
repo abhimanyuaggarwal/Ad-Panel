@@ -32,7 +32,8 @@
 .seg.small button { padding: 4px 10px; font-size: 11.5px; }
 
 /* ---------- ladder rows: one primary, up to three waterfall rungs ---------- */
-.rung-list { display: flex; flex-direction: column; gap: 6px; }
+/* Blocks, not lines (7 Sep) — each rung is a framed unit now, so the list breathes. */
+.rung-list { display: flex; flex-direction: column; gap: 8px; }
 .rung-row { display: flex; align-items: center; gap: 10px; }
 .rung-n {
   flex: 0 0 92px; font-size: 9.5px; font-weight: 700; letter-spacing: .2px; text-transform: uppercase;
@@ -49,16 +50,11 @@
 }
 /* Keeps the row grid stable when a closed slot has no ⋯ menu. */
 .slot-menu-ph { width: 46px; flex: none; display: flex; justify-content: flex-end; align-self: center; }
-/* A break's Clear: in the gutter, shown when the row is yours (the ad unit's gear
-   grammar) — and greyed where it sits, not hidden, when there is nothing to clear. */
-.slot-clear {
-  opacity: 0; transition: opacity .12s, color .12s; background: none; border: 0; padding: 0;
-  font: inherit; font-size: 11px; font-weight: 600; color: var(--muted, #889); cursor: pointer;
-}
-.slot-row:hover .slot-clear, .slot-clear:focus-visible { opacity: 1; }
-.slot-clear:hover { color: #b3261e; }
-.slot-clear.off { cursor: default; }
-.slot-row:hover .slot-clear.off { opacity: .4; }
+/* A break's rare act (Clear) sits behind the row's ⋯, the templates rows' exact
+   grammar: quiet until the row is hovered, and absent once the setup has published. */
+.slot-row .row-kebab { opacity: 0; transition: opacity .12s; }
+.slot-row:hover .row-kebab, .slot-row .row-kebab:focus-visible,
+.slot-row .rmenu.open .row-kebab { opacity: 1; }
 
 
 /* The whole row opens the slot; the chevron is the affordance. Five identical "Edit"
@@ -84,10 +80,12 @@
 .rung-row:hover .rung-grip, .lr:hover .lr-grip { opacity: .75; }
 .rung-grip:active, .lr-grip:active { cursor: grabbing; }
 .lr-grip.ghost { cursor: default; }
-.rung-row[draggable], .lr[draggable] { border-radius: 8px; }
-.rung-row.dragging, .lr.dragging { opacity: .45; }
-.rung-row.drop-above, .lr.drop-above { box-shadow: inset 0 2px 0 0 var(--accent); }
-.rung-row.drop-below, .lr.drop-below { box-shadow: inset 0 -2px 0 0 var(--accent); }
+/* A rung's drag lives on its BLOCK now (7 Sep) — the whole unit moves, tiers and all —
+   so these keep only the rows that are still rows on their own (`.lr`). */
+.lr[draggable] { border-radius: 8px; }
+.lr.dragging { opacity: .45; }
+.lr.drop-above { box-shadow: inset 0 2px 0 0 var(--accent); }
+.lr.drop-below { box-shadow: inset 0 -2px 0 0 var(--accent); }
 
 /* Reorder and remove are hover-revealed; the rung's SWITCH never is — a rung that is
    switched off changes what serves, so it has to be visible without hunting for it. */
@@ -102,21 +100,11 @@
 .rung-acts .rung-x:hover:not(:disabled) { color: var(--bad); background: var(--bad-soft); }
 
 
-/* ---------- guided journey: one decision per screen ---------- */
-/* Wider than the plain dialog so a label column + its consequence fit on one line —
-   at 440px every row wrapped to two and the screen became a wall. */
-/* One geometry for the whole journey. A modal that resizes between steps reads as a
-   different modal — the eye re-finds the footer every time. Width is fixed and the
-   body carries a floor, so step 1 and step 2 occupy the same rectangle. */
-.dlg.step { width: 680px; }
-/* The frame does not change from one screen to the next. The floor is set to the TALLEST
-   state the step dialogs can reach — the cohort ladder with its Waterfall N row and a full
-   outcome list — so every shorter state pads to the same height instead of every taller one
-   growing. Both lists are bounded by construction, so there is a tallest state to measure. */
-.dlg.step .dlg-body { min-height: 530px; max-height: calc(100vh - 220px); overflow-y: auto; }
-/* The unit screen holds search fields whose menus must escape the frame — a scroll
-   container would clip them, so this variant grows instead of scrolling. */
-.dlg.step.ladder .dlg-body { max-height: none; overflow: visible; }
+/* RETIRED: `.dlg.step`, the guided-journey frame (680px, a 530px body floor). The two
+   creation wizards it dressed died on 3 Sep when the CHOOSERS replaced them, and nothing
+   has rendered `dlg step` since — the rules were dead weight carrying the worst floor in
+   the project (530px of body for whatever the step held). Removed 7 Sep with the frame
+   ladder; `.dlg.step.ladder`'s one live descendant rule below keeps its own name. */
 
 
 /* ---------- the unit table: fixed columns, one number per cell ---------- */

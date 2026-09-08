@@ -14,6 +14,19 @@ import {
 } from '../store.js';
 import { BASE_UNITS, PENDING_UNITS } from './gamunits.js';
 
+// --- THE SIGNED-IN PERSON (7 Sep, user call) -------------------------------
+// The property switcher left the header band and a profile mark took its seat, so the
+// band has to name SOMEBODY — and a name is invented data, which means it lives here and
+// nowhere else. Auth is tech's to wire: when it lands, this object comes from the session
+// instead of the fixture and nothing in web/ has to move (the panel reads `meta.me`).
+// The store still stamps a write "You", which is what your own avatar reads next to.
+export const ME = {
+  name: 'Priya Sharma',
+  initials: 'PS',
+  role: 'ad ops',
+  email: 'priya.sharma@example.com',
+};
+
 // --- Creation presets (the old three shapes, reborn as value-sets) ---------
 export const PLAYER_PRESETS = [
   {
@@ -82,10 +95,11 @@ function place(name, preset, ladders = {}) {
       if (l.groups) {
         return [t, { direct: l.direct, groups: l.groups.map(g => ({
           rungs: g.rungs,
+          waterfallSource: g.waterfallSource,
           behaviour: { ...preset.slots[t], ...(g.behaviour || {}) },
         })) }];
       }
-      return [t, { rungs: l.rungs, behaviour: preset.slots[t], direct: l.direct }];
+      return [t, { rungs: l.rungs, waterfallSource: l.waterfallSource, behaviour: preset.slots[t], direct: l.direct }];
     })),
   };
 }
@@ -121,6 +135,8 @@ export function resetWorld(opts = {}) {
 
   // The direct deal a sales team actually sold — the demo's one direct tag.
   const tSponsor = tag('TOI Sponsor Takeover', 'video', '/7176/toi/sponsor/takeover', 'TOI');
+  // The waterfall's own primary — run-of-network demand no single break owns.
+  const tRon = tag('TOI Run-of-network Video', 'video', '/7176/toi/ron/video', 'TOI');
 
   const tDisplay = {
     toiMwebVsDisp: tag('TOI Mweb VideoShow Display', 'display', '/7176/toi/mweb/videoshow/display', 'TOI'),
@@ -159,6 +175,10 @@ export function resetWorld(opts = {}) {
   // against: "IMA only", "GPT first", "stop after 3".
   const asToiVideo = createSetup({
     name: 'TOI VideoShow demand', property: 'TOI',
+    // THE WATERFALL, visible on day one (5 Sep): one ladder at the setup's head; the
+    // Shorts feed post-roll below FOLLOWS it (its own unit kept, parked), so the link,
+    // the levers and the source switch's way back all have something to show.
+    waterfall: L(tRon, tVideo.toiBackfill, tDisplay.toiMwebVsDisp),
     sections: [
       // FULL DEPTH: ten rungs, the cap — one primary and nine waterfalls, with the GPT
       // display sitting mid-walk and two rungs switched off by ops INSIDE the tail. The
@@ -172,7 +192,7 @@ export function resetWorld(opts = {}) {
           ...L(
           tVideo.toiMwebVsPre,          // Primary    · IMA
           tVideo.toiBackfill,           // Waterfall 1 · CAN
-          tDisplay.toiMwebVsDisp,       // Waterfall 2 · GPT (the one display fallback)
+          tDisplay.toiMwebVsDisp,       // Waterfall 2 · GPT (the one display settle)
           tVideo.toiWebVsPre,           // Waterfall 3 · IMA
           dead(tVideo.toiBackfill2),    // Waterfall 4 · CAN — off by ad ops
           tVideo.toiWebVsMid,           // Waterfall 5 · IMA
@@ -189,7 +209,8 @@ export function resetWorld(opts = {}) {
         preroll: L(tVideo.toiShortsPre, tVideo.toiBackfill, tDisplay.toiMwebVsDisp,
                    tVideo.toiBackfill2, tVideo.toiWebVsMid),
         midroll: L(tVideo.toiMwebVsMid, tVideo.toiBackfill2),
-        postroll: L(tVideo.toiMwebVsPost),
+        // Follows the waterfall; its own unit stays as the kept arrangement.
+        postroll: { ...L(tVideo.toiMwebVsPost), waterfallSource: 'setup' },
       }),
     ],
   });
@@ -268,6 +289,35 @@ export function resetWorld(opts = {}) {
       // The idle player's own rotation — three banners taking turns, hidden while a
       // video ad has the screen.
       outstream: L(tDisplay.toiWebVsDisp, tDisplay.toiDispBackfill, tDisplay.toiMwebAsDisp),
+    })],
+  });
+
+  // DEMAND BUILT AHEAD OF ITS SURFACE (8 Sep, user report — *"there is only Copy & use,
+  // I can't see the Use CTA"*). The world was seven setups for seven integrations, each
+  // one held, so nothing was ever free to simply USE: the change modal could only ever
+  // offer a copy, and the setups room's own `Not mapped yet` filter matched nothing.
+  // That is not what the room looks like in life — ad ops build a setup, then someone
+  // maps it — so every property now carries one unmapped setup, waiting to be picked up.
+  // They are created LAST so every id above holds.
+  createSetup({
+    name: 'TOI Shorts demand', property: 'TOI',
+    sections: [place('Default', B.MiniTV, {
+      preroll: L(tVideo.toiShortsPre, tVideo.toiBackfill),
+      midroll: L(tVideo.toiMwebVsMid, tVideo.toiBackfill2),
+    })],
+  });
+  createSetup({
+    name: 'ET Markets Live demand', property: 'ET',
+    sections: [place('Default', B.ArticleShow, {
+      preroll: L(tVideo.etWebAsPre, tVideo.etBackfill),
+      outstream: L(tDisplay.etWebAsDisp),
+    })],
+  });
+  createSetup({
+    name: 'NBT ArticleShow demand', property: 'NBT',
+    sections: [place('Default', B.ArticleShow, {
+      preroll: L(tVideo.nbtMwebVsPre, tVideo.nbtBackfill),
+      postroll: L(tVideo.nbtMiniMid),
     })],
   });
 
@@ -388,8 +438,15 @@ export function resetWorld(opts = {}) {
   stamp(getKey('key_5'), 30, 'Meera (platform)');
   stamp(getKey('key_6'), 200, 'Priya (ad ops)');
   stamp(getKey('key_7'), 200, 'Meera (platform)');
+  // EVERY seeded object carries an author (7 Sep, UAT P2 — five setups read
+  // "You · just now" straight out of a reset, which reads as a broken Modified column).
   stamp(getSetup('as_1'), 2, 'Priya (ad ops)');
+  stamp(getSetup('as_2'), 34, 'Rohit (monetization)');
   stamp(getSetup('as_3'), 120, 'Arjun (ad ops)');
+  stamp(getSetup('as_4'), 150, 'Priya (ad ops)');
+  stamp(getSetup('as_5'), 52, 'Meera (platform)');
+  stamp(getSetup('as_6'), 210, 'Arjun (ad ops)');
+  stamp(getSetup('as_7'), 8, 'Rohit (monetization)');
 
   // --- ON AIR (27 Aug). `status` is gone: a surface serves because it was PUBLISHED.
   // Setups go up first — an integration cannot publish a break with no published demand
@@ -409,9 +466,10 @@ export function resetWorld(opts = {}) {
       : sec)),
   });
   bendDefault({ tagTimeoutMs: 2000 });
-  seedPublish('setup', 'as_1', { actor: 'Rohit (monetization)', hoursAgo: 26 });
+  seedPublish('setup', 'as_1', { actor: 'Rohit (monetization)', hoursAgo: 26, note: 'Fill trial — per-tag wait up to 2s' });
   bendDefault({ tagTimeoutMs: 1500 });
-  seedPublish('setup', 'as_1', { actor: 'Priya (ad ops)', hoursAgo: 2 });
+  seedPublish('setup', 'as_1', { actor: 'Priya (ad ops)', hoursAgo: 2, note: 'Trial rolled back — starts read slow' });
+  stamp(getSetup('as_1'), 2, 'Priya (ad ops)');
 
   // A named scenario, not a different world: the demo seven stay exactly as they
   // are (same ids, same slots) and volume is added on top, so paging and
@@ -514,6 +572,7 @@ function seedScale(w) {
       sections: [{ slots }],
     });
     Object.assign(obj, { updatedAt: w.ago(6 + i * 3), updatedBy: owners[i % 4] });
+    Object.assign(setup, { updatedAt: w.ago(9 + i * 3), updatedBy: owners[(i + 1) % 4] });
     // Most on air, a handful not — so the On air filter narrows to something, and the
     // bulk publish/unpublish acts have a mixed cohort to answer for.
     if (i % 9 !== 4) {
@@ -521,6 +580,10 @@ function seedScale(w) {
       seedPublish('key', obj.id, { actor: owners[i % 4], hoursAgo: 6 + i * 3 });
     }
     // …and a few with saved work still waiting, so "unpublished changes" is real too.
-    if (i % 7 === 2) updateSetup(setup.id, { name: `${keyName} demand v2` });
+    if (i % 7 === 2) {
+      updateSetup(setup.id, { name: `${keyName} demand v2` });
+      // updateSetup stamps You/now — the seeded past owns it, not this reset.
+      Object.assign(setup, { updatedAt: w.ago(4 + i), updatedBy: owners[(i + 2) % 4] });
+    }
   }
 }

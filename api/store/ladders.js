@@ -1,7 +1,7 @@
-// store/ladders.js — how a break BEHAVES and what it ASKS: slot behaviour and drive
-// fields, cue points, rungs, and the walks (local, drive, per-group, effective).
-// Split from store/setups.js (3 Sep, docs/STORE-SPLIT.md): a MOVE, not a rewrite.
-import { DISPLAY_SLOTS, DISPLAY_SLOT_WORD, MAX_RUNGS, MIDROLL_MODES, PAUSE_MODES, POD_BANNER, POD_NEXT_AD, PREROLL_TIMING, PREROLL_WAIT, PROVIDER_WORD, ROTATION_MAX, SLOT_KIND, TAG_PROVIDERS, state } from './state.js';
+// store/ladders.js — how a break BEHAVES and what it ASKS: slot behaviour fields and
+// their normalization, the drive fields, cue points, rung normalization, and the walks
+// (the setup's own walk, the walk after the drive decision, per pod).
+import { DISPLAY_SLOTS, DISPLAY_SLOT_WORD, MAX_RUNGS, MIDROLL_MODES, PAUSE_MODES, POD_NEXT_AD, PREROLL_TIMING, PREROLL_WAIT, PROVIDER_WORD, ROTATION_MAX, SLOT_KIND, TAG_PROVIDERS, state } from './state.js';
 import { bool, fmtSecs, intIn, oneOf, str } from './validate.js';
 
 
@@ -58,11 +58,11 @@ export const SLOT_BEHAVIOUR_FIELDS = {
   // `minContentSec` (31 Aug, user call — the JSON's minPreRenderTime): the PRE-ROLL's
   // own head start — at least this much video plays before the ad may render. A fact
   // about one break, so it lives on that break, not on the player.
-  preroll: ['start', 'deferSec', 'wait', 'waitMs', 'minContentSec', 'podAds', 'nextAd', 'podBanner', 'tagTimeoutMs', 'fillTimeoutSec'],
+  preroll: ['start', 'deferSec', 'wait', 'waitMs', 'minContentSec', 'podAds', 'nextAd', 'tagTimeoutMs', 'fillTimeoutSec'],
   // `prefetchSec` (same call): how early a COMING break's first ad is fetched — only a
   // break that arrives mid-playback has a "before" to fetch in, so mid- and post-roll.
-  midroll: ['mode', 'cuepoints', 'firstAt', 'every', 'prefetchSec', 'podAds', 'nextAd', 'podBanner', 'tagTimeoutMs', 'fillTimeoutSec'],
-  postroll: ['prefetchSec', 'podAds', 'nextAd', 'podBanner', 'tagTimeoutMs', 'fillTimeoutSec'],
+  midroll: ['mode', 'cuepoints', 'firstAt', 'every', 'prefetchSec', 'podAds', 'nextAd', 'tagTimeoutMs', 'fillTimeoutSec'],
+  postroll: ['prefetchSec', 'podAds', 'nextAd', 'tagTimeoutMs', 'fillTimeoutSec'],
   // Out-stream: banners while nothing plays, plus one switch — hide while a video ad
   // runs. Its show times are its own repeat schedule, so it has no rotation refresh.
   outstream: ['times', 'hold', 'perSession', 'hideOnInStream', 'tagTimeoutMs'],
@@ -80,6 +80,11 @@ export const DEAD_BEHAVIOUR_FIELDS = {
   // Cut 2 Sep, user call: an ad's sound is how the PLAYER starts, and that answer
   // lives on the surface now — per placement, even.
   adSound: ['Ad audio', 'whether a player autoplays is the integration\u2019s Player config (Autoplay behaviour); its loudness is the one Passive volume in Details'],
+  // Cut 8 Sep, user call: it said "position" about the POD while the ad unit's own
+  // `Ad placement` says "position" about the SCREEN — two settings, one word, and the
+  // pod one was the guessable half. A display unit settles the break, as it always did
+  // by default; where it sits on the player stays the unit's own fact.
+  podBanner: ['Display ad position', 'a display unit settles the break \u2014 where it sits on the player is the ad unit\u2019s own Ad placement'],
 };
 
 // THE DRIVE DECISION (26 Aug, DRIVING-SCOPE). Local overrides — muted rungs, a local
@@ -190,7 +195,6 @@ export function normalizeSlotBehaviour(type, input, errors, warnings, prefix = '
     // Every fill field is inert while the count is 1, so the defaults ARE today's behaviour.
     b.podAds = intIn(inp.podAds ?? 1, 'podAds', 1, 3, errs);
     b.nextAd = oneOf(inp.nextAd ?? 'top', 'nextAd', POD_NEXT_AD, errs);
-    b.podBanner = oneOf(inp.podBanner ?? 'last', 'podBanner', POD_BANNER, errs);
   }
   // How long each rung of this slot's waterfall waits before falling through.
   b.tagTimeoutMs = intIn(inp.tagTimeoutMs ?? 2500, 'tagTimeoutMs', 500, 8000, errs);
@@ -200,26 +204,28 @@ export function normalizeSlotBehaviour(type, input, errors, warnings, prefix = '
   if (SLOT_KIND[type] === 'ladder') {
     b.fillTimeoutSec = intIn(inp.fillTimeoutSec ?? 20, 'fillTimeoutSec', 5, 120, errs);
   }
-  // Soft warnings — levers, not walls.
+  // Soft warnings — levers, not walls. A warning is a FLAG, not a lecture (7 Sep,
+  // user call): four or five words, the counted fact, no guidance tail — the fields
+  // that caused it are on screen.
   if (type === 'preroll') {
-    if (b.start === 'deferred' && b.deferSec > 15) warns.push('Deferring the pre-roll past 15s loses most short sessions before the ad ever runs');
+    if (b.start === 'deferred' && b.deferSec > 15) warns.push('first ad starts very late');
     if (b.wait === 'timed' && b.waitMs < b.tagTimeoutMs) {
-      warns.push(`A ${fmtSecs(b.waitMs)} wait is shorter than the ${fmtSecs(b.tagTimeoutMs)} a single tag may take — the pre-roll will usually be cut off`);
+      warns.push('wait too short for ads');
     }
-    if (b.wait === 'timed' && b.waitMs > 8000) warns.push(`Making viewers wait ${fmtSecs(b.waitMs)} before content starts loses most short sessions`);
+    if (b.wait === 'timed' && b.waitMs > 8000) warns.push(`${fmtSecs(b.waitMs)} wait before video`);
   }
   if (type === 'midroll') {
-    if (b.mode === 'cuepoints' && b.cuepoints.length >= 4) warns.push('4+ mid-roll breaks is heavy for anything under 20 minutes');
-    if (b.mode === 'interval' && b.every < 180) warns.push(`A break every ${fmtSecs(b.every * 1000)} is heavy — most streams settle around 8 minutes`);
+    if (b.mode === 'cuepoints' && b.cuepoints.length >= 4) warns.push(`${b.cuepoints.length} breaks — a lot`);
+    if (b.mode === 'interval' && b.every < 180) warns.push(`breaks every ${fmtSecs(b.every * 1000)} — frequent`);
     if (b.mode === 'cuepoints' && b.cuepoints.some((c, i) => i > 0 && c - b.cuepoints[i - 1] < 60)) {
-      warns.push('Break positions under a minute apart will feel relentless');
+      warns.push('breaks under a minute apart');
     }
     // The heavy-cadence warnings multiply by the pod. Guarded so exactly one fires.
     if (b.mode === 'interval' && b.podAds > 1 && b.every >= 180 && b.every / b.podAds < 180) {
-      warns.push(`A break every ${fmtSecs(b.every * 1000)} at ${b.podAds} ads is one ad every ${fmtSecs(Math.round(b.every / b.podAds) * 1000)} — heavy`);
+      warns.push(`an ad every ${fmtSecs(Math.round(b.every / b.podAds) * 1000)} — frequent`);
     }
     if (b.mode === 'cuepoints' && b.podAds > 1 && b.cuepoints.length < 4 && b.cuepoints.length * b.podAds >= 4) {
-      warns.push(`${b.cuepoints.length} breaks at ${b.podAds} ads each is ${b.cuepoints.length * b.podAds} mid-roll ads — heavy for anything under 20 minutes`);
+      warns.push(`${b.cuepoints.length * b.podAds} ads — a lot`);
     }
   }
 
@@ -344,13 +350,13 @@ export function normalizeRungs(raw, family, errors, field, where, alsoTakes = nu
     rungs.push(rung);
     chain++;
   }
-  // A break falls back to ONE display unit — the settle point. Two would make every
+  // A break's waterfall settles on ONE display unit. Two would make every
   // type-addressed act ambiguous.
   if (kind === 'ladder' && alsoTakes === 'display') {
     const displays = rungs.filter(r => r.type === 'tag' && state.tags.get(r.tagId)?.type === 'display');
     if (displays.length > 1) {
       const names = displays.map(r => `“${state.tags.get(r.tagId).name}”`).join(' and ');
-      errors.push({ field, message: `${where}: a break falls back to one display unit — ${names} are both display tags` });
+      errors.push({ field, message: `${where}: a break's waterfall settles on one display unit — ${names} are both display tags` });
     }
   }
   if (kind === 'rotation') {
@@ -408,8 +414,8 @@ export function driveWalkRungs(rungs, behaviour, drive, type) {
   const d = drive || {};
   const ask = driveAsk(d.ask);
   let walk = base;
-  let fellBack = false; // the fallback EXISTS and the decision filtered it to nothing — the walk diverges
-  let vacuous = false; // no fallback to decide over — the walk is the same either way (1 Sep, groups walkthrough)
+  let fellBack = false; // the waterfall EXISTS and the decision filtered it to nothing — the walk diverges
+  let vacuous = false; // no waterfall to decide over — the walk is the same either way (1 Sep, groups walkthrough)
   if (ask && SLOT_KIND[type] !== 'rotation') {
     // TIERS (31 Aug, AD-JSON-SCOPE): the PRIMARY is a position, not a preference — it
     // is always tried first and the ask never displaces it. What the ask filters and
@@ -421,12 +427,12 @@ export function driveWalkRungs(rungs, behaviour, drive, type) {
     // stable, so two rungs of the same partner keep the order ad ops gave them.
     const mine = tail.filter(r => ask.includes(rungProvider(r)));
     if (!tail.length) {
-      // No fallback at all: the decision has nothing to bite on. The walk stands as it
+      // No waterfall at all: the decision has nothing to bite on. The walk stands as it
       // is (a primary is a position), so the standing views stay QUIET — but the save
       // that makes such a decision still counts this section as one it means nothing in.
       vacuous = base.length > 0;
     } else if (!mine.length) {
-      // None of those partners in the fallback — the decision cannot mean anything in
+      // None of those partners in the waterfall — the decision cannot mean anything in
       // this section, so it runs the setup's own arrangement, loudly.
       fellBack = true;
     } else {

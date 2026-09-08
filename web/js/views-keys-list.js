@@ -1,11 +1,9 @@
-// views-keys-list.js — the Integrations LIST: the table, its filters (search, pills,
-// the tri-state Breaks grid), paging, row selection, the bulk bar, and the cohort write
-// helpers (bulkApplyDirect / refreshKeysList) every bulk sheet applies through.
-// Load order: after views-setups*.js (it reads setupSummary at runtime), before
-// views-keys-bulk.js and views-keys-form.js. Everything here is a global by design —
-// the panel is a no-build page of plain scripts (see panel/README.md).
-
-// views-keys.js — the PRODUCT ROOM: integration list (filters + bulk) and the editor.
+// views-keys-list.js — the Integrations LIST (the product room's front door): the table,
+// its filters (search, pills, the tri-state Breaks grid), paging, row selection, the bulk
+// bar, and the cohort write helpers (bulkApplyDirect / refreshKeysList) every bulk sheet
+// applies through. Also owns the list-level caches (KEYS_CACHE, SETUPS_CACHE, KL_META).
+// Load order: after views-setups*.js (it reads setupSummary at runtime), before the
+// views-keys-* files. Everything here is a global by design (see ARCHITECTURE.md).
 //
 // TWO ROOMS (24 Aug, AD-SETUP-SCOPE). The one rule, in three parts: ad ops supply WHAT
 // can fill (the Ad Setup, in their own room), the integration says WHETHER it runs (its
@@ -32,9 +30,21 @@ function viewKeysUsing(kind, id) {
 }
 const KSEL = new Set(); // selected key ids for bulk actions
 
+// A SELECTION SURVIVES ITS FILTER (8 Sep, user call). Changing a filter used to empty
+// the selection — so a cohort assembled out of two searches was impossible, and the work
+// vanished without a word. Selection now carries: when the filters move, everything
+// selected is PINNED to the top of the table (checked, above the new matches) so it is
+// never out of sight, and the bulk bar keeps counting it. KPIN is that carried-over set —
+// snapshotted on every filter change, never on a checkbox, so ticking a row in the list
+// does not make it jump. Unticking a pinned row drops it out of the block, which is the
+// only way rows leave it besides Clear.
+const KPIN = new Set();
+const KPIN_MAX = 8;   // a carried cohort can be hundreds — show the head, offer the rest
+let KPIN_OPEN = false;
+
 async function viewKeysList() {
   KEY_RETURN = null;
-  FILTER_CTX = { state: KF, repaint: () => { resetPageAndSelection(); repaintKeyRows(); } };
+  FILTER_CTX = { state: KF, repaint: () => { keyFiltersChanged(); repaintKeyRows(); } };
   const main = document.getElementById('main');
   const [{ keys }, meta, { setups }] = await Promise.all([
     API.listKeys(), getMeta(), API.listSetups(),
@@ -56,8 +66,8 @@ async function viewKeysList() {
     </div>
     <div class="filter-bar">
       <input class="search" placeholder="Search integrations…" value="${esc(KF.q)}"
-        oninput="KF.q = this.value; resetPageAndSelection(); repaintKeyRows()">
-      ${window.GLOBAL_PROP === 'All' ? pill('property', 'Properties', meta.properties.map(v => ({ v, label: v }))) : ''}
+        oninput="KF.q = this.value; keyFiltersChanged(); repaintKeyRows()">
+      ${pill('property', 'Properties', meta.properties.map(v => ({ v, label: v })))}
       ${pill('platform', 'Platforms', meta.platforms.map(v => ({ v, label: label('platform', v) })))}
       ${breakFilterHtml()}
       ${pill('setup', 'Ad setup', setups.filter(x => inScope(x.property)).map(x => ({ v: x.id, label: x.name })))}
@@ -70,17 +80,15 @@ async function viewKeysList() {
       <span style="flex:1"></span>
       <span class="bulk-verb">Change</span>
       <button class="btn small" onclick="bulkEditJourney()">Ad behaviour</button>
-      <button class="btn small" onclick="defaultConfigJourney()"
-        title="Set the default player behaviour — playback mode, MiniTV, autoplay — on every selected integration at once">Default player behaviour</button>
-      <button class="btn small" onclick="playerBehaviourJourney()"
-        title="Walk each selected integration's configs — the default and every named custom fork">Custom player behaviour</button>
+      <button class="btn small" onclick="defaultConfigJourney()">Default player behaviour</button>
+      <button class="btn small" onclick="playerBehaviourJourney()">Custom player behaviour</button>
       <button class="btn ghost small" onclick="clearKeySelection()">Clear</button>
     </div>
     <div class="card">
       <table class="t-keys">
       <thead><tr>
-        <th class="chk"><input type="checkbox" id="chk-all" title="Select everything on this page" onclick="toggleAllKeys(this)"></th>
-        <th>Integration</th><th>Property</th><th>Platform</th><th>Active breaks</th><th>Status</th><th>Modified</th>
+        <th class="chk"><input type="checkbox" id="chk-all" onclick="toggleAllKeys(this)"></th>
+        <th>Integration</th><th>Property</th><th>Platform</th><th>Active breaks</th><th>Modified</th><th>Status</th>
       </tr></thead>
       <tbody id="key-rows"></tbody>
     </table></div>`;
@@ -137,7 +145,7 @@ function brkSet(t, v) {
   const r = document.querySelector(`.fp-grow[data-t="${t}"]`);
   if (r) r.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === (KF.brk[t] || 'any')));
   paintBreakPill();
-  resetPageAndSelection();
+  keyFiltersChanged();
   repaintKeyRows();
 }
 
@@ -146,7 +154,7 @@ function brkClearAll() {
   document.querySelectorAll('.fp-grow').forEach(r =>
     r.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === 'any')));
   paintBreakPill();
-  resetPageAndSelection();
+  keyFiltersChanged();
   repaintKeyRows();
 }
 
@@ -171,12 +179,12 @@ function fpillToggle(e, btn) {
   el.classList.toggle('open');
 }
 
-function resetPageAndSelection() {
+// Every filter, the search and the breaks grid land here: page back to the first,
+// selection kept and carried to the top.
+function keyFiltersChanged() {
   KPAGE.page = 0;
-  if (KSEL.size) {
-    KSEL.clear();
-    updateBulkBar();
-  }
+  KPIN_OPEN = false;
+  for (const id of KSEL) KPIN.add(id);
 }
 
 function fpillPick(name, labelText, opt) {
@@ -193,7 +201,7 @@ function fpillPick(name, labelText, opt) {
 
 
 function keyMatches(k) {
-  if (window.GLOBAL_PROP !== 'All' && k.property !== window.GLOBAL_PROP) return false;
+  if (!inScope(k.property)) return false;
   if (KF.property !== 'all' && k.property !== KF.property) return false;
   if (KF.platform !== 'all' && k.platform !== KF.platform) return false;
   if (KF.setup !== 'all' && k.adSetupId !== KF.setup) return false;
@@ -209,64 +217,95 @@ function keyMatches(k) {
 
 // Which units this integration actually runs — the fact the list is scanned for.
 function slotChipsHtml(k) {
-  let last = null;
-  const out = [];
-  for (const t of KL_META.slotTypes) {
-    const fam = slotFamily(t);
-    if (last && fam !== last) out.push('<span class="uchip-split" title="video units | display units"></span>');
-    last = fam;
-    out.push(`<span class="uchip ${k.slotsOn[t] ? 'on' : ''}" title="${esc(label('slotType', t))} — ${esc(label('tagType', fam))}, ${k.slotsOn[t] ? 'active' : 'inactive'}">${esc(label('slotShort', t))}</span>`);
-  }
-  return `<span class="uchips">${out.join('')}</span>`;
+  return slotChipRowHtml(t => (k.slotsOn[t] ? 'on' : ''));
 }
 
 function filteredKeys() { return KEYS_CACHE.filter(keyMatches); }
 
+// The carried-over cohort, in list order — kept in scope, and honest about rows the
+// world may have dropped under it.
+function pinnedKeys() { return KEYS_CACHE.filter(k => KPIN.has(k.id) && inScope(k.property)); }
+
+// What the pager walks: the matches, minus the ones already standing at the top. A row
+// is never in both blocks, so no count is ever paid twice.
+function listedKeys() { return filteredKeys().filter(k => !KPIN.has(k.id)); }
+
 function pagedKeys() {
-  const all = filteredKeys();
+  const all = listedKeys();
   const start = KPAGE.page * KPAGE.size;
   return all.slice(start, start + KPAGE.size);
 }
 
 function gotoPage(delta) {
-  const pages = Math.max(1, Math.ceil(filteredKeys().length / KPAGE.size));
+  const pages = Math.max(1, Math.ceil(listedKeys().length / KPAGE.size));
   KPAGE.page = Math.min(pages - 1, Math.max(0, KPAGE.page + delta));
   repaintKeyRows();
 }
 
+function showAllPinned() { KPIN_OPEN = true; repaintKeyRows(); }
+
 function repaintKeyRows() {
-  const all = filteredKeys();
+  const all = listedKeys();
   const pages = Math.max(1, Math.ceil(all.length / KPAGE.size));
   if (KPAGE.page > pages - 1) KPAGE.page = pages - 1;
   const rows = pagedKeys();
   const tbody = document.getElementById('key-rows');
   if (!tbody) return;
   paintPager(all.length);
-  if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="empty">No integrations match — clear a filter or create one.</div></td></tr>`;
-    paintSelBanner();
-    return;
-  }
-  tbody.innerHTML = rows.map(k => `
-    <tr class="rowlink" onclick="location.hash = '#keys/${k.id}'">
+
+  // THE TWO BLOCKS. With nothing carried over — the ordinary case, and every first
+  // visit — this is exactly the table it always was: no group rows, no chrome.
+  const pinned = pinnedKeys();
+  const shown = KPIN_OPEN ? pinned : pinned.slice(0, KPIN_MAX);
+  const head = pinned.length
+    ? groupRowHtml('Selected', pinned.length)   // a group line counts ITS OWN rows — the bar counts the cohort
+      + shown.map(keyRowHtml).join('')
+      + (pinned.length > shown.length
+        ? `<tr class="grp-more"><td colspan="7"><button type="button" class="zlink"
+             onclick="showAllPinned()">Show all ${pinned.length} selected</button></td></tr>`
+        : '')
+      + groupRowHtml('Matching', all.length)
+    : '';
+  tbody.innerHTML = head + (rows.length
+    ? rows.map(keyRowHtml).join('')
+    : `<tr><td colspan="7"><div class="empty">${pinned.length
+        ? 'Nothing else matches — the selected are still above.'
+        : 'No integrations match — clear a filter or create one.'}</div></td></tr>`);
+
+  const box = document.getElementById('chk-all');
+  if (box) box.checked = rows.length > 0 && rows.every(k => KSEL.has(k.id));
+  paintSelBanner();
+}
+
+// A block's own thin line: what these rows are, and how many. Micro-label, no sentence.
+function groupRowHtml(word, n) {
+  return `<tr class="grp"><td colspan="7"><span class="grp-l">${esc(word)}</span><span class="grp-n">${n}</span></td></tr>`;
+}
+
+function keyRowHtml(k) {
+  return `
+    <tr class="rowlink ${KPIN.has(k.id) ? 'pinned' : ''}" onclick="location.hash = '#keys/${k.id}'">
       <td class="chk" onclick="event.stopPropagation()">
         <input type="checkbox" ${KSEL.has(k.id) ? 'checked' : ''} onclick="toggleKeySel('${k.id}', this)">
       </td>
       <td>
         <div class="cell-main">${esc(k.name)}</div>
+        <button type="button" class="kcopy" aria-label="Copy API key"
+          onclick="event.stopPropagation(); copyText('${esc(k.key)}', 'API key copied')"
+        ><span class="mono">${esc(k.key)}</span><svg viewBox="0 0 14 14" width="11" height="11" fill="none"
+            stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="4.4" y="4.4" width="8.2"
+            height="8.2" rx="1.6"/><path d="M9.9 4.4V2.7a1.2 1.2 0 0 0-1.2-1.2H2.6a1.2 1.2 0 0 0-1.2 1.2v6.1a1.2
+            1.2 0 0 0 1.2 1.2h1.8"/></svg></button>
       </td>
       <td>${propCell(k.property)}</td>
       <td class="cell-plain">${esc(label('platform', k.platform))}</td>
       <td>${slotChipsHtml(k)}</td>
-      <td>${statusCellHtml(k)}</td>
       <td>
         <div class="cell-plain" style="font-weight:600">${esc(k.updatedBy || '—')}</div>
         <div class="cell-sub">${relWhen(k.updatedAt)}</div>
       </td>
-    </tr>`).join('');
-  const box = document.getElementById('chk-all');
-  if (box) box.checked = rows.length > 0 && rows.every(k => KSEL.has(k.id));
-  paintSelBanner();
+      <td>${statusCellHtml(k)}</td>
+    </tr>`;
 }
 
 function paintPager(total) {
@@ -278,23 +317,26 @@ function paintPager(total) {
   const pages = Math.ceil(total / KPAGE.size);
   el.innerHTML = `
     <span class="pg-range">${from}–${to} of ${total}</span>
-    <button class="pg-btn" ${KPAGE.page === 0 ? 'disabled' : ''} title="Newer" onclick="gotoPage(-1)">‹</button>
-    <button class="pg-btn" ${KPAGE.page >= pages - 1 ? 'disabled' : ''} title="Older" onclick="gotoPage(1)">›</button>`;
+    <button class="pg-btn" ${KPAGE.page === 0 ? 'disabled' : ''} onclick="gotoPage(-1)">‹</button>
+    <button class="pg-btn" ${KPAGE.page >= pages - 1 ? 'disabled' : ''} onclick="gotoPage(1)">›</button>`;
 }
 
 // The Gmail move: selecting the page tells you it selected only the page, and offers
-// the rest of the matching set as one explicit act.
+// the rest of the matching set as one explicit act. It counts the carried block too —
+// an offer to select rows that are already selected is not an offer.
 function paintSelBanner() {
   const el = document.getElementById('sel-scope');
   if (!el) return;
   const all = filteredKeys();
   const page = pagedKeys();
   const pageAllSelected = page.length > 0 && page.every(k => KSEL.has(k.id));
-  const allSelected = all.length > 0 && all.every(k => KSEL.has(k.id));
-  if (!pageAllSelected || all.length <= page.length) { el.innerHTML = ''; return; }
-  el.innerHTML = allSelected
-    ? `<button onclick="selectPageOnly()">Select just this page</button>`
-    : `<button onclick="selectAllMatching()">Select all ${all.length} that match these filters</button>`;
+  const rest = all.filter(k => !KSEL.has(k.id)).length;
+  if (!pageAllSelected) { el.innerHTML = ''; return; }
+  el.innerHTML = rest
+    ? `<button onclick="selectAllMatching()">Select all ${all.length} that match these filters</button>`
+    : all.length > page.length
+      ? `<button onclick="selectPageOnly()">Select just this page</button>`
+      : '';
 }
 
 function selectAllMatching() {
@@ -304,8 +346,8 @@ function selectAllMatching() {
 }
 
 function selectPageOnly() {
-  const page = new Set(pagedKeys().map(k => k.id));
-  for (const id of [...KSEL]) if (!page.has(id)) KSEL.delete(id);
+  const keep = new Set([...pagedKeys(), ...pinnedKeys()].map(k => k.id));
+  for (const id of [...KSEL]) if (!keep.has(id)) KSEL.delete(id);
   repaintKeyRows();
   updateBulkBar();
 }
@@ -314,6 +356,16 @@ function selectPageOnly() {
 
 function toggleKeySel(id, box) {
   if (box.checked) KSEL.add(id); else KSEL.delete(id);
+  // Ticking never moves a row (the block is snapshotted on filter changes only), but
+  // UNticking a carried row is a way out of the block — it drops back among the matches
+  // if it belongs there, and off the screen if it does not.
+  if (!box.checked && KPIN.has(id)) {
+    KPIN.delete(id);
+    if (!KPIN.size) KPIN_OPEN = false;
+    repaintKeyRows();
+    updateBulkBar();
+    return;
+  }
   const page = pagedKeys();
   const head = document.getElementById('chk-all');
   if (head) head.checked = page.length > 0 && page.every(k => KSEL.has(k.id));
@@ -321,17 +373,25 @@ function toggleKeySel(id, box) {
   updateBulkBar();
 }
 
-// This page only — the rest of the matching set is a separate, explicit act.
+// This page only — the rest of the matching set is a separate, explicit act. The head
+// governs the MATCHING block: it never reaches into the carried one, in the ticks it
+// writes any more than in the ids it holds (8 Sep — it used to write every checkbox in
+// the table, so switching it off emptied the carried rows' boxes while the bar still
+// counted them, and the next click on one re-ticked it instead of releasing it). The
+// carried block's own way out is unticking a row, or Clear.
 function toggleAllKeys(box) {
   for (const k of pagedKeys()) box.checked ? KSEL.add(k.id) : KSEL.delete(k.id);
-  document.querySelectorAll('#key-rows .chk input').forEach(c => { c.checked = box.checked; });
+  document.querySelectorAll('#key-rows tr:not(.pinned) .chk input').forEach(c => { c.checked = box.checked; });
   paintSelBanner();
   updateBulkBar();
 }
 
 function clearKeySelection() {
   KSEL.clear();
+  KPIN.clear();
+  KPIN_OPEN = false;
   document.querySelectorAll('.chk input').forEach(c => { c.checked = false; });
+  if (document.getElementById('key-rows')) repaintKeyRows();
   paintSelBanner();
   updateBulkBar();
 }
@@ -349,22 +409,16 @@ function selectedKeys() {
   return [...KSEL].map(id => KEYS_CACHE.find(k => k.id === id)).filter(Boolean);
 }
 
-async function bulkApplyDirect(action, value, doneNote) {
+async function bulkApplyDirect(action, value) {
   try {
     const { changed, unchanged, refused, skipped } = await API.bulkKeys({ ids: [...KSEL], action, value });
-    toast(`${doneNote} — ${changed} changed${unchanged ? `, ${unchanged} already there` : ''}`);
-    if (refused?.length) {
-      const why = action === 'slotOn' ? 'their ad setup carries no demand for it'
-        : action === 'slotOff' ? 'it is the only unit they run'
-        : action === 'driveFields' ? 'their setup carries none of that company — the decision could not run there'
-        : 'the change would leave them with nothing live';
-      const names = refused.slice(0, 3).join(', ') + (refused.length > 3 ? ` and ${refused.length - 3} more` : '');
-      toast(`Skipped ${names} — ${why}`, 'warn');
-    }
-    if (skipped?.length) {
-      const names = skipped.slice(0, 3).join(', ') + (skipped.length > 3 ? ` and ${skipped.length - 3} more` : '');
-      toast(`Left alone (no demand there): ${names}`, 'warn');
-    }
+    // ONE COUNT FOR THE WHOLE SWEEP (7 Sep, user call). It used to name every row it
+    // skipped and every row it left alone, three lines deep — in a pill, over the very
+    // rows that say so themselves: a skipped integration repaints unchanged, and the one
+    // that took the change repaints changed. The count is what the rows can't show.
+    const left = (refused?.length || 0) + (skipped?.length || 0);
+    toast(left ? `${changed} changed · ${left} skipped` : `${changed} changed`,
+      left ? 'warn' : undefined);
     return true;
   } catch (e) {
     toast(e.message, 'bad');

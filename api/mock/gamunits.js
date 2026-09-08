@@ -12,6 +12,7 @@ export const BASE_UNITS = [
   '/7176/toi/web/videoshow/midroll',
   '/7176/toi/web/videoshow/display',
   '/7176/toi/mweb/shorts/preroll',
+  '/7176/toi/ron/video',
   '/7176/et/app/minitv/preroll',
   '/7176/et/app/minitv/midroll',
   '/7176/et/web/articleshow/preroll',

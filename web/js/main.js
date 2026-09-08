@@ -20,6 +20,7 @@ async function getMeta() {
 let ROUTE_SEQ = 0;
 
 async function route() {
+  if (window.SIGNED_OUT) return; // logged out (meLogOut) — the plate stands until a reload
   const seq = ++ROUTE_SEQ;
   startProgress();
   const hash = location.hash || '#keys';
@@ -61,12 +62,11 @@ async function route() {
 async function refreshCounts() {
   try {
     const [{ keys }, { setups }] = await Promise.all([API.listKeys(), API.listSetups()]);
-    const gp = window.GLOBAL_PROP;
-    document.getElementById('count-keys').textContent = keys.filter(k => gp === 'All' || k.property === gp).length;
+    document.getElementById('count-keys').textContent = keys.filter(k => inScope(k.property)).length;
     document.getElementById('count-setups').textContent = setups.filter(o => inScope(o.property)).length;
   } catch { /* API down — the view already shows the banner */ }
 }
 
-getMeta().then(m => renderPropSwitcher(m.propertyScopes)).catch(() => renderPropSwitcher(['All']));
+getMeta().then(m => renderMe(m.me)).catch(() => renderMe(null));
 window.addEventListener('hashchange', route);
 route();

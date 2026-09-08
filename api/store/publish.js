@@ -1,12 +1,11 @@
-// store/publish.js — THE PUBLISH PLANE: snapshots, versions, publish/unpublish/restore, the seam.
-// Split from store.js (3 Sep, docs/STORE-SPLIT.md): a MOVE, not a rewrite — units
-// relocated whole, bodies untouched. store.js re-exports everything, so the HTTP
-// surface, the tests and the mock world see the exact same module they always did.
-import { versionChanges } from './diff.js';
+// store/publish.js — THE PUBLISH PLANE: what a snapshot holds, versions, publish /
+// unpublish / restore, the darkness check at the boundary, and `liveConfig` — the JSON
+// the player is actually served.
+import { versionChanges } from './version-changes.js';
 import { listKeys, updateKey } from './keys.js';
 import { driveWalkRungs, effectiveBehaviour, liveRungs, slotGroupDefs } from './ladders.js';
 import { keysUsingSetup, updateSetup } from './setups.js';
-import { Refusal, SLOT_TYPES, state } from './state.js';
+import { Refusal, SLOT_TYPES, SLOT_WORD, state } from './state.js';
 import { mustGet } from './validate.js';
 
 
@@ -39,12 +38,21 @@ const PUBLISHABLE = {
   }),
   setup: s => ({
     name: s.name, property: s.property,
+    // The waterfall rides the snapshot RAW (per-unit answers kept) with its two
+    // levers beside it; what a linked break serves is already materialized in its
+    // rungs. Absent while unconfigured, so older setups' snapshots read unchanged.
+    ...(s.waterfall && (s.waterfall.rungs.length || s.waterfall.depth || s.waterfall.pauseAll)
+      ? { waterfall: { rungs: s.waterfall.rungs.map(snapRung), depth: s.waterfall.depth ?? null, pauseAll: s.waterfall.pauseAll ?? null } }
+      : {}),
     sections: s.sections.map(sec => ({
       name: sec.name,
       slots: Object.fromEntries(SLOT_TYPES.map(t => {
         const out = {
           rungs: sec.slots[t].rungs.map(snapRung),
           behaviour: { ...sec.slots[t].behaviour },
+          // A break that follows the waterfall says so — the diff reads the
+          // link, and a restore puts the link back rather than a frozen copy.
+          ...(sec.slots[t].waterfallSource === 'setup' ? { waterfallSource: 'setup' } : {}),
         };
         if (sec.slots[t].direct) {
           out.direct = { rungs: (sec.slots[t].direct.rungs || []).map(snapRung) };
@@ -55,6 +63,7 @@ const PUBLISHABLE = {
           out.groups = sec.slots[t].groups.map(g => ({
             rungs: g.rungs.map(snapRung),
             behaviour: { ...g.behaviour },
+            ...(g.waterfallSource === 'setup' ? { waterfallSource: 'setup' } : {}),
             ...(g.direct ? { direct: { rungs: (g.direct.rungs || []).map(snapRung) } } : {}),
           }));
         }
@@ -107,14 +116,16 @@ function darkBreaks(keySnap) {
       const groups = publishedGroupLadders(setupSnap, s.name, t);
       const multi = groups.length > 1;
       groups.forEach((live, gi) => {
-        if (!live.length) out.push(`${s.name} ${t}${multi ? ` group ${gi + 1}` : ''}`);
+        if (!live.length) out.push(`${s.name} ${SLOT_WORD[t].toLowerCase()}${multi ? ` pod ${gi + 1}` : ''}`);
       });
     }
   }
   return out;
 }
 
-export function publishObject(kind, id, actor = 'You') {
+export function publishObject(kind, id, actor = 'You', note) {
+  // The person's own line under the version — why this went out, in their words.
+  const memo = String(note ?? '').trim().slice(0, 200);
   const obj = objectOf(kind, id);
   const snapshot = draftSnapshot(kind, obj);
   const before = liveSnapshot(id);
@@ -164,11 +175,13 @@ export function publishObject(kind, id, actor = 'You') {
   // when a save WAS the release; under the plane that sentence was a lie every time.
   if (kind === 'setup') {
     const onAir = keysUsingSetup(id).filter(k => isPublished(k.id));
-    if (onAir.length) warnings.push(`${onAir.map(k => `“${k.name}”`).join(', ')} picks this up on its next request`);
+    // One setup may fill several integrations (8 Sep), so the warning counts them all
+    // and agrees with itself: “A” picks this up · “A”, “B” pick this up.
+    if (onAir.length) warnings.push(`${onAir.map(k => `“${k.name}”`).join(', ')} pick${onAir.length === 1 ? 's' : ''} this up`);
   }
 
   const list = state.versions.get(id) || [];
-  const entry = { v: list.length + 1, ts: new Date().toISOString(), actor, snapshot, changes };
+  const entry = { v: list.length + 1, ts: new Date().toISOString(), actor, snapshot, changes, ...(memo ? { note: memo } : {}) };
   list.push(entry);
   state.versions.set(id, list);
   state.live.set(id, { v: entry.v, snapshot });
@@ -200,13 +213,13 @@ export function unpublishObject(kind, id, actor = 'You') {
 // version, so the thing you reverted away from is still there to revert back to. The
 // draft follows, because leaving the editor showing something other than what is live
 // is how people publish an accident.
-export function restoreVersion(kind, id, v, actor = 'You') {
+export function restoreVersion(kind, id, v, actor = 'You', note) {
   const obj = objectOf(kind, id);
   const src = versionsOf(id).find(x => x.v === Number(v));
   if (!src) throw new Refusal(404, 'not_found', `“${obj.name}” has no version ${v}`);
   if (!src.snapshot) throw new Refusal(409, 'not_restorable', `Version ${v} took “${obj.name}” off air — publish it again instead`);
   applySnapshot(kind, obj, src.snapshot);
-  const out = publishObject(kind, id, actor);
+  const out = publishObject(kind, id, actor, note);
   const entry = versionsOf(id)[versionsOf(id).length - 1];
   entry.restoredFrom = src.v;
   return { ...out, restoredFrom: src.v };
@@ -218,7 +231,14 @@ export function restoreVersion(kind, id, v, actor = 'You') {
 // refuses by name instead of landing broken.
 function applySnapshot(kind, obj, snap) {
   if (kind === 'setup') {
-    updateSetup(obj.id, { name: snap.name, property: snap.property, direct: snap.direct, sections: snap.sections });
+    // `?? null` clears the waterfall when restoring a version from before it existed;
+    // and a snapshot says "own units" by ABSENCE, which a merge cannot see — made
+    // explicit here so restoring an own-units version actually unlinks the break.
+    const explicitSource = slot => ({ waterfallSource: 'own', ...slot,
+      ...(slot.groups ? { groups: slot.groups.map(g => ({ waterfallSource: 'own', ...g })) } : {}) });
+    const sections = snap.sections.map(sec => ({ ...sec,
+      slots: Object.fromEntries(Object.entries(sec.slots || {}).map(([t, slot]) => [t, explicitSource(slot)])) }));
+    updateSetup(obj.id, { name: snap.name, property: snap.property, direct: snap.direct, waterfall: snap.waterfall ?? null, sections });
     return;
   }
   updateKey(obj.id, {
@@ -336,8 +356,21 @@ export function liveConfig(apiKey) {
 
 // Mock only: publish an object and backdate its version, so a seeded world reads as one
 // that has been running for days rather than one that went live all at once just now.
-export function seedPublish(kind, id, { actor = 'Priya (ad ops)', hoursAgo = 0 } = {}) {
-  const { version } = publishObject(kind, id, actor);
+export function seedPublish(kind, id, { actor = 'Priya (ad ops)', hoursAgo = 0, note } = {}) {
+  const { version } = publishObject(kind, id, actor, note);
   version.ts = new Date(Date.now() - hoursAgo * 3600 * 1000).toISOString();
   return version;
+}
+
+// ---------- the gap between draft and air ----------
+
+/** What the next publish would change: the draft against what is on air. */
+export function unpublishedChanges(kind, id) {
+  const obj = objectOf(kind, id);
+  return versionChanges(kind, liveSnapshot(id), draftSnapshot(kind, obj));
+}
+
+export function isDirty(kind, id) {
+  const obj = objectOf(kind, id);
+  return JSON.stringify(liveSnapshot(id)) !== JSON.stringify(draftSnapshot(kind, obj));
 }

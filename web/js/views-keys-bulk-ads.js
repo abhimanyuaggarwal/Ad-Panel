@@ -1,17 +1,9 @@
-// views-keys-bulk.js — the three BULK ACTS over a selection of integrations:
-//   · Ad behaviour   — per-break levers on a clean slate (closed → open/unset → queued),
-//                      reviewed on THE CHANGE REVIEW, applied via driveFields/slotOn/Off
-//   · Custom player behaviour — the master-detail walk of each integration's configs
-//   · Default player behaviour — one-step blanket set of the default player's 3 facts
-// Uses the list file's selection (KSEL/selectedKeys) and write helpers at runtime.
-
-// ---------- bulk edit: one sheet, the slots as tabs ----------
-// Re-homed by owner (24 Aug), re-cut for the drive (26 Aug, DRIVING-SCOPE): what a
-// cohort answers the same way is switches, publishing, the PLAYER — and the QUICK
-// DECISIONS (who fills a break, tries, start, ads in a row), written to each
-// integration's own drive. Every ladder act is the ops room's: each integration's
-// setup is its own workshop now (the 1:1 promise), so there is nothing shared left
-// for bulk to write — and cohort setup-attach died with the same promise.
+// views-keys-bulk-ads.js — the AD BEHAVIOUR bulk sheet over a selection of integrations:
+// one tab per break, each lever a clean slate (closed → open/unset → queued), a pending
+// card per break, then THE CHANGE REVIEW, then the writes (slotOn / slotOff /
+// driveFields through bulkApplyDirect). The two player sheets are in
+// views-keys-bulk-player.js. Uses the list file's selection (KSEL / selectedKeys) and
+// write helpers at runtime.
 
 let BULK_DRAFT = null; // { tab, slots:{} } — the AD BEHAVIOUR sheet's queue, breaks only
 let UNIT_DRAFT = null;
@@ -112,14 +104,14 @@ function renderUnitScreen() {
     }),
   ];
   document.getElementById('dialog-root').innerHTML = `
-    <div class="dlg-veil"><div class="dlg bulk">
+    <div class="dlg-veil"><div class="dlg bulk steady">
       <h3>Edit ${keys.length} integration${keys.length > 1 ? 's' : ''}<span class="dlg-kicker">${esc(keys.slice(0, 2).map(k => k.name).join(', '))}${keys.length > 2 ? ` +${keys.length - 2} more` : ''}</span></h3>
       <div class="btabs">
         ${tabs.map(x => `<button type="button" class="btab wswitch ${d.tab === x.v ? 'on' : ''} ${x.runs !== undefined && x.runs !== 'on' ? 'off' : ''}"
           onclick="bulkTab('${x.v}')">${esc(x.label)}${x.runs !== undefined ? `
           <span class="toggle mini ${x.runs === 'on' ? 'on' : ''} ${d.tab === x.v ? '' : 'dead'}"
             ${d.tab === x.v ? `onclick="event.stopPropagation(); bulkTabRuns('${x.v}')"` : ''}
-            title="${d.tab !== x.v ? 'Open this tab first — then switch it' : x.queued ? 'Queued — lands on Apply, per integration, skip-and-name' : x.runs === 'on' ? 'Running on at least one selected surface — click to queue OFF everywhere' : 'Off everywhere — click to queue ON where demand exists'}"><span class="track"></span></span>` : ''}${x.dirty ? '<i class="bdot"></i>' : ''}</button>`).join('')}
+            ${d.tab !== x.v ? 'title="Open this tab first — then switch it"' : ''}><span class="track"></span></span>` : ''}${x.dirty ? '<i class="bdot"></i>' : ''}</button>`).join('')}
       </div>
       <div class="dlg-body">
         ${slotTabHtml(d.tab)}
@@ -186,7 +178,6 @@ function bulkAskChipsHtml(t) {
   });
   const chip = (p, i, isOn) => `
     <span class="pchip ${isOn ? 'on' : 'skip'}" ${isOn && on.length > 1 ? dragAttrs(dragKey, i) : ''}
-      title="${isOn ? 'Drag to reorder, click to switch off' : 'Skipped. Click to switch it back on — it joins at the end'}"
       onclick="${isOn && on.length === 1 ? '' : `bulkAskToggle('${t}', '${p}')`}">
       ${isOn && on.length > 1 ? '<span class="pchip-grip">⠿</span>' : ''}
       <b class="pchip-n">${isOn ? i + 1 : '–'}</b>
@@ -203,7 +194,7 @@ function bulkAskToggle(t, p) {
   const cur = d.dTouched.has('ask') ? d.dv.ask : uniformDrive(t, 'ask');
   const on = Array.isArray(cur) && cur.length ? [...cur] : [...window.KL_PROVIDERS];
   if (on.includes(p)) {
-    if (on.length === 1) { toast('A break has to ask somebody — switch another partner on first', 'warn'); return; }
+    if (on.length === 1) { toast('One partner must stay on', 'warn'); return; }
     bulkDriveSet(t, 'ask', on.filter(x => x !== p));
   } else {
     bulkDriveSet(t, 'ask', [...on, p]);
@@ -251,8 +242,7 @@ function bulkFieldDefs(t) {
   const dv = f => (d.dTouched.has(f) ? d.dv[f] : undefined);
   const defs = [
     {
-      f: 'direct', label: 'Direct',
-      why: 'Sold-direct demand, per break — the deals and caps are each ad setup’s; whether they run is each surface’s',
+      f: 'direct', label: label('slotType', 'direct'),
       ctl: () => {
         // On/Off as an explicit pair: a toggle has to stand somewhere, and where it
         // stood read as the value. Unset until picked.
@@ -261,10 +251,10 @@ function bulkFieldDefs(t) {
         return `${accSeg(cur, ['on', 'off'], ['On', 'Off'],
           o => `bulkDriveSet('${t}', 'direct', ${o === 'on' ? 'true' : 'false'})`)}
           ${withDeals < selectedKeys().length
-            ? `<span class="st-chip" title="Their ad setup carries no direct deals on this break — the switch lands, and changes nothing until ops add one">${selectedKeys().length - withDeals} without deals</span>` : ''}`;
+            ? `<span class="st-chip">${selectedKeys().length - withDeals} without deals</span>` : ''}`;
       },
     },
-    { f: 'ask', label: 'Fallback order', ctl: () => bulkAskChipsHtml(t) },
+    { f: 'ask', label: 'Waterfall order', ctl: () => bulkAskChipsHtml(t) },
     {
       f: 'tries', label: 'Waterfall depth',
       ctl: () => accSeg(d.dTouched.has('tries') ? (d.dv.tries ?? 'setup') : undefined, [1, 2, 3, 'setup'], ['1', '2', '3', 'Full'],
@@ -284,7 +274,6 @@ function bulkFieldDefs(t) {
   if (t === 'midroll') {
     defs.push({
       f: 'cuepoints', label: 'Cue points',
-      why: 'Where each surface’s mid-roll breaks fall — a surface whose ad setup runs an interval, or several break groups, keeps its own and is named on Apply',
       ctl: () => {
         const v = d.dTouched.has('cuepoints') ? d.dv.cuepoints : undefined;
         const text = BULK_TEXT.cuepoints ?? (Array.isArray(v) ? v.map(fmtCue).join(', ') : '');
@@ -295,7 +284,7 @@ function bulkFieldDefs(t) {
     });
   }
   defs.push({
-    f: 'podAds', label: 'Impressions per break',
+    f: 'podAds', label: fieldName('podAds'),
     ctl: () => accSeg(dv('podAds'), [1, 2, 3], ['1', '2', '3'], o => `bulkDriveSet('${t}', 'podAds', ${o})`),
   });
   void dv;
@@ -360,7 +349,7 @@ function bulkFieldRowHtml(t, def, shownOff) {
     return `
     <div class="bqf-r closed ${shownOff ? 'off-dim' : ''}" onclick="bulkOpenField('${t}', '${def.f}')"${def.why ? ` title="${esc(def.why)}"` : ''}>
       <span class="bqf-l">${esc(def.label)}</span>
-      <span class="bqf-today" title="What the selected integrations hold today — counted, never a suggestion">${esc(today)}</span>
+      <span class="bqf-today">${esc(today)}</span>
       <span class="bqf-set">Set</span>
     </div>`;
   }
@@ -369,8 +358,7 @@ function bulkFieldRowHtml(t, def, shownOff) {
       <span class="bqf-l">${esc(def.label)}</span>
       <span class="bqf-c form">${def.ctl()}</span>
       <span class="bqf-s">${queued ? '' : `<span class="bqf-today">${esc(today)}</span>`}
-        <button type="button" class="bqs-x on" onclick="bulkUnsetField('${t}', '${def.f}')"
-          title="${queued ? 'Drop this change' : 'Close — nothing set'}">×</button></span>
+        <button type="button" class="bqs-x on" onclick="bulkUnsetField('${t}', '${def.f}')">×</button></span>
     </div>`;
 }
 
@@ -392,7 +380,7 @@ function bulkUnsetField(t, f) {
 
 function bulkFieldsHtml(t, shownOff) {
   if (isRotation(t)) {
-    return '<div class="bt-note">Banners take turns — nothing to decide beyond the switch. Which banners and when: each ad setup.</div>';
+    return '<div class="bt-note">Banners take turns — set in each ad setup</div>';
   }
   return bulkFieldDefs(t).map(def => bulkFieldRowHtml(t, def, shownOff)).join('');
 }
@@ -415,7 +403,7 @@ function bulkPendingCardHtml(t) {
         <div class="bqp-r">
           <div class="bqp-top">
             <span class="bqp-f">${esc(r.label)}</span>
-            <button type="button" class="bqs-x" onclick="bulkDropField('${r.t}', '${r.f}')" title="Drop this change">×</button>
+            <button type="button" class="bqs-x" onclick="bulkDropField('${r.t}', '${r.f}')">×</button>
           </div>
           <div class="bqp-vc">${esc(bulkTodayWord(r.t, r.f))}<i class="rvw-arr">→</i><b>${esc(r.to)}</b></div>
         </div>`).join('')
@@ -532,7 +520,7 @@ function bulkReviewChanges() {
     // last screen before a cohort write, so a surface the change cannot touch is named.
     if (r.f === 'direct' && r.t !== 'player') {
       const n = keys.length - withDeals(r.t);
-      if (n) row.note = `${n} carry no direct deals`;
+      if (n) row.note = `${n} carry no special deals`;
     }
     if (r.f === 'runs' && r.to.startsWith('on')) {
       const n = keys.filter(k => !k.sections.some(s2 => s2.slots[r.t]?.hasDemand)).length;
@@ -551,6 +539,8 @@ async function reviewBulk() {
     changes: bulkReviewChanges(),
     okLabel: `Apply to ${keys.length}`,
     cancelLabel: 'Back',
+    // Step 2 of the tabbed sheet: same footprint, so confirming is not a new dialog.
+    steady: true,
   });
   // Back leaves the sheet exactly as it was — the queue is still there to edit.
   if (!ok) { renderUnitScreen(); return; }
@@ -564,14 +554,13 @@ async function applyBulk() {
   // Switches and decisions per touched slot — in the order the screen reads.
   for (const d of drafts) {
     const t = d.slot;
-    const kind = label('slotType', t);
     if (d.runs !== d.runs0 && d.runs) {
-      await bulkApplyDirect(d.runs === 'on' ? 'slotOn' : 'slotOff', t, kind);
+      await bulkApplyDirect(d.runs === 'on' ? 'slotOn' : 'slotOff', t);
     }
     if (d.dTouched.size) {
       const fields = {};
       for (const f of d.dTouched) fields[f] = d.dv[f] === undefined ? 'setup' : d.dv[f];
-      await bulkApplyDirect('driveFields', { slot: t, fields }, kind);
+      await bulkApplyDirect('driveFields', { slot: t, fields });
     }
   }
 
@@ -580,353 +569,3 @@ async function applyBulk() {
 
 // Cohort publish / take-off-air left the bulk bar (2 Sep, user call) — going on or
 // off air is each integration's own deliberate act, from its page.
-
-// ---------- CHANGE PLAYER BEHAVIOUR (2 Sep, user call) ----------
-// The bulk bar's second object: every player config of every selected integration —
-// Default first, then each named fork — on one sheet, read and edited together. One
-// bordered group per integration (the review's own anatomy), one row per config, the
-// three per-placement facts as columns. Edits queue in a draft; Review reads them back
-// grouped the same way before a single draft is written. Publishing stays per surface.
-let PB_DRAFT = null;   // { keys: [{ id, name, platform, player, playerConfigs, orig }] }
-const PB_TEXT = {};    // caret-safe volume inputs, keyed `${ki}:${ci}`
-
-function playerBehaviourJourney() {
-  if (!KSEL.size) return;
-  PB_DRAFT = {
-    keys: selectedKeys().map(k => ({
-      id: k.id, name: k.name, platform: k.platform,
-      player: JSON.parse(JSON.stringify(k.player)),
-      playerConfigs: JSON.parse(JSON.stringify(k.playerConfigs || [])),
-      orig: JSON.parse(JSON.stringify({ player: k.player, playerConfigs: k.playerConfigs || [] })),
-    })),
-  };
-  for (const k of Object.keys(PB_TEXT)) delete PB_TEXT[k];
-  renderPBScreen();
-}
-
-function closePBScreen() {
-  PB_DRAFT = null;
-  PB_SEL = { ki: 0, ci: -1 };
-  document.getElementById('dialog-root').innerHTML = '';
-}
-
-// ci = -1 is the Default (the key's own player); 0.. are the named forks.
-function pbCfg(k, ci) { return ci < 0 ? k.player : k.playerConfigs[ci]; }
-
-function pbSet(ki, ci, f, v) {
-  pbCfg(PB_DRAFT.keys[ki], ci)[f] = v;
-  renderPBScreen();
-}
-
-function pbNum(el, ki, ci) {
-  PB_TEXT[`${ki}:${ci}`] = el.value;
-  pbCfg(PB_DRAFT.keys[ki], ci).passiveVolume = Number(el.value);
-  pbSyncFoot();
-}
-
-// Every field one config moved, in the panel's words — the review rows and the foot's
-// count read the same list.
-function pbChanges() {
-  const out = [];
-  const word = (f, v) => (f === 'passiveVolume' ? `${v}%` : label(f, v));
-  for (const k of PB_DRAFT.keys) {
-    const pairs = [[-1, 'Default', k.player, k.orig.player]];
-    k.playerConfigs.forEach((c, i) => {
-      const o = k.orig.playerConfigs.find(x => x.id === c.id);
-      if (o) pairs.push([i, c.name, c, o]);
-    });
-    for (const [ci, cfgName, cur, orig] of pairs) {
-      // A fork carries three facts; the default carries the player's Passive volume too.
-      for (const f of ci < 0 ? ['playback', 'expandInMini', 'autoplay', 'passiveVolume'] : ['playback', 'expandInMini', 'autoplay']) {
-        if (JSON.stringify(cur[f]) !== JSON.stringify(orig[f])) {
-          out.push({
-            where: `${k.name} · ${cfgName}`, field: f,
-            fromText: word(f, orig[f]),
-            toText: word(f, cur[f]),
-            ki: PB_DRAFT.keys.indexOf(k), ci,
-          });
-        }
-      }
-    }
-  }
-  return out;
-}
-
-// MASTER-DETAIL (3 Sep, user call — a column per field cannot scale): the left rail
-// is every selected integration's configs, Default first; the right pane is the
-// SELECTED config's whole field form, which grows DOWNWARD as configs grow fields —
-// n fields is a longer form, never a wider table. A config this sheet moved wears the
-// accent bar on its rail row; the counted foot and the change review are unchanged.
-let PB_SEL = { ki: 0 };
-
-// The rail picks an INTEGRATION; a queue row picks one and scrolls its config into
-// view, so a change you queued three surfaces ago is still one click from its form.
-function pbSelect(ki, ci) {
-  PB_SEL = { ki };
-  renderPBScreen();
-  if (ci === undefined) return;
-  const el = document.getElementById(`pbg-${ci}`);
-  if (el) el.scrollIntoView({ block: 'nearest' });
-}
-
-// ONE ROW PER INTEGRATION (3 Sep, user call). The rail used to list every config of
-// every surface — with six surfaces that is thirty rows to walk, and the configs of one
-// integration were never on screen together. Now the rail is the cohort and the right
-// side is one integration WHOLE: its default, then each named fork.
-// The rail is the cohort AND the change map: a surface with edits carries the count,
-// so "what have I touched, and where" is answered without a second list of the same
-// changes in different words. The names already carry the platform.
-function pbRailHtml() {
-  return PB_DRAFT.keys.map((k, ki) => {
-    const n = pbChanges().filter(c => c.ki === ki).length;
-    return `
-      <button type="button" class="pbr-row ${PB_SEL.ki === ki ? 'sel' : ''} ${n ? 'dirty' : ''}"
-        onclick="pbSelect(${ki})">
-        <span class="pbr-n">${esc(k.name)}</span>
-        ${n ? `<span class="pbr-count" title="${n} change${n === 1 ? '' : 's'} on this integration — lands on Apply">${n}</span>` : ''}
-      </button>`;
-  }).join('');
-}
-
-// The selected config's form — the SAME rows the integration page draws, stacked so a
-// future fourth or tenth fact is one more row here and nowhere else.
-// The selected integration, WHOLE: its default and every named fork, each a small
-// bounded block of the same three rows. A future fourth or tenth fact is one more row
-// here and nowhere else.
-// THE CHANGE LIVES WHERE THE CHANGE WAS MADE (3 Sep, user call — the queue on top is
-// gone). A strip above the form said the same thing twice in two vocabularies, a screen
-// apart, and grew downward as you worked — so the form moved under the cursor and the
-// dialog changed size. Now a moved field says so in its own row: an accent bar, the
-// value it held, and an × that puts it back. The rail counts them per surface, and
-// Review still reads every one before anything lands.
-function pbWasWord(f, v) { return f === 'passiveVolume' ? `${v}%` : label(f, v); }
-
-function pbConfigBlockHtml(ki, ci) {
-  const k = PB_DRAFT.keys[ki];
-  const c = pbCfg(k, ci);
-  const meta = KL_META;
-  const orig = ci < 0 ? k.orig.player : k.orig.playerConfigs.find(x => x.id === c.id);
-  const vol = PB_TEXT[`${ki}:${ci}`] ?? (c.passiveVolume ?? '');
-  const moved = f => !!orig && JSON.stringify(c[f]) !== JSON.stringify(orig[f]);
-  const rowMoved = f => moved(f);
-  const wasWord = f => pbWasWord(f, orig[f]);
-  const frow = (f, lbl, ctl, why) => {
-    const m = rowMoved(f);
-    return `
-    <div class="pbd-r ${m ? 'moved' : ''}"${why ? ` title="${esc(why)}"` : ''}>
-      <span class="pbd-l">${esc(lbl)}</span>
-      <span class="pbd-c">${ctl}</span>
-      <span class="pbd-s">${m ? `<span class="pbd-was">was ${esc(wasWord(f))}</span>
-        <button type="button" class="pbd-x" title="Put it back" onclick="pbDropField(${ki}, ${ci}, '${f}')">×</button>` : ''}</span>
-    </div>`;
-  };
-  return `
-    <div class="pbd-g" id="pbg-${ci}">
-      <div class="pbd-gh">${esc(ci < 0 ? 'Default' : c.name)}</div>
-      ${frow('playback', 'Playback mode', accSeg(c.playback ?? 'active', meta.playbackKinds, meta.playbackKinds.map(o => label('playback', o)), o => `pbSet(${ki}, ${ci}, 'playback', '${o}')`))}
-      ${frow('expandInMini', 'Expand MiniTV for ads', accSeg(c.expandInMini ?? true, [true, false], ['True', 'False'], o => `pbSet(${ki}, ${ci}, 'expandInMini', ${o})`),
-        'Whether the MiniTV expands while an ad runs')}
-      ${frow('autoplay', 'Autoplay behaviour', accSeg(c.autoplay ?? 'auto', meta.autoplay, meta.autoplay.map(o => label('autoplay', o)), o => `pbSet(${ki}, ${ci}, 'autoplay', '${o}')`),
-        'Whether the player starts on its own — Auto lets the player decide')}
-      ${ci < 0 ? frow('passiveVolume', 'Passive volume', `<div class="num-wrap sm"><input value="${esc(vol)}" placeholder="100" inputmode="numeric" oninput="pbNum(this, ${ki}, ${ci})"><span class="unit">%</span></div>`,
-        'The player’s one volume while it runs passively — configs never carry their own') : ''}
-    </div>`;
-}
-
-function pbDetailHtml() {
-  const { ki } = PB_SEL;
-  const k = PB_DRAFT.keys[ki];
-  return `
-    <div class="pbd-h">${esc(k.name)}</div>
-    ${[-1, ...k.playerConfigs.map((_, ci) => ci)].map(ci => pbConfigBlockHtml(ki, ci)).join('')}`;
-}
-
-
-// THE QUEUE ON TOP (3 Sep, user call — the ad sheet's own logic): what this sheet has
-// changed collects in one strip above the rail and form, each row one change — where it
-// lands, what it was, what it becomes — with the ad sheet's exact anatomy: × drops it,
-// clicking it jumps the rail to that config. Review (step 2) then reads the same list.
-function pbDropField(ki, ci, f) {
-  const k = PB_DRAFT.keys[ki];
-  const cur = pbCfg(k, ci);
-  const orig = ci < 0 ? k.orig.player : k.orig.playerConfigs.find(x => x.id === cur.id);
-  if (!orig) return;
-  cur[f] = JSON.parse(JSON.stringify(orig[f]));
-  if (f === 'passiveVolume') delete PB_TEXT[`${ki}:${ci}`];
-  renderPBScreen();
-}
-
-
-function renderPBScreen() {
-  const d = PB_DRAFT;
-  const n = pbChanges().length;
-  document.getElementById('dialog-root').innerHTML = `
-    <div class="dlg-veil"><div class="dlg bulk pb">
-      <h3>Custom player behaviour<span class="dlg-kicker">${d.keys.length} integration${d.keys.length > 1 ? 's' : ''}</span></h3>
-      <div class="dlg-body pb-body">
-        <div class="pb-split">
-          <div class="pbr scrolly">${pbRailHtml()}</div>
-          <div class="pbd">${pbDetailHtml()}</div>
-        </div>
-      </div>
-      <div class="dlg-foot">
-        <button class="btn ghost" onclick="closePBScreen()">Cancel</button>
-        <button class="btn" id="pb-next" ${n ? '' : 'disabled'}
-          onclick="pbReview()">${n ? `Review ${n} change${n === 1 ? '' : 's'}` : 'Review changes'}</button>
-      </div>
-    </div></div>`;
-}
-
-// Typing a volume must not repaint the sheet; only the foot's count follows the caret.
-function pbSyncFoot() {
-  const b = document.getElementById('pb-next');
-  if (!b) return;
-  const n = pbChanges().length;
-  b.disabled = !n;
-  b.textContent = n ? `Review ${n} change${n === 1 ? '' : 's'}` : 'Review changes';
-}
-
-async function pbReview() {
-  const changes = pbChanges();
-  if (!changes.length) return;
-  const touched = PB_DRAFT.keys.filter(k =>
-    JSON.stringify({ player: k.player, playerConfigs: k.playerConfigs }) !== JSON.stringify(k.orig));
-  const ok = await reviewChanges({
-    title: `Apply to ${touched.length} integration${touched.length > 1 ? 's' : ''}?`,
-    kicker: 'player behaviour — drafts only',
-    changes,
-    okLabel: `Apply to ${touched.length}`,
-    cancelLabel: 'Back',
-  });
-  if (!ok) { renderPBScreen(); return; }
-  let saved = 0;
-  for (const k of touched) {
-    try {
-      await API.updateKey(k.id, { player: k.player, playerConfigs: k.playerConfigs });
-      saved++;
-    } catch (e) {
-      toast(`${k.name}: ${e.message}`, 'bad');
-    }
-  }
-  closePBScreen();
-  toast(`Player behaviour — ${saved} draft${saved === 1 ? '' : 's'} written`);
-  await refreshKeysList();
-}
-
-// ---------- BULK: DEFAULT PLAYER BEHAVIOUR (3 Sep, user call — the third act) ----------
-// Custom player behaviour walks each integration's configs one by one; this one act
-// blanket-sets the DEFAULT player's three facts across the whole selection. Custom
-// configs are never touched — they are each surface's own, edited in the other sheet.
-// ONE STEP (user call): three levers never earn a second screen. The read-back the
-// review would give lives on the sheet itself — a set row shows “was <today>” beside
-// its value — so Apply writes directly, and stays as honest as the review was.
-let DC_DRAFT = null;   // { fields: {}, open: Set }
-const DC_TEXT = {};    // caret-safe volume text
-
-function defaultConfigJourney() {
-  if (!KSEL.size) return;
-  DC_DRAFT = { fields: {}, open: new Set() };
-  for (const k of Object.keys(DC_TEXT)) delete DC_TEXT[k];
-  renderDCScreen();
-}
-
-function closeDCScreen() {
-  DC_DRAFT = null;
-  document.getElementById('dialog-root').innerHTML = '';
-}
-
-// What the selection holds today, counted — one word when they agree, the spread when
-// they don't. Never a suggestion, never a preselected answer.
-function dcTodayWord(f) {
-  const words = [];
-  for (const k of selectedKeys()) {
-    const p = k.player || {};
-    let w;
-    if (f === 'playback') w = label('playback', p.playback ?? 'active');
-    else if (f === 'expandInMini') w = (p.expandInMini ?? true) ? 'True' : 'False';
-    else if (f === 'passiveVolume') w = `${p.passiveVolume ?? 100}%`;
-    else w = label('autoplay', p.autoplay ?? 'auto');
-    if (!words.includes(w)) words.push(w);
-  }
-  if (words.length === 1) return words[0];
-  if (words.length <= 3) return words.join(' · ');
-  return `${words.length} different values`;
-}
-
-function dcOpen(f) { DC_DRAFT.open.add(f); renderDCScreen(); }
-
-function dcUnset(f) {
-  DC_DRAFT.open.delete(f);
-  delete DC_DRAFT.fields[f];
-  if (f === 'passiveVolume') delete DC_TEXT.vol;
-  renderDCScreen();
-}
-
-function dcSet(f, v) {
-  DC_DRAFT.fields[f] = v;
-  renderDCScreen();
-}
-
-function dcVol(el) {
-  DC_DRAFT.fields.passiveVolume = Number(el.value);
-  DC_TEXT.vol = el.value; // typing never repaints — the caret rule
-}
-
-function dcRowHtml(f, lbl, ctl, why) {
-  const set = DC_DRAFT.fields[f] !== undefined;
-  const open = set || DC_DRAFT.open.has(f);
-  if (!open) {
-    return `
-    <div class="bqf-r closed" onclick="dcOpen('${f}')"${why ? ` title="${esc(why)}"` : ''}>
-      <span class="bqf-l">${esc(lbl)}</span>
-      <span class="bqf-today" title="What the selected integrations hold today — counted, never a suggestion">${esc(dcTodayWord(f))}</span>
-      <span class="bqf-set">Set</span>
-    </div>`;
-  }
-  return `
-    <div class="bqf-r open ${set ? 'queued' : ''}"${why ? ` title="${esc(why)}"` : ''}>
-      <span class="bqf-l">${esc(lbl)}</span>
-      <span class="bqf-c form">${ctl()}</span>
-      <span class="bqf-s">${set
-        ? `<span class="bqf-was">was ${esc(dcTodayWord(f))}</span>`
-        : `<span class="bqf-today">${esc(dcTodayWord(f))}</span>`}
-        <button type="button" class="bqs-x on" onclick="dcUnset('${f}')"
-          title="${set ? 'Drop this change' : 'Close — nothing set'}">×</button></span>
-    </div>`;
-}
-
-function renderDCScreen() {
-  if (!DC_DRAFT) return;
-  const meta = KL_META;
-  const f = DC_DRAFT.fields;
-  const n = Object.keys(f).length;
-  const keys = selectedKeys();
-  document.getElementById('dialog-root').innerHTML = `
-    <div class="dlg-veil"><div class="dlg bulk">
-      <h3>Default player behaviour<span class="dlg-kicker">${keys.length} integration${keys.length > 1 ? 's' : ''} · custom configs keep their own values</span></h3>
-      <div class="dlg-body">
-        ${dcRowHtml('playback', 'Playback mode', () => accSeg(f.playback, meta.playbackKinds, meta.playbackKinds.map(o => label('playback', o)), o => `dcSet('playback', '${o}')`))}
-        ${dcRowHtml('expandInMini', 'Expand MiniTV for ads', () => accSeg(f.expandInMini, [true, false], ['True', 'False'], o => `dcSet('expandInMini', ${o})`),
-          'Whether the MiniTV expands while an ad runs')}
-        ${dcRowHtml('autoplay', 'Autoplay behaviour', () => accSeg(f.autoplay, meta.autoplay, meta.autoplay.map(o => label('autoplay', o)), o => `dcSet('autoplay', '${o}')`),
-          'Whether the player starts on its own — Auto lets the player decide')}
-        ${dcRowHtml('passiveVolume', 'Passive volume', () => `<div class="num-wrap sm"><input value="${esc(DC_TEXT.vol ?? (f.passiveVolume ?? ''))}" placeholder="100" inputmode="numeric" oninput="dcVol(this)"><span class="unit">%</span></div>`,
-          'The player’s one volume while it runs passively')}
-      </div>
-      <div class="dlg-foot">
-        <span class="rvw-count">${n ? `${n} change${n === 1 ? '' : 's'} · ${keys.length} integration${keys.length > 1 ? 's' : ''}` : ''}</span>
-        <button class="btn ghost" onclick="closeDCScreen()">Cancel</button>
-        <button class="btn" ${n ? '' : 'disabled'} onclick="dcApply()">Apply</button>
-      </div>
-    </div></div>`;
-}
-
-async function dcApply() {
-  const f = DC_DRAFT.fields;
-  if (!Object.keys(f).length) return;
-  const fields = { ...f };
-  closeDCScreen();
-  await bulkApplyDirect('playerFields', { fields }, 'Default player behaviour');
-  await refreshKeysList();
-}
-

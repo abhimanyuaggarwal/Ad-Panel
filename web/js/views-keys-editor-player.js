@@ -1,6 +1,26 @@
-// views-keys-player.js — part 3 of 4 — THE PLAYER: the Details player fields and the custom-config
-// table (keys, inline add, the three forkable facts).
-// Split 3 Sep as a pure partition of views-keys-form.js — order preserved, nothing edited.
+// views-keys-editor-player.js — the integration page's PLAYER: the player fields inside
+// Details (playback, fallback media, passive volume) plus the default player's three
+// forkable facts, and the CUSTOM PLAYER CONFIGS table below them — named forks a player
+// asks for by key, each carrying playback mode, Expand MiniTV and autoplay.
+// ---------- the player's writers ----------
+// The Details player fields write here; a segmented pick repaints, typing does not.
+function pSet(f, val) {
+  FORM.data.player[f] = val;
+  clearErr(f);
+  FORM.rerender();
+}
+
+function pNum(el, f) {
+  FORM.data.player[f] = Number(el.value);
+  QF_TEXT[`p:${f}`] = el.value;
+  paintChg();
+}
+
+function pText(el, f) {
+  FORM.data.player[f] = el.value;
+  QF_TEXT[`p:${f}`] = el.value;
+  paintChg();
+}
 
 // ---------- the player, inside Details (3 Sep, user call — the Default label is gone) ----------
 // The default player IS the surface's own answer, so its fields sit in Details like any
@@ -21,32 +41,28 @@ function playerFieldsHtml() {
   // TWO ROWS (3 Sep, user call). Playback, Fallback media and Passive volume are all SHORT
   // answers (a mode, a media id, a number) — they share one row at their natural widths,
   // like Property and Platform above them.
-  // THE DEFAULT IS ROW ZERO OF THE CONFIGS (4 Sep, user call). The three forkable facts
-  // used to take an even share of a flex row, which only APPROXIMATED the config table's
-  // columns. The row is now drawn on the table's own grid (`.pcfg-t`): an identity label
-  // — "Default player config" — where the table keeps its keys, each fact in the exact
-  // column its forks take in the card below, the same divider rule through both cards.
+  // THE DEFAULT IS ROW ZERO OF THE CONFIGS — LITERALLY, NOW (7 Sep, user call: the strip
+  // was "too disoriented and not pleasing to the eyes"). It used to be drawn HERE on the
+  // config table's grid in a different card: near-alignment with the real table below,
+  // and the same three labels printed twice — sentence-case field labels floating over
+  // this row, uppercase column heads over that one, 90px apart. Two half-tables reading
+  // as one broken table. The row moved into the configs table as its first row, under
+  // the ONE heading row, so the labels are said once and the columns actually line up.
+  // Details keeps only what is the PLAYER's rather than a config's: type, fallback
+  // media, passive volume.
   return `
     <div class="frow prow2">
-      <div class="field"><label>Playback</label>
+      <div class="field" data-field="player.playbackMode"><label>Player type</label>
         <div class="fctl">
           ${selectHtml(p.playbackMode, meta.playbackModes.map(v => ({ v, label: label('playbackMode', v) })), v => pSet('playbackMode', v))}
           ${p.playbackMode === 'inline_redirect' ? `<span class="rule-text"><input type="text" class="mono" value="${esc(tv('redirectUrl'))}" placeholder="https://…" oninput="pText(this, 'redirectUrl')"></span>` : ''}
         </div>
       </div>
       ${textFieldHtml('Fallback media', 'fallbackMediaId', { placeholder: 'media id', mono: true })}
-      <div class="field" title="How loud the player is while it runs passively — its one volume, whatever a config decides about autoplay (JSON: passiveVolume)">
+      <div class="field" data-field="player.passiveVolume">
         <label>Passive volume</label>
         <div class="num-wrap sm"><input value="${esc(QF_TEXT['p:passiveVolume'] ?? (p.passiveVolume ?? ''))}" placeholder="100" inputmode="numeric"
           oninput="pNum(this, 'passiveVolume')"><span class="unit">%</span></div>
-      </div>
-    </div>
-    <div class="pcfg-t dflt-t">
-      <div class="pcfg-r dflt-r">
-        <span class="pcfg-id dflt-id"
-          title="Every player that doesn't ask for a config by key follows this row — a custom config forks exactly these three facts">Default player config</span>
-        ${pcFactsHtml(p, (f, v) => `pSet('${f}', ${v})`)}
-        <span></span>
       </div>
     </div>`;
 }
@@ -59,7 +75,7 @@ function playerFieldsHtml() {
 function pcAdd() {
   const cfgs = FORM.data.playerConfigs || (FORM.data.playerConfigs = []);
   const max = KL_META.maxPlayerConfigs || 6;
-  if (cfgs.length >= max) { toast(`At most ${max} custom configs per integration`, 'warn'); return; }
+  if (cfgs.length >= max) { toast(`At most ${max} configs`, 'warn'); return; }
   if (cfgs.some(c => !(c.name || '').trim())) { pcFocusEmpty(); return; }
   const p = FORM.data.player;
   cfgs.push({
@@ -143,6 +159,17 @@ function pcName(el, i) {
 // refusals, said here first: one word, not "default", and not a key already in the table
 // (a player asking by key must find exactly one row). An empty key stays quiet: the row
 // is simply unfinished, and keyPayload never sends it.
+// A BAD KEY IS REFUSED WHERE IT WAS TYPED (7 Sep, UAT P1): the field goes red with the
+// reason under it, what was typed stays visible, and Save stops on the page while any
+// key is bad — a reserved or duplicate key never reaches the payload.
+const PC_BAD = new WeakMap();
+function pcKeyWhy(v, i) {
+  if (!v) return '';
+  if (!/^[A-Za-z0-9_-]{1,24}$/.test(v)) return 'A key is one word — letters, digits, - or _';
+  if (v.toLowerCase() === 'default') return '“default” is the player’s own — pick another key';
+  if ((FORM.data.playerConfigs || []).some((c, j) => j !== i && (c.name || '').trim().toLowerCase() === v.toLowerCase())) return `“${v}” is already here`;
+  return '';
+}
 function pcKeyDone(el, i) {
   const c = (FORM.data.playerConfigs || [])[i];
   if (!c) return;
@@ -151,17 +178,16 @@ function pcKeyDone(el, i) {
   c.name = v;
   el.closest('.pcfg-r')?.classList.toggle('wants', !v);
   pcSyncAdd();
-  if (!v) return;
-  if (!/^[A-Za-z0-9_-]{1,24}$/.test(v)) {
-    toast(`A config key is one word — letters, numbers, _ or - (got “${v}”)`, 'warn');
-    return;
-  }
-  if (v.toLowerCase() === 'default') {
-    toast('“default” is the player in Details — a custom config needs a key of its own', 'warn');
-    return;
-  }
-  if ((FORM.data.playerConfigs || []).some((c, j) => j !== i && (c.name || '').trim().toLowerCase() === v.toLowerCase())) {
-    toast(`A config keyed “${v}” is already here — a player asking by key must find exactly one`, 'warn');
+  const why = pcKeyWhy(v, i);
+  const id = el.closest('.pcfg-id');
+  id?.querySelector('.pcfg-msg')?.remove();
+  if (why) {
+    PC_BAD.set(c, why);
+    el.classList.add('err');
+    id?.insertAdjacentHTML('beforeend', `<span class="field-err pcfg-msg">${esc(why)}</span>`);
+  } else {
+    PC_BAD.delete(c);
+    el.classList.remove('err');
   }
 }
 
@@ -171,23 +197,6 @@ function pcKeyDone(el, i) {
 // player starts unmuted — one compound field, exactly as the old Details row read.
 // The three behaviour facts a player (or a fork of it) decides. Volume is deliberately
 // NOT here — the player carries one Passive volume, in Details (3 Sep, user call).
-function pcFactsHtml(c, set) {
-  const meta = KL_META;
-  return `
-    <div class="field">
-      <label>Playback mode</label>
-      ${accSeg(c.playback ?? 'active', meta.playbackKinds, meta.playbackKinds.map(o => label('playback', o)), o => set('playback', `'${o}'`))}
-    </div>
-    <div class="field" title="Whether the MiniTV expands while an ad runs">
-      <label>Expand MiniTV for ads</label>
-      ${accSeg(c.expandInMini ?? true, [true, false], ['True', 'False'], o => set('expandInMini', o))}
-    </div>
-    <div class="field" title="Whether the player starts on its own — Auto lets the player decide by context">
-      <label>Autoplay behaviour</label>
-      ${accSeg(c.autoplay ?? 'auto', meta.autoplay, meta.autoplay.map(o => label('autoplay', o)), o => set('autoplay', `'${o}'`))}
-    </div>`;
-}
-
 // ONE TABLE OF CONFIGS (3 Sep, user call — second cut). The first row version put the
 // key baseline-level with the controls while the field labels floated above, so the key
 // read as a fourth control missing its label. Same lesson the waterfall taught: rows
@@ -205,23 +214,49 @@ function customConfigsHtml() {
   const max = KL_META.maxPlayerConfigs || 6;
   const meta = KL_META;
   const unnamed = cfgs.some(c => !(c.name || '').trim());
+  // ROW ZERO: the player's own three facts, in the same columns, under the same heads.
+  // It is the config a player gets when it asks for no key, so it belongs in the table
+  // of configs — and being FIRST is what makes "a fork starts as a copy of the default"
+  // legible without a sentence saying so. Its identity is a word, not a typed key (there
+  // is nothing to name), and it has no switch and no ⋯: the default cannot be switched
+  // off or removed, so those cells stay empty rather than offering dead controls.
+  const dfltRow = () => {
+    const pl = FORM.data.player || {};
+    const sp = FORM.saved?.player || null;
+    // ONE MARK PER ROW (8 Sep, user call): the rule says which row holds unsaved work;
+    // THE CHANGE REVIEW says which field and from what to what. Marking every cell drew
+    // five loose blocks across one row, which is the clutter that sent this back.
+    const dirty = f => FORM.saved && JSON.stringify(pl[f] ?? null) !== JSON.stringify(sp?.[f] ?? null);
+    const seg = (f, vals, words, dflt) =>
+      `<span class="pcfg-c">${accSeg(pl[f] ?? dflt, vals, words, o => `pSet('${f}', ${typeof o === 'string' ? `'${o}'` : o})`)}</span>`;
+    return `
+    <div class="pcfg-r pcfg-dflt${chgIf(['playback', 'expandInMini', 'autoplay'].some(dirty))}">
+      <span class="pcfg-id"><span class="pcfg-dname">Default</span></span>
+      ${seg('playback', meta.playbackKinds, meta.playbackKinds.map(o => label('playback', o)), 'active')}
+      ${seg('expandInMini', [true, false], ['Yes', 'No'], true)}
+      ${seg('autoplay', meta.autoplay, meta.autoplay.map(o => label('autoplay', o)), 'auto')}
+      <span class="pcfg-acts"></span>
+    </div>`;
+  };
   const row = (c, i) => {
     const off = c.on === false;
+    const sc = FORM.saved ? (FORM.saved.playerConfigs || [])[i] : c;
+    const dirty = f => FORM.saved && JSON.stringify(c[f] ?? null) !== JSON.stringify(sc?.[f] ?? null);
+    const rowChg = ['name', 'playback', 'expandInMini', 'autoplay', 'on'].some(dirty);
     return `
-    <div class="pcfg-r${(c.name || '').trim() ? '' : ' wants'}${off ? ' off' : ''}">
+    <div class="pcfg-r${(c.name || '').trim() ? '' : ' wants'}${off ? ' off' : ''}${chgIf(rowChg)}">
       <span class="pcfg-id">
-        <input type="text" class="pcfg-key mono" value="${esc(c.name)}" placeholder="type a key"
-          title="The key a player asks for — one word" oninput="pcName(this, ${i})" onblur="pcKeyDone(this, ${i})">
+        <input type="text" class="pcfg-key mono${PC_BAD.has(c) ? ' err' : ''}" value="${esc(c.name)}" placeholder="type a key"
+          oninput="pcName(this, ${i})" onblur="pcKeyDone(this, ${i})">
+        ${PC_BAD.has(c) ? `<span class="field-err pcfg-msg">${esc(PC_BAD.get(c))}</span>` : ''}
       </span>
       <span class="pcfg-c">${accSeg(c.playback ?? 'active', meta.playbackKinds, meta.playbackKinds.map(o => label('playback', o)), o => `pcSet(${i}, 'playback', '${o}')`)}</span>
-      <span class="pcfg-c">${accSeg(c.expandInMini ?? true, [true, false], ['True', 'False'], o => `pcSet(${i}, 'expandInMini', ${o})`)}</span>
+      <span class="pcfg-c">${accSeg(c.expandInMini ?? true, [true, false], ['Yes', 'No'], o => `pcSet(${i}, 'expandInMini', ${o})`)}</span>
       <span class="pcfg-c">${accSeg(c.autoplay ?? 'auto', meta.autoplay, meta.autoplay.map(o => label('autoplay', o)), o => `pcSet(${i}, 'autoplay', '${o}')`)}</span>
       <span class="pcfg-acts">
-        <span class="toggle tiny ${off ? '' : 'on'}" onclick="pcSet(${i}, 'on', ${off})"
-          title="${off ? `Switched off — players asking for “${esc(c.name)}” follow the default player.`
-                       : `Switched on — a player asks for “${esc(c.name)}” by key. Off keeps the row; players fall back to the default.`}"><span class="track"></span></span>
+        <span class="toggle tiny ${off ? '' : 'on'}" onclick="pcSet(${i}, 'on', ${off})"><span class="track"></span></span>
         <span class="rmenu">
-          <button type="button" class="row-kebab" onclick="rmenuToggle(event, this)" title="More actions" aria-label="More actions">⋯</button>
+          <button type="button" class="row-kebab" onclick="rmenuToggle(event, this)" aria-label="More actions">⋯</button>
           <div class="rmenu-list">
             <div class="eh-item danger" onclick="rmenuShut(this); pcRemove(${i})">Remove config</div>
           </div>
@@ -233,20 +268,19 @@ function customConfigsHtml() {
     <div class="fieldset">
       ${FORM.errors.playerConfigs ? `<div class="banner bad" data-err-for="playerConfigs">${esc(FORM.errors.playerConfigs)}</div>` : ''}
       <div class="fieldset-title-row">
-        <div class="fieldset-title">Custom player configs</div>
+        <div class="fieldset-title">Player configs</div>
       </div>
-      ${cfgs.length ? `
       <div class="pcfg-t">
         <div class="pcfg-h">
           <span class="pcfg-id">Key</span><span>Playback mode</span><span>Expand MiniTV for ads</span><span>Autoplay behaviour</span><span></span>
         </div>
+        ${dfltRow()}
         ${cfgs.map(row).join('')}
-      </div>`
-        : '<div class="pcc-empty">None — players follow the fields in Details</div>'}
+      </div>
       <div class="pcc-foot">
         <button type="button" class="slot-add pcc-add" ${unnamed || cfgs.length >= max
           ? `disabled title="${unnamed ? 'Key the row above first' : `At most ${max} custom configs per integration`}"`
-          : 'title="Another config a player can ask for by key"'}
+          : ''}
           onclick="pcAdd()">+ Add config key</button>
       </div>
     </div>`;

@@ -1,8 +1,8 @@
-// views-keys-shell.js — part 4 of 4 — THE SHELL: the page frame (header, Save/Publish, ⋯ menu),
-// what a save writes (payload, diff, change list), save/create/duplicate/delete, and the
-// new-integration CHOOSER. Loads last of the views-keys quartet.
-// Split 3 Sep as a pure partition of views-keys-form.js — order preserved, nothing edited.
-
+// views-keys-editor-frame.js — the integration page's FRAME and its writes: the header
+// (name, publish state, Save / Publish, the ⋯ menu), the page render that assembles the
+// three cards, WHAT A SAVE WRITES (`keyPayload`, the field-level change list), and
+// save / create / duplicate / delete plus the new-integration chooser.
+// Loads last of the four integration-page files.
 function renderKeyForm(meta) {
   const d = FORM.data;
   const editing = !!KEY_ORIGINAL;
@@ -13,21 +13,22 @@ function renderKeyForm(meta) {
   const live = editing ? PUB?.liveVersion != null : false;
   main.innerHTML = `
     <div class="ehead ${editing ? 'with-rail' : ''}">
-      <a class="eh-back" href="#keys" title="Back to integrations">←</a>
+      <a class="eh-back" href="#keys">←</a>
       <h1>${editing ? esc(KEY_ORIGINAL.name) : 'New integration'}</h1>
       ${editing ? pubStateChipHtml() : d.copiedFrom ? `<span class="podl">copied from “${esc(d.copiedFrom)}”</span>` : ''}
       <span class="eh-gap"></span>
       ${editing ? `
         <button class="btn ghost" onclick="saveKeyClicked()">Save</button>
-        <button class="btn ${n ? '' : 'ghost'}" ${n ? '' : 'disabled title="Nothing to publish — what is on air is what you see"'}
-          onclick="publishClicked()">${live ? 'Publish' : 'Publish — go on air'}${n ? ` (${n})` : ''}</button>
+        <button class="btn ${n ? '' : 'ghost'}"
+          onclick="publishClicked()">${live ? 'Publish' : 'Publish — go on air'}</button>
         <div class="eh-more ${KEY_MORE_OPEN ? 'open' : ''}">
-          <button type="button" class="btn ghost eh-more-btn" onclick="keyMoreToggle(event)" title="More actions">⋯</button>
+          <button type="button" class="btn ghost eh-more-btn" onclick="keyMoreToggle(event)">⋯</button>
           <div class="eh-menu">
             <div class="eh-item" onclick="keyMoreToggle(); copyText('${esc(KEY_ORIGINAL.key)}', 'API key copied')">Copy API key <span class="mono sg-dim">${esc(KEY_ORIGINAL.key.slice(0, 14))}…</span></div>
-            <div class="eh-item" onclick="keyMoreToggle(); duplicateKeyClicked()" title="Clone this whole surface — new key string, and off air until someone publishes it">Duplicate</div>
+            <div class="eh-item" onclick="keyMoreToggle(); duplicateKeyClicked()">Duplicate</div>
+            ${KEY_ORIGINAL.live ? `<div class="eh-item danger" onclick="keyMoreToggle(); takeOffAirClicked('key', '${KEY_ORIGINAL.id}', '${esc(KEY_ORIGINAL.name)}')">Deactivate integration</div>` : ''}
             <div class="eh-item danger ${KEY_ORIGINAL.live ? 'dim' : ''}" ${KEY_ORIGINAL.live
-              ? 'title="Take it off air first — deleting live traffic should be deliberate"'
+              ? 'title="On air — take it off air first"'
               : 'onclick="keyMoreToggle(); deleteKeyClicked()"'}>Delete</div>
           </div>
         </div>`
@@ -46,7 +47,7 @@ function renderKeyForm(meta) {
             ${selectHtml(d.platform, meta.platforms.map(v => ({ v, label: label('platform', v) })), v => { FORM.data.platform = v; clearErr('platform'); FORM.rerender(); })}
           </div>
           ${!editing && d.presetName ? `
-          <div class="field" style="min-width: 170px"><label>Template</label>
+          <div class="field" style="min-width: 170px"><label>Player preset</label>
             ${selectHtml(d.presetName, meta.playerPresets.map(p => ({ v: p.name, label: p.name })), v => stampPreset(v))}
           </div>` : ''}
         </div>
@@ -63,6 +64,7 @@ function renderKeyForm(meta) {
     </div>
     ${editing ? pubRailHtml() : ''}
     </div>`;
+  paintChg();
 }
 
 // The ⋯ menu, open or not — page state, closed by any rerender-worthy act.
@@ -184,7 +186,7 @@ function createChangeList() {
   }
   const setup = sectionSetup(0);
   rows.push({ where: 'Ad behaviour', field: 'adSetupId', fromText: '—',
-    toText: setup ? `${setup.name}${setup.usedBy || d.copyAtCreate ? ' — as its own copy' : ''}` : 'none — every break stays off' });
+    toText: setup ? `${setup.name}${d.copyAtCreate ? ' — as its own copy' : ''}` : 'none — every break stays off' });
   for (const sec of d.sections || []) {
     for (const t of meta.slotTypes) {
       if (sec.slots[t]?.on) {
@@ -195,34 +197,65 @@ function createChangeList() {
   return rows;
 }
 
-async function saveKeyClicked() {
+// WHAT THE PAGE ALREADY KNOWS IS REFUSED ON THE PAGE (7 Sep, UAT P1) — before THE
+// CHANGE REVIEW opens, not after Confirm. The same rules the seam holds, said once, in
+// the field they belong to. Anything only the seam can know still comes back from it.
+function keyClientErrors(d) {
+  const errs = [];
+  if (!(d.name || '').trim()) errs.push({ field: 'name', message: 'Name is required' });
+  const web = (KL_META.webPlatforms || ['mweb', 'desktop']).includes(d.platform);
+  const plat = label('platform', d.platform);
+  if (web && !(d.domains || []).length) {
+    errs.push({ field: 'domains', message: `${plat} integrations need at least one domain — the player refuses requests from anywhere else` });
+  }
+  if (!web && !(d.packageName || '').trim()) {
+    errs.push({ field: 'packageName', message: `${plat} integrations need a package name (e.g. com.toi.reader)` });
+  }
+  if ((FORM.data.playerConfigs || []).some(c => PC_BAD.has(c))) {
+    errs.push({ field: 'playerConfigs', message: 'Fix the custom config key first' });
+  }
+  if (typeof DRIVE_CUE_BAD !== 'undefined' && DRIVE_CUE_BAD) {
+    errs.push({ field: 'drive', message: DRIVE_CUE_BAD });
+  }
+  return errs;
+}
+async function saveKeyClicked(opts = {}) {
+  // quiet (7 Sep, user call): Publish folds the save into its own act — no save review,
+  // no 'Saved' toast; the publish review reads the whole session and carries the receipt.
+  const quiet = !!opts.quiet;
   const d = keyPayload(FORM.data);
+  const pre = keyClientErrors(d);
+  if (pre.length) { applyServerErrors({ errors: pre }); return; }
   try {
     let warnings = [];
     if (KEY_ORIGINAL) {
       const changes = formDiff(KEY_ORIG_CANON, d, KEY_FIELDS);
-      if (!changes.length) { toast('Nothing changed'); return; }
+      if (!changes.length) { if (!quiet) toast('Nothing changed'); return { warnings }; }
       // Save is reviewed too (2 Sep, user call): the draft is where a mistake starts,
       // so what it writes is read first. Same screen Publish and bulk Apply end on.
-      const ok = await reviewChanges({
-        title: `Save changes to “${KEY_ORIGINAL.name}”?`,
-        changes: keyChangeList(KEY_ORIG_CANON, d),
-        kicker: PUB?.liveVersion != null ? `draft only — v${PUB.liveVersion} stays on air` : 'draft only — not on air',
-        okLabel: 'Save', cancelLabel: 'Keep editing',
-      });
-      if (!ok) return;
+      if (!quiet) {
+        const ok = await reviewChanges({
+          title: `Save changes to “${KEY_ORIGINAL.name}”?`,
+          changes: keyChangeList(KEY_ORIG_CANON, d),
+          kicker: PUB?.liveVersion != null ? `draft only — v${PUB.liveVersion} stays on air` : 'draft only — not on air',
+          okLabel: 'Save', cancelLabel: 'Keep editing',
+        });
+        if (!ok) return;
+      }
       // Save writes the DRAFT (27 Aug) — it never reaches a viewer, so it asks nothing
       // and stays on the page. Publish is the release, and the rail counts the gap.
       const res = await API.updateKey(KEY_ORIGINAL.id, d);
       warnings = res.warnings || [];
       KEY_ORIGINAL = res.key;
       KEY_ORIG_CANON = keyPayload(JSON.parse(JSON.stringify(FORM.data)));
-      warnings.forEach(w => toast(w, 'warn'));
+      FORM.saved = JSON.parse(JSON.stringify(FORM.data));
       await pubReload();
       PUB.name = KEY_ORIGINAL.name;
-      const n = (PUB.unpublished || []).length;
-      toast(n ? `Saved — ${n} change${n === 1 ? '' : 's'} waiting to publish` : 'Saved');
-      return;
+      // The pill says the act; the header chip counts what waits to publish, and the
+      // warnings are handed back to whoever asked for the save — Publish reads them on
+      // THE CHANGE REVIEW (7 Sep, user call: the receipt carries the act and nothing else).
+      if (!quiet) toast('Saved');
+      return { warnings };
     } else {
       // CREATE, read back first (3 Sep): the same screen every other write ends on, in
       // the page's own order. A held setup becomes this integration's own copy between
@@ -235,21 +268,27 @@ async function saveKeyClicked() {
         okLabel: 'Create', cancelLabel: 'Keep editing',
       });
       if (!ok) return;
-      // A setup someone else already fills is photocopied here, and so is one the person
-      // asked to duplicate & use — both wait for this moment so a cancelled create leaves
-      // nothing behind.
-      // copyAtCreate is a page fact, not a payload field — keyPayload never carries it,
-      // so the intent is read from the form itself.
+      // The copy the person ASKED for waits until now, so a cancelled create leaves
+      // nothing behind. Until 8 Sep a setup someone else already filled was photocopied
+      // here too, whether or not anyone asked — the 1:1 promise made it the only legal
+      // ending. Sharing is legal now, so the copy follows the INTENT alone:
+      // `copyAtCreate` is set by `Use a copy` and by the chooser's photocopy seed. It is
+      // a page fact, not a payload field — keyPayload never carries it — so it is read
+      // from the form itself.
       let madeSetup = null;
-      const toCopy = SETUPS_CACHE.find(x => x.id === d.adSetupId && (x.usedBy || FORM.data.copyAtCreate));
+      const toCopy = FORM.data.copyAtCreate ? SETUPS_CACHE.find(x => x.id === d.adSetupId) : null;
       if (toCopy) {
         let copy;
-        try { copy = (await API.duplicateSetup(toCopy.id, `${(d.name || 'New integration').trim()} demand`)).setup; }
+        // The name the person gave the copy when they asked for it (8 Sep) — falling
+        // back to this integration's own demand for the held-setup copy, which nobody
+        // typed a name for.
+        try { copy = (await API.duplicateSetup(toCopy.id, FORM.data.copyName || `${(d.name || 'New integration').trim()} demand`)).setup; }
         catch { copy = (await API.duplicateSetup(toCopy.id)).setup; }
         madeSetup = copy;
         d.adSetupId = copy.id;
       }
       FORM.data.copyAtCreate = false;
+      FORM.data.copyName = '';
       let res;
       try {
         res = await API.createKey(d);
@@ -257,13 +296,10 @@ async function saveKeyClicked() {
         if (madeSetup) { try { await API.deleteSetup(madeSetup.id); } catch { /* already gone */ } }
         throw e;
       }
-      (res.warnings || []).forEach(w => toast(w, 'warn'));
-      toast(`“${res.key.name}” created — off air until you publish it`);
+      toast('Created, not on air');
       location.hash = `#keys/${res.key.id}`;
       return;
     }
-    warnings.forEach(w => toast(w, 'warn'));
-    location.hash = '#keys';
   } catch (e) {
     applyServerErrors(e);
   }
@@ -274,7 +310,8 @@ async function duplicateKeyClicked() {
   if (!ok) return;
   try {
     const { key } = await API.duplicateKey(KEY_ORIGINAL.id);
-    toast(`Duplicated as “${key.name}” — off air until you publish it`);
+    // The copy's own page is where this lands, name in its head — the pill says the act.
+    toast('Duplicated');
     location.hash = `#keys/${key.id}`;
   } catch (e) {
     toast(e.message, 'bad');
@@ -311,7 +348,7 @@ async function newIntegrationChooser() {
   const [{ keys }, { setups }] = await Promise.all([API.listKeys(), API.listSetups()]);
   SETUPS_CACHE = setups;
   history.replaceState(null, '', '#keys/new');
-  const rows = keys.slice().sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+  const rows = keys.filter(k => inScope(k.property)).sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
   const card = k => {
     const onN = meta.slotTypes.filter(t => k.slotsOn?.[t]).length;
     const cfg = (k.playerConfigs || []).length;
@@ -321,7 +358,7 @@ async function newIntegrationChooser() {
       ...(cfg ? [`${cfg} player config${cfg === 1 ? '' : 's'}`] : []),
     ].join(' · ');
     return `
-      <div class="dlg-card" onclick="chooseCopy('${k.id}')" title="A photocopy — nothing changes on ${esc(`“${k.name}”`)}">
+      <div class="dlg-card" data-q="${esc(`${k.name} ${k.property} ${label('platform', k.platform)}`)}" onclick="chooseCopy('${k.id}')">
         <div class="dc-top"><span class="dc-title">${esc(k.name)}</span><span class="dc-reach">${esc(label('platform', k.platform))}</span></div>
         <div class="dc-sum">${propBadge(k.property)} <span>${esc(facts)}</span></div>
       </div>`;
@@ -330,6 +367,7 @@ async function newIntegrationChooser() {
     <div class="dlg-veil"><div class="dlg wide autoh">
       <h3>New integration<span class="dlg-kicker">blank, or from a copy — it takes shape on its page</span></h3>
       <div class="dlg-body">
+        ${dlgSearchHtml(rows.length, 'Search integrations…')}
         <div class="dlg-cards">
           <div class="dlg-card create" onclick="chooseBlank()">
             <div class="dc-plus">+</div>

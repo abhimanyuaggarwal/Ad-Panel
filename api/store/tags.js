@@ -1,7 +1,4 @@
-// store/tags.js — ad tags and ad unit templates (né request templates — renamed in the UI 4 Sep).
-// Split from store.js (3 Sep, docs/STORE-SPLIT.md): a MOVE, not a rewrite — units
-// relocated whole, bodies untouched. store.js re-exports everything, so the HTTP
-// surface, the tests and the mock world see the exact same module they always did.
+// store/tags.js — ad tags and ad unit templates: normalization, CRUD, in-use checks.
 import { slotGroupDefs } from './ladders.js';
 import { listSetups } from './setups.js';
 import { AD_UNIT_EXAMPLE, AD_UNIT_PATH, DIRECTORY_PROVIDERS, PROPERTY_SCOPES, PROVIDER_TYPE, PROVIDER_WORD, Refusal, SLOT_TYPES, TAG_PROVIDERS, TAG_TYPES, TEMPLATE_MACROS, URL_PROVIDERS, state } from './state.js';
@@ -89,7 +86,7 @@ export function tagsUsingTemplate(id) { return listTags().filter(t => t.tplId ==
 
 // ---------- ad tags ----------
 // A tag is a named, typed referent: video tags fit pre/mid/post-roll, display tags
-// fit the squeeze-back and sit inside a break as its fallback. Tags live in the ops
+// fit the squeeze-back and sit inside a break as a waterfall rung. Tags live in the ops
 // room now — they are what ad setups are built from.
 
 export function normalizeTag(input, exceptId) {

@@ -57,13 +57,18 @@
 .slot-label { flex: 0 0 96px; font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; }
 .slot-row { align-items: flex-start; }
 .slot-label { padding-top: 9px; }
-.slot-multi-foot { display: flex; align-items: center; gap: 12px; padding-left: 1px; }
+/* The zone's foot sits under framed unit blocks now (7 Sep), so it needs its own air. */
+.slot-multi-foot { display: flex; align-items: center; gap: 12px; padding-left: 1px; margin-top: 4px; }
 .slot-add {
   border: 1px dashed #d5dae4; background: transparent; font-family: inherit;
   font-size: 11.5px; font-weight: 700; color: var(--ink-soft); cursor: pointer;
   padding: 4px 12px; border-radius: 7px; transition: color .12s, border-color .12s;
 }
-.slot-add:hover { color: var(--accent); border-color: var(--accent); }
+.slot-add:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+/* A refused add greys where it sits with its reason on hover — the house rule. It had
+   no base style until 7 Sep (only the retired `.wf-follow` carried its own), so every
+   `disabled title="…"` add button looked exactly like a live one. */
+.slot-add:disabled { opacity: .45; cursor: default; }
 .slot-order-note { font-size: 11px; color: var(--ink-faint); }
 
 /* house rung in a ladder — one line, symmetric with tag rungs */
@@ -98,13 +103,28 @@
 /* ---------- activity ---------- */
 
 /* ---------- toasts + dialogs ---------- */
-#toasts { position: fixed; bottom: 22px; right: 22px; display: flex; flex-direction: column; gap: 8px; z-index: 60; }
+/* THE RECEIPT (7 Sep, user call — the corner stack read as noise): one pill, bottom
+   centre, one at a time. Quiet paper for a receipt; only the dot and a soft tint say
+   which kind. Anything the screen already shows in place fires no toast at all.
+   THREE TO FIVE WORDS, ONE LINE (7 Sep, same review): the multi-line shape is gone with
+   the paragraphs it used to hold — the dot centres on the one line it sits beside, and
+   `pre-line` went with the `\n`s (toast() drops them now). The max-width is the only
+   concession left to the one long text the pill still carries: a seam refusal, which
+   wraps rather than running off the screen. */
+#toasts { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 60; pointer-events: none; }
 .toast {
-  background: #10182b; color: #fff; padding: 11px 16px; border-radius: 9px; font-size: 13px;
-  box-shadow: 0 6px 20px rgba(16,24,43,.35); max-width: 380px; line-height: 1.45;
+  display: flex; align-items: center; gap: 9px;
+  background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+  padding: 9px 15px 9px 13px; border-radius: 12px; font-size: 12.5px; line-height: 1.45;
+  box-shadow: var(--shadow-2); max-width: min(440px, calc(100vw - 40px));
+  animation: toast-in .16s ease-out;
 }
-.toast.warn { background: #7a4c05; }
-.toast.bad { background: #7e2020; }
+.toast .tdot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--good); }
+.toast.warn { background: var(--warn-soft); border-color: #ecd9b4; }
+.toast.warn .tdot { background: var(--warn); }
+.toast.bad { background: var(--bad-soft); border-color: #eec6c6; }
+.toast.bad .tdot { background: var(--bad); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(6px); } }
 .dlg-veil { position: fixed; inset: 0; background: rgba(16,24,43,.45); display: flex; align-items: center; justify-content: center; z-index: 50; }
 .dlg { background: #fff; border-radius: 14px; padding: 22px 24px; width: 440px; max-width: calc(100vw - 40px); box-shadow: 0 18px 50px rgba(16,24,43,.3); }
 .dlg h3 { font-size: 15.5px; margin-bottom: 10px; }
@@ -131,3 +151,20 @@
 }
 .lc.zero { color: var(--ink-faint); background: #eef0f5; }
 
+
+/* ---------- WHAT THIS SESSION TOUCHED (7 Sep, user call; re-cut 8 Sep) ---------- */
+/* THE TINT IS GONE (8 Sep, user call — *"its getting too cluttered and confusing with
+   the background change"*). Four near-identical pale blues meant four different things:
+   a unit's hover (#e8ecf4), the apply grid's reach (#f3f6fd), `wants` (--accent-soft)
+   and this one — so a changed unit read as a hovered unit, and a row whose cells each
+   tinted read as five loose blocks instead of one changed row.
+   BACKGROUND IS FOR INTERACTION. A change is provenance, not a state you are pointing
+   at, so it takes its own channel: a 2px rule down the leading edge, in the amber this
+   app already means unsaved by (the break tab's `.edot`). One mark, one meaning, at
+   every scale — field, row, cell, tab, unit. It is drawn out of flow, so it moves
+   nothing: all the padding/margin compensation the fills needed is gone with them. */
+.chg { position: relative; }
+.chg::before {
+  content: ""; position: absolute; left: -9px; top: 1px; bottom: 1px; width: 2px;
+  border-radius: 1px; background: var(--chg); pointer-events: none;
+}

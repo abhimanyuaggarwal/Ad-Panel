@@ -24,11 +24,15 @@ is a working prototype of the product, not yet wired to production systems.
 | **Request template** | Ad ops | A named request URL shared account-wide; its macros are a fixed list of five the player fills |
 | **Custom player config** | Product | A named fork of the player a page can ask for by key (`shorts`), carrying exactly three facts |
 
-The promise that shapes everything: **one integration, one ad setup**. A setup that
-already fills one surface cannot be attached to another — the refusal names the holder
-and offers a copy instead. And copies here are always *photocopies, never links*:
-duplicating a setup brings its placements, ad units, deals and settings whole, and tuning
-the copy never moves the original.
+The rule that shapes everything: **one integration asks from exactly one ad setup** — a
+surface has one source of demand, never two. The other direction is open (8 Sep): **one ad
+setup may fill many integrations**, because the same ladder across mweb, desktop and app
+is the ordinary case, and keeping it as a fleet of photocopies means it drifts the first
+time anyone tunes one. A shared setup is a *link*: edited once, in one room, it moves
+every surface that asks from it — so every door that maps one names who else already
+does, and the setup's own page lists them. When a surface wants demand of its very own,
+**Copy & use** takes a photocopy — placements, ad units, deals and settings whole — and
+tuning that copy never moves the original.
 
 ## The integration page
 
@@ -53,10 +57,12 @@ server computes it.
 
 Placements are tabs (the active tab is its own rename field). Each break opens into
 zones down a left rail: **Pods** (a mid-roll may run up to three, each owning its own
-direct deal, ladder and cadence), **Direct** (one uncapped deal per break or pod, tried
-before everything else), **Indirect** (the ladder — one primary, up to nine fallbacks,
-drag to reorder), and **Delivery settings**. Each ad unit's own settings live below the
-fold behind a gear that shows when the row is yours. Every break can be cleared with a
+special deal, ladder and cadence), **Special** (one uncapped deal per break or pod, tried
+before everything else), **Ad sources** (the ladder — one primary, up to nine fallbacks,
+drag to reorder; the word covers a break's own units and the shared waterfall alike), and
+**Delivery settings**. Each ad unit is ONE BLOCK — the unit, its counted fact line and its
+settings as three tiers of one soft shape; the caret at the block's end opens and closes
+the settings, and so does putting the caret in the unit's field. Every break can be cleared with a
 counted confirmation, and the whole setup at once from the ⋯ menu — demand only,
 delivery settings stay.
 

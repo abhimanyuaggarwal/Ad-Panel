@@ -1,42 +1,10 @@
-// store/diff.js — what changed, in words — the change lists the review screen and the rail show.
-// Split from store.js (3 Sep, docs/STORE-SPLIT.md): a MOVE, not a rewrite — units
-// relocated whole, bodies untouched. store.js re-exports everything, so the HTTP
-// surface, the tests and the mock world see the exact same module they always did.
+// store/version-changes.js — WHAT CHANGED, in words. `versionChanges(kind, before, after)`
+// compares two publish-plane snapshots (see publish.js) and returns the flat list
+// `{ where, field, from, to }` that the version rail and THE CHANGE REVIEW render.
+// Ladders are described by name (what joined, what left, what was switched) because a
+// field-level diff of an array says nothing a person can read.
 import { slotGroupDefs } from './ladders.js';
-import { draftSnapshot, liveSnapshot, objectOf } from './publish.js';
-import { SLOT_WORD } from './setups.js';
-import { DISPLAY_SLOT_WORD, PAUSE_WORD, SLOT_TYPES, state } from './state.js';
-
-
-// ---------- integrations (api keys) ----------
-// The PLACEMENTS come from the attached ad setup now (25 Aug): ops define the sections
-// and their ladders together, once per surface shape. The integration attaches ONE
-// setup and stores an OVERLAY per placement, matched by name — its switches, its local
-// mute/order, and its rules/player forks. The first overlay is always Default and must
-// carry the integration's own rules and player. Overlays whose placement no longer
-// exists in the setup are kept but inert — a rename in the setup migrates them.
-
-// The words a refusal uses for a behaviour field — the UI's labels, not its keys.
-export const FIELD_WORDS = {
-  start: 'when the pre-roll plays', deferSec: 'the pre-roll delay',
-  wait: 'when the video starts', waitMs: 'the viewer wait',
-  mode: 'how mid-roll breaks fall', cuepoints: 'the break positions',
-  firstAt: 'the first break', every: 'the break interval',
-  podAds: 'the target impressions count',
-  nextAd: 'where the next ad comes from',
-  podBanner: 'where a banner may sit', tagTimeoutMs: 'how long each tag waits',
-  ask: 'the ad partners', tries: 'the waterfall depth', direct: 'direct campaigns',
-  times: 'the show times', hold: 'the hold',
-  refresh: 'the rotation', perSession: 'how many a session',
-  fillTimeoutSec: 'when the break gives up',
-  hideOnInStream: 'hiding during video ads',
-  displaySlot: 'the display slot', pause: 'whether content pauses',
-  showAfterSec: 'the request delay', closeAfterSec: 'when its close button appears',
-  hideAfterSec: 'when it hides',
-};
-
-// The UI's word for a behaviour field, so a refusal from any surface reads the same.
-export function fieldWord(f) { return FIELD_WORDS[f] || f; }
+import { DISPLAY_SLOT_WORD, PAUSE_WORD, SLOT_TYPES, SLOT_WORD, state } from './state.js';
 
 // ---------- what changed, in words ----------
 // The rail's whole job is "what did this version do?", so a change is a WHERE and a
@@ -79,17 +47,33 @@ function rungFactChanges(where, before, after) {
   return out;
 }
 
-function ladderChange(where, before, after) {
+// A ladder's change, in the words a person used to make it (re-cut 6 Sep, user call —
+// a rung TOGGLE read as remove-and-add): same units in the same order means only
+// switches moved, so each flip is its own line, named by the unit. Otherwise the
+// arrivals, departures and reorders read as before. Returns 0..n rows.
+function ladderChanges(where, before, after) {
+  const name = r => state.tags.get(r.tagId)?.name || '(missing tag)';
+  const aSeq = (before || []).map(name);
+  const bSeq = (after || []).map(name);
+  if (JSON.stringify(aSeq) === JSON.stringify(bSeq)) {
+    const out = [];
+    (after || []).forEach((r, i) => {
+      const was = (before || [])[i]?.on !== false;
+      const is = r.on !== false;
+      if (was !== is) out.push({ where, field: bSeq[i], from: was ? 'on' : 'off', to: is ? 'on' : 'off' });
+    });
+    return out;
+  }
   const a = rungWords(before);
   const b = rungWords(after);
-  if (JSON.stringify(a) === JSON.stringify(b)) return null;
+  if (JSON.stringify(a) === JSON.stringify(b)) return [];
   const gone = a.filter(x => !b.includes(x));
   const came = b.filter(x => !a.includes(x));
   const bits = [];
   if (came.length) bits.push(`+ ${came.join(', ')}`);
   if (gone.length) bits.push(`− ${gone.join(', ')}`);
   if (!bits.length) bits.push('reordered');
-  return { where, field: 'Ladder', from: `${a.length} rung${a.length === 1 ? '' : 's'}`, to: `${b.length} — ${bits.join(' · ')}` };
+  return [{ where, field: 'Ladder', from: `${a.length} rung${a.length === 1 ? '' : 's'}`, to: `${b.length} — ${bits.join(' · ')}` }];
 }
 
 // Every field a version moved, said where it lives. Placements added or removed are one
@@ -100,7 +84,7 @@ export function versionChanges(kind, before, after) {
   if (!b) return [{ where: '', field: 'First publish', from: '—', to: 'live' }];
 
   for (const f of Object.keys(after)) {
-    if (f === 'sections') continue;
+    if (f === 'sections' || f === 'waterfall') continue;
     const x = JSON.stringify(b[f]);
     const y = JSON.stringify(after[f]);
     if (x === y) continue;
@@ -145,6 +129,24 @@ export function versionChanges(kind, before, after) {
     }
   }
 
+  // THE SHARED WATERFALL is diffed ONCE, by name (5 Sep): the breaks that follow it
+  // change with it, but their lines would say the same thing N more times — the link
+  // itself is what a linked break's diff reads (below).
+  {
+    const wb = b.waterfall || { rungs: [] };
+    const wa = after.waterfall || { rungs: [] };
+    const wWhere = 'Waterfall';
+    out.push(...ladderChanges(wWhere, wb.rungs, wa.rungs));
+    out.push(...rungFactChanges(wWhere, wb.rungs, wa.rungs));
+    if ((wb.depth ?? null) !== (wa.depth ?? null)) {
+      out.push({ where: wWhere, field: 'tries', from: wb.depth ?? 'Full', to: wa.depth ?? 'Full' });
+    }
+    if ((wb.pauseAll ?? null) !== (wa.pauseAll ?? null)) {
+      const word = v => (v ? `${PAUSE_WORD[v] || v} for every unit` : 'each unit’s own');
+      out.push({ where: wWhere, field: 'pause', from: word(wb.pauseAll ?? null), to: word(wa.pauseAll ?? null) });
+    }
+  }
+
   const byName = arr => Object.fromEntries((arr || []).map(s => [s.name, s]));
   const sb = byName(b.sections);
   const sa = byName(after.sections);
@@ -171,8 +173,7 @@ export function versionChanges(kind, before, after) {
       // The slot's own direct tier, diffed by name.
       if (slA.direct || slB.direct) {
         const dWhere = `${where} · Direct`;
-        const lc = ladderChange(dWhere, slB.direct?.rungs, slA.direct?.rungs || []);
-        if (lc) out.push(lc);
+        out.push(...ladderChanges(dWhere, slB.direct?.rungs, slA.direct?.rungs || []));
         out.push(...rungFactChanges(dWhere, slB.direct?.rungs, slA.direct?.rungs));
       }
       const ga = slA.rungs || slA.groups ? slotGroupDefs(slA) : null;
@@ -185,9 +186,16 @@ export function versionChanges(kind, before, after) {
           const bg = gb[gi];
           if (!a) { out.push({ where: gWhere, field: 'Break group', from: 'there', to: 'removed' }); continue; }
           if (!bg) { out.push({ where: gWhere, field: 'Break group', from: '—', to: 'added' }); }
-          if (a.rungs) {
-            const lc = ladderChange(gWhere, bg?.rungs, a.rungs);
-            if (lc) out.push(lc);
+          // A break FOLLOWING the waterfall (5 Sep): the link moving is the
+          // change; its rungs merely mirror the waterfall, which is diffed once above.
+          const followsA = (a.waterfallSource ?? slA.waterfallSource) === 'setup';
+          const followsB = bg ? (bg.waterfallSource ?? slB.waterfallSource) === 'setup' : false;
+          if (followsA !== followsB) {
+            const word = x => (x ? 'waterfall' : 'its own units');
+            out.push({ where: gWhere, field: 'indirect', from: word(followsB), to: word(followsA) });
+          }
+          if (a.rungs && !followsA && !followsB) {
+            out.push(...ladderChanges(gWhere, bg?.rungs, a.rungs));
             out.push(...rungFactChanges(gWhere, bg?.rungs, a.rungs));
           }
           for (const f of Object.keys(a.behaviour || {})) {
@@ -195,19 +203,16 @@ export function versionChanges(kind, before, after) {
               out.push({ where: gWhere, field: f, from: bg?.behaviour?.[f], to: a.behaviour[f] });
             }
           }
+          // A pod's OWN deal (6 Sep, user bug — it never diffed): pod 1's doubles as
+          // the slot's and is covered above; every later pod answers for itself here.
+          if (gi > 0 && (a.direct || bg?.direct)) {
+            const pWhere = `${gWhere} · Direct`;
+            out.push(...ladderChanges(pWhere, bg?.direct?.rungs, a.direct?.rungs || []));
+            out.push(...rungFactChanges(pWhere, bg?.direct?.rungs, a.direct?.rungs));
+          }
         }
       }
     }
   }
   return out;
-}
-
-export function unpublishedChanges(kind, id) {
-  const obj = objectOf(kind, id);
-  return versionChanges(kind, liveSnapshot(id), draftSnapshot(kind, obj));
-}
-
-export function isDirty(kind, id) {
-  const obj = objectOf(kind, id);
-  return JSON.stringify(liveSnapshot(id)) !== JSON.stringify(draftSnapshot(kind, obj));
 }

@@ -1,4 +1,4 @@
-// views-tags.js — the ad tag control. A tag carries TWO independent facts:
+// views-tag-lookup.js — the ad tag control. A tag carries TWO independent facts:
 //   TYPE     video or display — decides WHERE it may sit (video units / display units)
 //   PROVIDER IMA, GPT or CAN — decides WHO answers the call
 // Both are shown as one mark wherever a tag appears, because both change what you would
@@ -17,12 +17,12 @@ const TYPE_FITS = {
 // many. So: VIDEO / DISPLAY beside IMA / GPT / CAN, nothing to decode.
 function tagTypeIcon(type, title, flag) {
   if (!type) return '';
-  return `<span class="ttype ${flag ? `flag t-${esc(type)}` : 'quiet'}" title="${esc(title || `${label('tagType', type)} tag — fits ${TYPE_FITS[type]}`)}">${esc(label('tagType', type))}</span>`;
+  return `<span class="ttype ${flag ? `flag t-${esc(type)}` : 'quiet'}">${esc(label('tagType', type))}</span>`;
 }
 
 function providerBadge(provider) {
   if (!provider) return '';
-  return `<span class="pvd p-${esc(provider)}" title="Answered by ${esc(label('tagProvider', provider))}">${esc(label('tagProvider', provider))}</span>`;
+  return `<span class="pvd p-${esc(provider)}">${esc(label('tagProvider', provider))}</span>`;
 }
 
 // VIDEO/DISPLAY beside a provider badge is the SAME FACT TWICE (25 Aug, user call):
@@ -161,7 +161,6 @@ async function resolveTagPick(item, family) {
   for (let n = 0; n < 6; n++) {
     try {
       const { tag } = await API.createTag({ name: n ? `${base} ${n + 1}` : base, type: family, provider, value: item.v, property: 'All' });
-      toast(`“${tag.name}” added to the ad tags`);
       return tag;
     } catch (e) {
       // Only a name clash is worth retrying; anything else is a real refusal.
@@ -177,6 +176,11 @@ function tagLookupHtml(opts) {
     <div class="rung-ctl">
       ${lookupHtml({
         value: opts.value || '',
+        // A rung that already holds its unit opens QUIET (7 Sep): focus on that field
+        // is now the door to the unit's settings, and a one-row menu naming the unit
+        // you already picked would land on top of them. Typing or a second click
+        // opens the search, which is the gesture that means "change this".
+        quiet: !!opts.tagId,
         // No type mark on the field (25 Aug, user call): the provider dropdown beside
         // the text already says it wherever it is knowable — VIDEO next to IMA was the
         // same fact twice. A cross-family rung still flags itself on its ladder row.

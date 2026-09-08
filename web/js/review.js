@@ -11,15 +11,18 @@
 // mid-roll" is the question a reviewer actually has. Values are the panel's words:
 // `fieldName` and `showVal`, the same pair the rail uses.
 
-// The order groups appear in. Anything unknown sorts after these, alphabetically —
-// a new `where` shows up in a sensible place without this list having to know it.
-const REVIEW_WHERE_ORDER = ['Pre-roll', 'Mid-roll', 'Post-roll', 'Out-stream', 'Player', 'Player configs'];
+// The order groups appear in — the page's own reading order: the waterfall
+// (the setup's head), then the four breaks, then the player, then the surface's own
+// details. Anything unknown sorts after these, alphabetically.
+const REVIEW_WHERE_ORDER = ['Waterfall', 'Pre-roll', 'Mid-roll', 'Post-roll', 'Out-stream', 'Player configs', 'Player'];
 
 function reviewWhereRank(w) {
   const i = REVIEW_WHERE_ORDER.indexOf(w);
   if (i >= 0) return i;
-  // `Player configs · Shorts feed` sits with its parent group.
-  const parent = REVIEW_WHERE_ORDER.findIndex(x => w.startsWith(`${x} ·`));
+  // `Player configs · shorts` sits with its parent; `Default · Pre-roll` (the setups
+  // editor's wording) sits with ITS break — so a setup's publish reads break-first
+  // too, not alphabetically by placement (6 Sep).
+  const parent = REVIEW_WHERE_ORDER.findIndex(x => w.startsWith(`${x} ·`) || w.includes(`· ${x}`) || w.includes(` ${x} `) || w.endsWith(` ${x}`));
   if (parent >= 0) return parent + 0.5;
   return w === '' ? 99 : 50;
 }
@@ -87,26 +90,45 @@ function reviewBodyHtml(changes, keepOrder) {
 // reads neither. What is left is the list, a counted foot, and the two acts. The only
 // words that survive are the ones no row can carry: a `kicker` naming whose changes
 // these are, and the per-row `note` that names a surface a change cannot reach.
+// `withNote: true` (6 Sep, user call) adds ONE quiet line between the evidence and the
+// act: the person has just re-read what they did, and can name it in their own words.
+// The note travels with the version and reads back under it in the rail — so publish
+// and restore both take it, on this same screen, and history explains itself.
+// `caution` is a caller-built block (a restore's counted "your draft loses N changes")
+// rendered after the list, where a warning belongs: read last, before the act.
+// Resolves false on cancel; on confirm, true — or `{ note }` when withNote.
 function reviewChanges(opts) {
   const changes = opts.changes || [];
   const n = changes.length;
   return new Promise(resolve => {
     const root = document.getElementById('dialog-root');
     root.innerHTML = `
-      <div class="dlg-veil"><div class="dlg rvw">
+      <div class="dlg-veil"><div class="dlg rvw${opts.steady ? ' steady' : ''}">
         <h3>${esc(opts.title)}${opts.kicker ? `<span class="dlg-kicker">${esc(opts.kicker)}</span>` : ''}</h3>
+        ${opts.subline ? `<div class="rvw-sub">${esc(opts.subline)}</div>` : ''}
         <div class="dlg-body rvw-body">
           ${n ? reviewBodyHtml(changes, opts.keepOrder) : `<div class="tl-empty">${esc(opts.emptyText || 'Nothing to change.')}</div>`}
+          ${opts.caution || ''}
         </div>
         <div class="dlg-foot">
-          <span class="rvw-count">${n} change${n === 1 ? '' : 's'}</span>
-          <button class="btn ghost" data-act="no">${esc(opts.cancelLabel || 'Back')}</button>
-          <button class="btn ${opts.danger ? 'danger' : ''}" data-act="yes" ${n ? '' : 'disabled'}>${esc(opts.okLabel || 'Confirm')}</button>
+          ${opts.foot ? `<span class="rvw-count">${esc(opts.foot)}</span>` : ''}
+          ${opts.withNote ? `<input class="rvw-note" maxlength="120" placeholder="${esc(opts.notePlaceholder || 'Add a note — optional')}">` : ''}
+          ${opts.readOnly ? `
+            ${opts.thirdAct ? `<button class="btn ghost" data-act="third">${esc(opts.thirdAct)}</button>` : ''}
+            <button class="btn" data-act="no">Close</button>`
+          : `
+            <button class="btn ghost" data-act="no">${esc(opts.cancelLabel || 'Back')}</button>
+            <button class="btn ${opts.danger ? 'danger' : ''}" data-act="yes" ${n ? '' : 'disabled'}>${esc(opts.okLabel || 'Confirm')}</button>`}
         </div>
       </div></div>`;
-    const done = v => { root.innerHTML = ''; resolve(v); };
+    const done = v => {
+      const note = opts.withNote ? (root.querySelector('.rvw-note')?.value || '').trim() : '';
+      root.innerHTML = '';
+      resolve(v === true && opts.withNote ? { note } : v);
+    };
     root.querySelector('[data-act=no]').onclick = () => done(false);
-    root.querySelector('[data-act=yes]').onclick = () => done(true);
+    root.querySelector('[data-act=yes]')?.addEventListener('click', () => done(true));
+    root.querySelector('[data-act=third]')?.addEventListener('click', () => done('act'));
     root.querySelector('.dlg-veil').onclick = e => {
       if (e.target.classList.contains('dlg-veil')) done(false);
     };
