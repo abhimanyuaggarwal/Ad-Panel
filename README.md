@@ -11,9 +11,11 @@ Nothing reaches a real player until it is **published**. The player then reads o
 per integration key from `GET /panel/live/:apiKey`. Drafts are invisible to it no matter how many
 times they were saved — that separation is the point of the whole thing.
 
-> **Prototype.** Everything is in memory, so a restart is a reset. There is no authentication and
-> the Google Ad Manager directory is mocked. See [ARCHITECTURE.md](ARCHITECTURE.md) §11 for the
-> full list of what must close before real traffic.
+> **Prototype.** Everything is in memory, so a restart is a reset. There is a front door and a
+> session (`/login.html`), but **nothing authenticates anybody**: no password, no token, and
+> **any address shaped like an address gets in** — the identity provider is mocked exactly as the
+> Google Ad Manager directory is. See [ARCHITECTURE.md](ARCHITECTURE.md) §11 for the full list of
+> what must close before real traffic.
 
 ## Run it
 
@@ -27,11 +29,11 @@ npm start          # http://localhost:4200 — serves the API and the web app to
 | Command | What it does |
 | --- | --- |
 | `npm start` | the API and web app on :4200 (`PANEL_PORT` to change it) |
-| `npm test` | the rule suite — 129 cases over HTTP, ~1 s |
+| `npm test` | the rule suite — 145 cases over HTTP, ~1 s |
 | `npm run check` | every JS file parses |
 | `npm run demo` | rebuild the seeded demo world (same ids every time) |
 | `npm run scale` | rebuild it at the `scale` scenario |
-| `npm run ui:snapshot <label>` | capture all 54 screens in headless Chrome, then `… diff a b` |
+| `npm run ui:snapshot <label>` | capture all 65 screens in headless Chrome, then `… diff a b` |
 
 `ui:snapshot` additionally needs a local Chrome and `puppeteer-core`, neither of which this
 package declares — point `PUPPETEER` and `CHROME` at your own installs if it cannot find them.
@@ -44,7 +46,8 @@ State lives in memory, so a polluted world is a one-line fix rather than a resta
 ```
 api/     Express, in-memory. server.js assembles; routes/ is one router per subject;
          store/ holds every rule; mock/ holds all invented data
-web/     the app — plain <script> tags in dependency order, every function a global
+web/     the app — plain <script> tags in dependency order, every function a global;
+         index.html is the console, login.html the front door
 test/    run.js boots the API on :4299 and walks cases/NN-*.spec.js
 docs/    the product overview, the dated scope documents, the hand-off FAQ
 ```

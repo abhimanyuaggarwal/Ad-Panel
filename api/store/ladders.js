@@ -2,7 +2,7 @@
 // their normalization, the drive fields, cue points, rung normalization, and the walks
 // (the setup's own walk, the walk after the drive decision, per pod).
 import { DISPLAY_SLOTS, DISPLAY_SLOT_WORD, MAX_RUNGS, MIDROLL_MODES, PAUSE_MODES, POD_NEXT_AD, PREROLL_TIMING, PREROLL_WAIT, PROVIDER_WORD, ROTATION_MAX, SLOT_KIND, TAG_PROVIDERS, state } from './state.js';
-import { bool, fmtSecs, intIn, oneOf, str } from './validate.js';
+import { fmtSecs, intIn, oneOf, str } from './validate.js';
 
 
 // ---------- ad rules (inline — no identity) ----------
@@ -63,9 +63,11 @@ export const SLOT_BEHAVIOUR_FIELDS = {
   // break that arrives mid-playback has a "before" to fetch in, so mid- and post-roll.
   midroll: ['mode', 'cuepoints', 'firstAt', 'every', 'prefetchSec', 'podAds', 'nextAd', 'tagTimeoutMs', 'fillTimeoutSec'],
   postroll: ['prefetchSec', 'podAds', 'nextAd', 'tagTimeoutMs', 'fillTimeoutSec'],
-  // Out-stream: banners while nothing plays, plus one switch — hide while a video ad
-  // runs. Its show times are its own repeat schedule, so it has no rotation refresh.
-  outstream: ['times', 'hold', 'perSession', 'hideOnInStream', 'tagTimeoutMs'],
+  // Out-stream: banners while nothing plays — its show times are its own repeat
+  // schedule, so it has no rotation refresh, and since 8 Sep no in-stream switch
+  // either. What is left is when it shows, how long it holds, how many it is aiming
+  // for, and how long one request waits.
+  outstream: ['times', 'hold', 'perSession', 'tagTimeoutMs'],
 };
 
 // A cut field is refused BY NAME, with where the answer lives now (house rule).
@@ -85,6 +87,10 @@ export const DEAD_BEHAVIOUR_FIELDS = {
   // pod one was the guessable half. A display unit settles the break, as it always did
   // by default; where it sits on the player stays the unit's own fact.
   podBanner: ['Display ad position', 'a display unit settles the break \u2014 where it sits on the player is the ad unit\u2019s own Ad placement'],
+  // Cut 8 Sep, user call: the out-stream lives in the idle player, and an in-stream ad
+  // owns the screen while it runs — the player already steps the banner aside. A switch
+  // for it only ever had one sane answer, so it was a question with no decision in it.
+  hideOnInStream: ['Hide during in-stream', 'an in-stream ad owns the screen while it runs \u2014 the player steps the out-stream aside on its own'],
 };
 
 // THE DRIVE DECISION (26 Aug, DRIVING-SCOPE). Local overrides — muted rungs, a local
@@ -159,10 +165,11 @@ export function normalizeSlotBehaviour(type, input, errors, warnings, prefix = '
     // it is refused by name rather than quietly serving nothing.
     b.times = inp.times === undefined ? [30] : normalizeCuepoints(inp.times, errs, 'times');
     b.hold = intIn(inp.hold ?? 20, 'hold', 5, 90, errs);
+    // TOTAL TARGET IMPRESSIONS (8 Sep, user call): the same words the breaks use for
+    // their own count, because it is the same idea — how many impressions this slot is
+    // aiming for. A break picks from 1/2/3; a rotation runs all session, so out-stream
+    // TAKES A TYPED NUMBER instead of a fixed set. Still the JSON's totalImpression.
     b.perSession = intIn(inp.perSession ?? 2, 'perSession', 0, 20, errs);
-    // Out-stream fills the idle player; when an in-stream ad takes the screen it can
-    // step aside (the JSON's hideOnInStream). A switch, defaulting to polite.
-    b.hideOnInStream = inp.hideOnInStream === undefined ? true : bool(inp.hideOnInStream);
     if (inp.times !== undefined && !b.times.length) {
       errs.push({ field: 'times', message: 'The out-stream needs at least one show time' });
     }

@@ -194,7 +194,7 @@ export default async function run({ test, req, eq, assert, freshSetup, patchSlot
     eq(meta.slotKind.outstream, 'rotation', 'takes turns');
     const s = (await req('GET', '/panel/setups/as_7')).body.setup;
     const b = s.sections[0].slots.outstream.behaviour;
-    eq(b.hideOnInStream, true, 'steps aside for a video ad by default');
+    eq(b.hideOnInStream, undefined, 'no in-stream switch since 8 Sep — the player steps it aside on its own');
     eq(b.refresh, undefined, 'its show times are its own schedule — no rotation refresh');
     eq(b.walkDepth, undefined, 'and no depth — banners take turns');
     // Nothing to decide beyond its switch.

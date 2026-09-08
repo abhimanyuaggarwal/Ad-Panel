@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · Player Console</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none'%3E%3Cdefs%3E%3ClinearGradient id='bm' x1='10' y1='42' x2='40' y2='20' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23F6B33D'/%3E%3Cstop offset='1' stop-color='%23E8622C'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M24.5 7.5 L39.5 37.5 H15 L21 26' stroke='url(%23bm)' stroke-width='8.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M24.5 7.5 L12 32.5' stroke='%23F6B33D' stroke-width='8.5' stroke-linecap='round'/%3E%3C/svg%3E">
+<!-- THE WHOLE CASCADE, NOT A SUBSET. The door borrows the panel's own controls — the
+     .field box, the accent .btn, the house dialog, the receipt pill, the menu — and four of
+     those are refined by later sheets (the dialog's radius and veil in 05, .dlg-note in 08).
+     Loading 01–10 in numeric order is what makes the shared controls the SAME OBJECT here
+     as in the console, with no values restated in 11 to drift out of step. The unused rules
+     match nothing on this page, and the console needs them a moment later anyway. -->
+<link rel="stylesheet" href="css/01-base.css">
+<link rel="stylesheet" href="css/02-publish-rail.css">
+<link rel="stylesheet" href="css/03-controls.css">
+<link rel="stylesheet" href="css/04-ladders.css">
+<link rel="stylesheet" href="css/05-tag-forms.css">
+<link rel="stylesheet" href="css/06-bulk-sheet.css">
+<link rel="stylesheet" href="css/07-setup-editor.css">
+<link rel="stylesheet" href="css/08-cards.css">
+<link rel="stylesheet" href="css/09-chrome.css">
+<link rel="stylesheet" href="css/10-surfaces.css">
+<link rel="stylesheet" href="css/11-login.css">
+</head>
+<body class="door-page">
+
+<main class="door">
+  <div class="door-brand">
+    <svg class="brand-mark door-mark" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+      <defs><linearGradient id="bm" x1="10" y1="42" x2="40" y2="20" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#F6B33D"/><stop offset="1" stop-color="#E8622C"/>
+      </linearGradient></defs>
+      <path d="M24.5 7.5 L39.5 37.5 H15 L21 26" stroke="url(#bm)" stroke-width="8.5"
+        stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M24.5 7.5 L12 32.5" stroke="#F6B33D" stroke-width="8.5" stroke-linecap="round"/>
+    </svg>
+    <span class="door-word">Player Console</span>
+  </div>
+
+  <h1>Welcome back</h1>
+  <p class="door-sub">Sign in to your account to continue</p>
+
+  <!-- THE PLATE PAINTS ONCE. Everything that changes as you work — the button's refused
+       state, the error under the field, the remembered account — is toggled imperatively
+       (see login.js): a repaint while typing would lose the caret, which is the one thing
+       this panel never lets a control do. -->
+  <form class="door-card" id="door-form" onsubmit="doorSubmit(event)">
+    <div id="door-down"></div>
+
+    <!-- GOOGLE FIRST (8 Sep, user call: "most people will tend to login with google"). The
+         act most people take is the act that wears the accent, and the one below the divider
+         is the alternate — so the remembered account leads and the address follows it.
+         Filled from /panel/session, and hidden WHOLE (row and divider) when the console
+         remembers nobody: there is no honest generic "Continue with Google" here, because
+         with no account to continue as there is nothing for it to do. In that state the
+         email act takes the accent back — see doorPaintAlt. -->
+    <div class="door-alt none" id="door-alt">
+      <div class="acct-wrap" id="acct-wrap"></div>
+      <div class="door-or"><span>or continue with email</span></div>
+    </div>
+
+    <div class="field grow" id="door-field">
+      <label for="door-email">Email address</label>
+      <span class="in-icon">
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <rect x="2.4" y="4.4" width="15.2" height="11.2" rx="2.2" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M3.4 6.2 L10 11 L16.6 6.2" stroke="currentColor" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <!-- No autofocus: the caret belongs in this box only when it is the primary act,
+             which login.js decides once it knows whether anybody is remembered. -->
+        <input id="door-email" type="text" inputmode="email" autocomplete="username"
+          spellcheck="false" placeholder="name@company.com" aria-describedby="door-err"
+          oninput="doorTyped()">
+      </span>
+      <div class="field-err" id="door-err" hidden></div>
+    </div>
+
+    <button type="submit" class="btn door-go" id="door-go" disabled
+      title="Enter your work email address first">
+      Continue with email <i class="door-arrow">→</i>
+    </button>
+
+    <div class="door-foot">
+      Don't have an account?<button type="button" class="door-link"
+        onclick="doorRequestAccess()">Request access</button>
+    </div>
+  </form>
+
+  <p class="door-note" id="door-note"></p>
+</main>
+
+<div id="toasts" aria-live="polite"></div>
+<div id="dialog-root"></div>
+
+<!-- Three files, in the same dependency order the shell uses: util (esc, the receipt pill,
+     the house dialog) → api (every request, as a named operation) → the door itself. -->
+<script src="js/util.js"></script>
+<script src="js/api.js"></script>
+<script src="js/login.js"></script>
+</body>
+</html>

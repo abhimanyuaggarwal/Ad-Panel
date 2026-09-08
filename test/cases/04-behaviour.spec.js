@@ -186,6 +186,29 @@ export default async function run({ test, req, eq, assert, freshSetup, patchSlot
     assert(e.message.includes('Ad placement'), 'says where the answer lives now');
   });
 
+  await test('`Hide during in-stream` is gone, and the out-stream aims at a typed total', async () => {
+    const dead = await req('PATCH', '/panel/setups/as_1/sections/0/behaviour',
+      { slot: 'outstream', behaviour: { hideOnInStream: false } });
+    eq(dead.status, 400, 'the cut switch is refused, never silently dropped');
+    const e = dead.body.errors.find(x => x.field === 'hideOnInStream');
+    assert(e, 'names the field');
+    assert(e.message.includes('Hide during in-stream'), 'in the words the screen used');
+    assert(e.message.includes('owns the screen'), 'and says why there is nothing to decide');
+    // Total Target Impressions: the breaks' own words, typed here because a rotation
+    // runs all session where a break picks from 1/2/3.
+    const ok = await req('PATCH', '/panel/setups/as_1/sections/0/behaviour',
+      { slot: 'outstream', behaviour: { perSession: 12 } });
+    eq(ok.status, 200, 'a typed count saves');
+    const b = (await req('GET', '/panel/setups/as_1')).body.setup.sections[0].slots.outstream.behaviour;
+    eq(b.perSession, 12, 'and is what the slot aims for');
+    const over = await req('PATCH', '/panel/setups/as_1/sections/0/behaviour',
+      { slot: 'outstream', behaviour: { perSession: 99 } });
+    eq(over.status, 400, 'past the ceiling it is refused');
+    const oe = over.body.errors.find(x => x.field === 'perSession');
+    assert(oe && oe.message.includes('total target impressions'), 'named in the screen\'s words');
+    assert(oe.message.includes('20'), 'next to the number allowed');
+  });
+
   await test('pod bounds are refused by name', async () => {
     const four = await req('PATCH', '/panel/setups/as_1/sections/0/behaviour',
       { slot: 'midroll', behaviour: { podAds: 4 } });

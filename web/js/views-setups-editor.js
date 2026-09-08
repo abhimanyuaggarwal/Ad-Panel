@@ -531,34 +531,49 @@ function suSlotRowHtml(t, meta) {
   // 'Ad sources'. GAM sync left this foot for the page header: one directory, one CTA.
   // THE SOURCE IS ONE SWITCH, BOTH WAYS (6 Sep as a fork; re-cut 7 Sep, user call —
   // "there should be an option to switch to a shared waterfall if a custom waterfall is
-  // configured while the vice versa is also needed"). The zone opens with a two-answer
-  // seg — Waterfall or Custom (suWfSourceRowHtml) — standing whichever answer is lit,
-  // because switching costs NOTHING: the unlit answer's units are parked, counted
-  // beside the seg, and come back exactly as they stood. What follows the seg is that
-  // answer's body: this break's own ladder, or the waterfall's three levers and the
-  // door up to it. The old empty-break-only fork CTA and the confirmed `remove` are
-  // both gone with this cut — there is no consequence left to confirm.
-  const linked = !rot && suGroupLinked(slot);
-  // THE SWITCH RIDES UNDER THE PRIMARY (8 Sep, user call — *"the follow waterfall should
-  // be moved down the primary one"*). At the head of the zone it was the first thing
-  // read on every break, above the row that actually decides most of the revenue; the
-  // break's own first ask now opens its own zone, and the source switch sits where the
-  // FALL begins — which is the part of the ladder anyone comes here to swap. A break
-  // with no primary yet (nothing in its ladder) keeps the switch at the head: there is
-  // nothing above it to sit under, and following the waterfall is that break's one act.
-  const wfSrcRow = rot ? '' : suWfSourceRowHtml(t);
-  const underPrimary = !rot && !linked && slot.rungs.length > 0;
-  ctx.midHtml = underPrimary ? wfSrcRow : '';
+  // configured while the vice versa is also needed"): switching costs NOTHING, because
+  // the answer you leave keeps every unit it had, parked and counted.
+  //
+  // AND THE ZONE SAYS WHICH OF THE THREE IT IS IN, IN TWO STEPS (8 Sep, user call —
+  // *"in every slot there is not a clear demarcation of three state ... it should be very
+  // clear the journey to a layman user"*, then *"2 steps and no text or byline: one switch
+  // on/off waterfall; if switched on, which one — custom or global waterfall"*). The row
+  // (suWfStateHtml) is those two controls and nothing else. What follows it is the
+  // answer's body: this break's own ladder, the global waterfall's shared settings and the
+  // door up to it, or — switched off — nothing at all.
+  //
+  // THE ROW RIDES UNDER THE PRIMARY (8 Sep, user call, asked twice — *"the follow
+  // waterfall should be moved down the primary one"*, *"this should be below the primary
+  // ad unit"*), and the PRIMARY IS DRAWN IN ALL THREE ANSWERS (8 Sep, same review —
+  // *"when switched to global why is primary ad unit being removed, it should stay"*).
+  // The break's own first ask opens the zone whatever serves the fall; the controls sit
+  // where the FALL begins, which is the part anyone comes here to swap; and what follows
+  // them is the fall itself, the global waterfall's shared settings, or nothing. A break
+  // with no primary yet has nothing to sit under, so the controls take the head.
+  const src = rot ? 'own' : suSrcState(t);
+  const band = rot ? '' : suWfStateHtml(t);
+  const hasPrimary = !rot && slot.rungs.length > 0;
+  ctx.midHtml = hasPrimary ? band : '';
+  // WHAT GOES WHERE THE FALL GOES. Its own rows (the default, `own`), the global
+  // waterfall's shared settings, or nothing at all — see `ctx.fallHtml` in suLadderHtml.
+  if (src === 'wf') ctx.fallHtml = suWfMirrorHtml(t);
+  else if (src === 'none') ctx.fallHtml = '';
+  // THE FOOT ADDS UNITS, IT NO LONGER CHOOSES A SOURCE (8 Sep). Its empty-ladder label
+  // was `+ Add custom waterfall` — a second control answering the switch's question, and
+  // the reason a break wore two CTAs for one decision. With nothing at all it adds the
+  // PRIMARY; with a primary and its own fall it adds the next fall rung; and a break
+  // whose fall is not its own has nothing here to add.
+  const addLabel = !hasPrimary ? '+ Add ad unit' : src === 'own' ? '+ Add waterfall tag' : '';
   const ownLadder = `${suLadderHtml(t, ctx)}
-     <div class="slot-multi-foot">
+     ${rot || addLabel ? `<div class="slot-multi-foot">
         ${rot ? `
           ${!atMax
             ? `<button class="slot-add" ${canAddRung(slot.rungs) ? '' : 'disabled title="Fill the one above first"'} onclick="suAddRung('${t}')">+ Add banner tag</button>`
             : `<span class="slot-order-note">${meta.rotationMax} of ${meta.rotationMax}</span>`}`
         : `
-          ${!atMax ? `<button class="slot-add" ${canAddRung(slot.rungs) ? '' : 'disabled title="Fill the tag above first"'} onclick="suAddRung('${t}')">+ ${slot.rungs.length ? 'Add waterfall tag' : 'Add custom waterfall'}</button>`
+          ${!atMax ? `<button class="slot-add" ${canAddRung(slot.rungs) ? '' : 'disabled title="Fill the tag above first"'} onclick="suAddRung('${t}')">${addLabel}</button>`
             : `<span class="slot-order-note">${meta.maxRungs} of ${meta.maxRungs}</span>`}`}
-      </div>`;
+      </div>` : ''}`;
   // AD SOURCES, EVERYWHERE (7 Sep, user call — "rename Indirect to something relevant
   // since it will have both direct and indirect; something a layman understands that
   // works in ads too"). `Indirect` named the demand's KIND, and the zone stopped being
@@ -566,8 +581,10 @@ function suSlotRowHtml(t, meta) {
   // where the ads come from — which is the word a ROTATION's ladder has worn all along,
   // so the rename unifies the two rather than adding a fourth zone word to the rail:
   // Special · Ad sources · Delivery settings, on every break and every rotation.
-  const sourcesZone = zone('Ad sources', rot ? ownLadder
-    : `${underPrimary ? '' : wfSrcRow}${linked ? suWfMirrorHtml(t) : ownLadder}`);
+  // ONE BODY, THREE ANSWERS (8 Sep): the ladder always draws the primary and always puts
+  // the controls under it — what changes is only what sits where the fall goes, which
+  // `ctx.fallHtml` decided above. A break with no primary keeps the controls at the head.
+  const sourcesZone = zone('Ad sources', rot || hasPrimary ? ownLadder : `${band}${ownLadder}`);
   const deliveryZone = zone('Delivery settings',
     `<div class="bhv-grid">${behaviourRowsHtml(t, suBhvAdapter(t))}</div>
      ${FORM.data.sections.length > 1 ? `<div class="zrow bhv-foot">
@@ -662,12 +679,16 @@ function rungPayload(r) {
 
 function setupPayload(d) {
   const rungsOf = g => (g.rungs || []).filter(r => r.tagId).map(rungPayload);
-  // A linked break sends its KEPT own units under `ownRungs` and the link itself; the
-  // server materializes what it serves from the waterfall, so the form never ships a
-  // frozen copy as if the break owned it.
-  const indirect = g => (g.waterfallSource === 'setup'
-    ? { waterfallSource: 'setup', ownRungs: rungsOf(g) }
-    : { waterfallSource: 'own', rungs: rungsOf(g) });
+  // A break that is NOT serving its own units — following the waterfall, or switched
+  // off — sends its KEPT own units under `ownRungs` and the answer itself; the server
+  // materializes what serves (the waterfall's units, or none), so the form never ships
+  // a frozen copy as if the break owned it, and never loses the way back.
+  const indirect = g => {
+    const src = g.waterfallSource || 'own';
+    return src === 'own'
+      ? { waterfallSource: 'own', rungs: rungsOf(g) }
+      : { waterfallSource: src, ownRungs: rungsOf(g) };
+  };
   return {
     name: d.name, property: d.property,
     waterfall: {

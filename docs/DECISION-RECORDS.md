@@ -1924,6 +1924,14 @@ cap. Out-stream is that, outside playback, plus one switch.
                     Max a session   [ 2 ]
                     Hide during video ads   [◗]        hideOnInStream
 
+*Amended 8 Sep (user call): the delivery rows are four, not five.* `Max a session` wears the
+breaks' own words — **Total Target Impressions**, a typed number (a rotation runs all session
+where a break picks 1/2/3) — and **Hide during video ads is CUT**: an in-stream ad owns the
+screen while it runs and the player steps the banner aside on its own, so the switch had one
+sane answer and no decision in it. Removed, not hidden: out of `SLOT_BEHAVIOUR_FIELDS`, out of
+`normalizeSlotBehaviour`, out of `/panel/meta` and the wire, and into `DEAD_BEHAVIOUR_FIELDS`
+where a payload still carrying it is refused by name.
+
 The tabs already carry state dots and the whole grammar. Five tabs is one more tab, not one more
 idea. **Direct does not reach out-stream** — Direct is break demand; out-stream is not a break.
 

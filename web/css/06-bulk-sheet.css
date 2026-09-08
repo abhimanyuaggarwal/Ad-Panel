@@ -24,7 +24,24 @@
   flex: 1; max-height: calc(100vh - 260px);
   overflow-y: auto; padding-right: 2px;
 }
-.dlg.bulk.steady .dlg-body { min-height: 340px; }
+/* THE FRAME IS ONE NUMBER, AND IT SITS ON THE DIALOG (8 Sep, user call — *"a lot of
+   empty space here in the bottom"*). Two things were wrong with the old floor. It was
+   TWO numbers that had to be walked in step by hand — 340 on this body, 411 on the
+   review's, the 71px between them being the tab strip the review has no equivalent of —
+   and the number itself was a guess from before three fields were cut. Measured: the
+   tallest tab holds 199px of levers at rest and 220px with every lever open, so a 340px
+   floor was 120px of air on every break tab and 300 on the out-stream's one line — the
+   same "five-row menu floating in 300px of dead white" this file opens by condemning.
+   Now each journey states the height of its own tallest step ONCE, on the dialog, and
+   both steps read it: the body just fills what is left, so the footer cannot move
+   between step 1 and step 2 and there is no arithmetic to keep true.
+   `min()` so a short window shrinks the frame instead of overflowing it — the old body
+   floor fought its own `max-height` there. */
+.dlg.bulk.steady { min-height: min(var(--frame), calc(100vh - 80px)); }
+/* The ad sheet: 220px of levers (pre-roll and mid-roll, every lever open) + its chrome. */
+.dlg.bulk.steady { --frame: 409px; }
+/* The player sheet is master-detail — its own content genuinely fills 388px. */
+.dlg.bulk.pb.steady { --frame: 529px; }
 .dlg.bulk .dlg-foot { margin-top: 12px; }
 /* Tighter rhythm than the key editor: this dialog holds a whole slot on one screen, so
    every row gives back a few pixels and the tallest tab (mid-roll) fits without a scroll. */

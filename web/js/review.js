@@ -14,7 +14,7 @@
 // The order groups appear in — the page's own reading order: the waterfall
 // (the setup's head), then the four breaks, then the player, then the surface's own
 // details. Anything unknown sorts after these, alphabetically.
-const REVIEW_WHERE_ORDER = ['Waterfall', 'Pre-roll', 'Mid-roll', 'Post-roll', 'Out-stream', 'Player configs', 'Player'];
+const REVIEW_WHERE_ORDER = ['Global waterfall', 'Pre-roll', 'Mid-roll', 'Post-roll', 'Out-stream', 'Player configs', 'Player'];
 
 function reviewWhereRank(w) {
   const i = REVIEW_WHERE_ORDER.indexOf(w);
@@ -96,6 +96,9 @@ function reviewBodyHtml(changes, keepOrder) {
 // and restore both take it, on this same screen, and history explains itself.
 // `caution` is a caller-built block (a restore's counted "your draft loses N changes")
 // rendered after the list, where a warning belongs: read last, before the act.
+// `steady` NAMES THE JOURNEY this review is step 2 of ('ads' / 'player', 8 Sep) rather
+// than saying only "yes": each journey states its own frame height in CSS, and step 2
+// reads the same one as step 1, so the footer cannot move between them.
 // Resolves false on cancel; on confirm, true — or `{ note }` when withNote.
 function reviewChanges(opts) {
   const changes = opts.changes || [];
@@ -103,7 +106,7 @@ function reviewChanges(opts) {
   return new Promise(resolve => {
     const root = document.getElementById('dialog-root');
     root.innerHTML = `
-      <div class="dlg-veil"><div class="dlg rvw${opts.steady ? ' steady' : ''}">
+      <div class="dlg-veil"><div class="dlg rvw${opts.steady ? ` steady steady-${opts.steady}` : ''}">
         <h3>${esc(opts.title)}${opts.kicker ? `<span class="dlg-kicker">${esc(opts.kicker)}</span>` : ''}</h3>
         ${opts.subline ? `<div class="rvw-sub">${esc(opts.subline)}</div>` : ''}
         <div class="dlg-body rvw-body">

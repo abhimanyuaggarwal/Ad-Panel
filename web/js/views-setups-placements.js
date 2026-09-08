@@ -87,7 +87,7 @@ function suPlacementsGlimpse() {
   const story = [
     `${secs} placement${secs === 1 ? '' : 's'}`,
     units ? `${units} ad unit${units === 1 ? '' : 's'}` : (linked ? null : 'no demand'),
-    linked ? `${linked} break${linked === 1 ? '' : 's'} follow${linked === 1 ? 's' : ''} the waterfall` : null,
+    linked ? `${linked} break${linked === 1 ? '' : 's'} follow${linked === 1 ? 's' : ''} the ${WF_WORD.toLowerCase()}` : null,
   ].filter(Boolean).join(' · ');
   // NO COUNT CHIP (7 Sep, user call): the break chips are the glimpse — the number of
   // placements is a fact the tab strip says the moment the section opens.
@@ -259,11 +259,12 @@ function suSlotUnits(sec, t) {
   const filled = a => (a || []).filter(r => r && r.tagId).length;
   // A connected break's SERVING units are the waterfall's — Clear never counts or
   // touches those (they are cleared at the head of the page, once, for everyone). Its
-  // own units are PARKED (7 Sep, user call — the switch keeps them), and Clear does
-  // take those, so they are counted apart and named in the confirm: nothing this page
-  // deletes goes unnamed.
-  const own = g => (suGroupLinked(g) ? 0 : filled(g.rungs));
-  const park = g => (suGroupLinked(g) ? filled(g.rungs) : 0);
+  // own units are PARKED (7 Sep, user call — the switch keeps them; a break switched
+  // off keeps them the same way since 8 Sep), and Clear does take those, so they are
+  // counted apart and named in the confirm: nothing this page deletes goes unnamed.
+  const serving = g => suSrcOf(g) === 'own';
+  const own = g => (serving(g) ? filled(g.rungs) : 0);
+  const park = g => (serving(g) ? 0 : filled(g.rungs));
   if (t === 'midroll') {
     const gs = s.groups || [];
     return {
@@ -423,27 +424,43 @@ function suSlotGlimpse(t) {
   const gs = t === 'midroll' ? suMidGroups() : [suSlot(t)];
   // A linked break's demand is the waterfall's — counted from it, so the closed
   // row never claims emptiness the serving truth does not have (or the reverse).
-  const conf = g => (suGroupLinked(g) ? suWfServed().length : (g.rungs || []).filter(r => r.tagId).length);
-  const live = g => (suGroupLinked(g) ? suWfServed().length : (g.rungs || []).filter(r => r.tagId && r.on !== false).length);
+  const conf = g => suSrcServed(g);
+  const live = g => (suSrcOf(g) === 'own'
+    ? (g.rungs || []).filter(r => r.tagId && r.on !== false).length
+    : suSrcServed(g));
   const n = gs.reduce((a, g) => a + conf(g), 0);
   const on = gs.reduce((a, g) => a + live(g), 0);
   const linked = gs.some(suGroupLinked);
-  const chip = linked ? '<span class="sg-shared">waterfall</span>' : '';
-  // A LINKED BREAK SHOWS THE MARK AND STOPS (7 Sep, user call — "if it is a shared
-  // waterfall only show that icon, don't show the IMA › CAN › GPT too in that case").
-  // The walk it would draw is not this break's story — it is the waterfall's, told once
-  // at the head of the page where it can be changed. Repeating it on every connected
-  // break said the same thing four times and read as four different ladders.
-  if (linked) return chip;
-  if (!n) return `${chip}<span class="sg-empty">no demand</span>`;
+  const chip = linked ? '<span class="sg-shared">global</span>' : '';
+  // A LINKED BREAK SHOWS THE MARK AND ITS OWN PRIMARY (7 Sep, user call — "if it is a
+  // shared waterfall only show that icon, don't show the IMA › CAN › GPT too in that
+  // case"; the primary joined it 8 Sep, when following the global waterfall stopped
+  // replacing the first ask). The FALL it would draw is not this break's story — it is
+  // the global waterfall's, told once at the head of the page where it can be changed —
+  // but rung 1 is this break's own, and hiding it left a break with demand reading as a
+  // break with none.
+  if (linked) {
+    const p = gs.map(g => (suGroupLinked(g) ? suSrcPrimary(g) : null)).find(Boolean);
+    return `${chip}${p ? `<span class="glimpse-walk">${providerBadge(window.TAG_PROVIDER[p.tagId])}</span>` : ''}`;
+  }
+  // The same words the open row's source band uses for the same state (8 Sep) — the
+  // closed line said `no demand`, which named the market rather than the break. And the
+  // two empty breaks are told apart here as they are in the band: one has never been
+  // filled in, the other was switched OFF and is holding everything it had.
+  if (!n) {
+    const off = gs.some(g => suSrcOf(g) === 'none' && suWfOwnUnits(g));
+    return `${chip}<span class="sg-empty">${off ? 'switched off' : 'no ads yet'}</span>`;
+  }
   if (!on) return `${chip}<span class="sg-empty">every tag off</span>`;
   // THE CLOSED ROW SHOWS THE WALK (7 Sep, UAT P2 — it was blank, while the list rows and
   // the integration page's resolved rows both name the partners). Same grammar as those:
   // four badges, `+N` for the rest, in ask order. A mid-roll's pods each answer for
   // themselves, so a multi-pod break says which pod the walk belongs to.
-  const gi = gs.findIndex(g => (suGroupLinked(g) ? suWfServed().length : (g.rungs || []).filter(r => r.tagId && r.on !== false).length));
+  const gi = gs.findIndex(g => live(g));
   const g = gs[gi < 0 ? 0 : gi];
-  const rungs = suGroupLinked(g) ? suWfServed() : (g.rungs || []).filter(r => r.tagId && r.on !== false);
+  const rungs = suGroupLinked(g) ? suWfServed()
+    : suSrcOf(g) === 'none' ? []
+    : (g.rungs || []).filter(r => r.tagId && r.on !== false);
   const shown = rungs.slice(0, 4);
   const badges = shown.map(r => providerBadge(window.TAG_PROVIDER[r.tagId])).join('<i class="gsep">›</i>')
     + (rungs.length > shown.length ? `<span class="sg-dim"> +${rungs.length - shown.length}</span>` : '');
@@ -506,7 +523,10 @@ function suPodDarkWhy(sec, gi) {
   const g = ((sec.slots || {}).midroll?.groups || [])[gi];
   if (!g || suGroupLinked(g)) return '';
   const filled = a => (a || []).filter(r => r && r.tagId).length;
-  if (filled(g.rungs) || filled(g.direct && g.direct.rungs)) return '';
+  // A pod SWITCHED OFF is dark too (8 Sep): it keeps its units, but it serves none of
+  // them, so a live mid-roll standing on it would go dark exactly as an empty pod does.
+  if (suSrcOf(g) !== 'none' && (filled(g.rungs) || filled(g.direct && g.direct.rungs))) return '';
+  if (suSrcOf(g) === 'none' && filled(g.direct && g.direct.rungs)) return '';
   const live = SETUP_ORIGINAL.usedByLive || 0;
   const who = live > 1
     ? `${live} integrations play this mid-roll live`

@@ -8,6 +8,8 @@
 //   tagView(t)       one ad tag, with its use count and template name
 //   templateView(t)  one ad unit template, with its use count
 //   publicVersion(v) one version entry, without its snapshot
+//   accountView(a)   one person, as the door and the header band read them
+//   sessionView()    whether anyone is signed in, and the accounts the console remembers
 import * as store from './store.js';
 
 
@@ -217,4 +219,29 @@ export function tagView(t) {
 export function templateView(t) {
   const inTags = store.tagsUsingTemplate(t.id);
   return { ...t, usedBy: inTags.length, usedByNames: inTags.map(x => x.name) };
+}
+
+
+// ---------- the front door (8 Sep) ----------
+// An account never leaves the server whole: `provider` says who remembers it and is the
+// door's business alone, and nothing else on an account is secret — but shaping it here
+// keeps the rule that no view reads a raw store object.
+export function accountView(a) {
+  return a ? { name: a.name, initials: a.initials, role: a.role, email: a.email } : null;
+}
+
+// The door reads all three facts; the header band reads only `account`.
+export function sessionView() {
+  const { account, remembered, workDomain, accessOwner } = store.sessionFacts();
+  return {
+    signedIn: !!account,
+    account: accountView(account),
+    // The "Continue as …" rows, in the order the console saw them.
+    remembered: remembered.map(a => ({ ...accountView(a), via: a.provider })),
+    // The door says which addresses it signs in, so the placeholder and the refusal are
+    // never two different strings (the adUnitExample arrangement, for people).
+    workDomain,
+    // Who Request access goes to — named, so the door is never a dead end.
+    accessOwner: accessOwner ? { name: accessOwner.name, role: accessOwner.role, email: accessOwner.email } : null,
+  };
 }

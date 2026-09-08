@@ -10,6 +10,14 @@ function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// THE GLOBAL WATERFALL — the setup's own shared ladder, named once (8 Sep, user call:
+// *"rename the top waterfall as global waterfall or suggest any better name for it"*).
+// It was `Shared waterfall` until 7 Sep and then bare `Waterfall`, which collided with
+// the word every break's own ladder wears: on a break the two now read as one pair —
+// `Custom` and `Global`. The wire key is untouched (`waterfallSource: 'setup'`); this is
+// the seller's word for it, and the only place it is spelled.
+const WF_WORD = 'Global waterfall';
+
 const LABELS = {
   property: { TOI: 'TOI', ET: 'ET', NBT: 'NBT' },
   platform: { mweb: 'Mweb', desktop: 'Desktop', android: 'Android', ios: 'iOS' },
@@ -45,7 +53,6 @@ const LABELS = {
   // player-side with the position, never here.
   displaySlot: { player_bottom: 'Player bottom', player_top: 'Player top', l_50: 'L-band 50' },
   pause: { yes: 'Yes', no: 'No', size: 'Auto' },
-  hideOnInStream: { true: 'Hide it', false: 'Keep showing' },
   tagType: { video: 'Video', display: 'Display' },
   // Short by design: these sit as a badge beside every tag, and a badge is read, not
   // parsed. THREE providers since 27 Aug — SLike behaved exactly like CAN (a pasted
@@ -150,10 +157,21 @@ function meProfile() {
   });
 }
 
-// LOG OUT — confirmed, because it clears the page you are standing on. THE SEAM AUTH
-// REPLACES: everything the console itself holds is local, so logging out is exactly this —
-// drop it and stop serving the rooms. When sign-in lands, tech swaps the plate below for
-// the real sign-out call and its redirect and nothing else here moves.
+// LOG OUT — confirmed, because it clears the page you are standing on. It ends the session
+// SERVER-SIDE and lands on the front door (8 Sep): the first cut painted a plate saying
+// "you are logged out" and offered a reload, because there was nowhere to go. There is now
+// (login.html), so the act is real end to end and Back cannot walk into the rooms — the
+// gate in main.js reads the same session and finds it gone.
+//
+// LEAVING ALWAYS WORKS (8 Sep, second cut, user call: "it should work when a user clicks on
+// logout"). The first cut refused to move when the sign-out call did not reach the server —
+// on the reasoning that a door you could walk straight back through is a lie. That was the
+// wrong trade, and the way it failed proved it: against a server that had not been restarted
+// the act did nothing but drop a pill, and someone leaving a shared machine was left standing
+// in the console. Logging out is now unconditional — you leave, every time — and the part we
+// are NOT sure of is the part that gets said: the door carries a banner when the server never
+// confirmed, because a session it may still hold is a fact worth reading, and nobody can use
+// the console without a server anyway.
 async function meLogOut() {
   const ok = await ask({
     title: 'Log out?',
@@ -162,19 +180,22 @@ async function meLogOut() {
     danger: true,
   });
   if (!ok) return;
+  let unconfirmed = false;
+  try {
+    await API.signOut();
+  } catch {
+    unconfirmed = true; // said at the door, not in a pill you are about to navigate away from
+  }
   try { localStorage.clear(); } catch { /* a private window has none — nothing to clear */ }
-  window.SIGNED_OUT = true; // route() stands down: browser Back must not paint the rooms again
-  const nav = document.getElementById('nav');
-  if (nav) nav.style.display = 'none';
-  const el = document.getElementById('me');
-  if (el) { el.classList.remove('open'); el.innerHTML = ''; }
-  document.getElementById('main').innerHTML = `
-    <div class="signed-out">
-      <h2>You are logged out</h2>
-      <p>Your drafts and versions are where you left them.</p>
-      <button type="button" class="btn" onclick="location.reload()">Log back in</button>
-    </div>`;
+  // The one thing the door needs told, in the one store that survives the navigation and
+  // nothing else. It reads it once and clears it, so a later visit is not haunted by it.
+  if (unconfirmed) { try { sessionStorage.setItem(DOOR_UNCONFIRMED, '1'); } catch { /* no store */ } }
+  location.replace('login.html'); // replace, not assign: Back must not re-enter the rooms
 }
+
+// The one key the console and the door share. Here rather than in login.js because both
+// sides read it and a string in two files is a bug waiting to happen.
+const DOOR_UNCONFIRMED = 'panel.logout.unconfirmed';
 
 // THE ONE SEAM PROPERTY SCOPE EVER CAME THROUGH, and the reason the switcher's removal
 // touched ten filters and broke none: every object is in scope while the panel has no
@@ -450,12 +471,11 @@ const FIELD_NAMES = {
   mode: 'Scheduling', every: 'Repeat interval', firstAt: 'First break offset',
   podAds: 'Total Target Impressions',
   nextAd: 'Waterfall fill order',
-  times: 'Schedule', hold: 'Display duration', perSession: 'Impression cap',
+  times: 'Schedule', hold: 'Display duration', perSession: 'Total Target Impressions',
   tagTimeoutMs: 'Request timeout', behaviour: 'Ad behaviour',
   // The player's JSON (31 Aug, AD-JSON-SCOPE): the break's giving-up point, a cadence
   // that stops, the idle player's rotation, a banner's own facts, playback timing.
   fillTimeoutSec: 'Total timeout',
-  hideOnInStream: 'Hide during in-stream',
   displaySlot: 'Ad placement', pause: 'Content pause',
   showAfterSec: 'Request delay', closeAfterSec: 'Close button', hideAfterSec: 'Auto-hide',
   direct: 'Special',
@@ -467,8 +487,10 @@ const FIELD_NAMES = {
   // set the sequence (Direct, then the primary, then the waterfall), and the waterfall
   // is the one ordered thing left.
   drive: 'Delivery controls', ask: 'Waterfall order', tries: 'Waterfall depth',
-  // The waterfall's own diff words (5 Sep; one word 7 Sep, user call).
-  indirect: 'Ad source units', waterfall: 'Waterfall',
+  // The waterfall's own diff words (5 Sep; one word 7 Sep, user call). `ad sources` is
+  // the source itself moving between its three answers — its own units, the waterfall,
+  // or none (8 Sep) — where `indirect` is the UNITS of a break serving its own.
+  indirect: 'Ad source units', waterfall: 'Global waterfall', 'ad sources': 'Where ads come from',
 };
 
 // A slot's behaviour fields share the vocabularies, so segs, diffs and activity

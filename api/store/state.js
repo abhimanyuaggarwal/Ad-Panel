@@ -59,6 +59,16 @@ export const POD_NEXT_AD = ['top', 'next'];
 export const SLOT_TYPES = ['preroll', 'midroll', 'postroll', 'outstream'];
 // Every tag is either a video tag or a display tag; the family decides what fits where.
 export const TAG_TYPES = ['video', 'display'];
+// WHERE A LADDER BREAK'S ADS COME FROM (5 Sep as two answers; three since 8 Sep). A break
+// serves its own units, follows the setup's waterfall, or serves nothing. All three keep
+// the break's own units in `ownRungs`, so the answer is always reversible — only what
+// SERVES differs. `none` is stored rather than inferred from an empty ladder: emptying a
+// ladder and switching a break off are different acts with different ways back.
+export const AD_SOURCES = ['own', 'setup', 'none'];
+// The seller's word for the setup's shared ladder (8 Sep, user call), spelled once on
+// this side of HTTP as it is spelled once on the other (`WF_WORD` in web/js/util.js).
+// The wire key stays `setup` — this names it in refusals and warnings, nothing else.
+export const WF_WORD = 'global waterfall';
 // THREE providers (27 Aug, user call): IMA and GPT are the two client libraries on the
 // GAM account; CAN is the endpoint you paste. SLike was removed — a fourth name that
 // behaved exactly like CAN (a pasted VAST URL answering with video) bought nothing.
@@ -143,9 +153,8 @@ export const FIELD_WORDS = {
   tagTimeoutMs: 'how long each tag waits',
   ask: 'the ad partners', tries: 'the waterfall depth', direct: 'special campaigns',
   times: 'the show times', hold: 'the hold',
-  refresh: 'the rotation', perSession: 'how many a session',
+  refresh: 'the rotation', perSession: 'the total target impressions',
   fillTimeoutSec: 'when the break gives up',
-  hideOnInStream: 'hiding during video ads',
   displaySlot: 'the display slot', pause: 'whether content pauses',
   showAfterSec: 'the request delay', closeAfterSec: 'when its close button appears',
   hideAfterSec: 'when it hides',

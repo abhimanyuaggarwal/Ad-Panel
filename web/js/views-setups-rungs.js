@@ -518,8 +518,16 @@ function suRungSearchHtml(t, n) {
 // a fall: its banners take turns, so they stay one flat list.
 function suLadderHtml(t, ctx) {
   const slot = suSlot(t);
+  // NOTHING IN IT, SAID ONCE (8 Sep, with the source band): a ladder break's empty state
+  // is the band's `No ads yet` — counted, consequenced, with both roads beside it — so
+  // the bare words `No tags` under it were a second, weaker answer to the same question.
+  // A rotation has no band (it has no waterfall to follow), so it keeps a sentence.
   if (!slot.rungs.length) {
-    return '<div class="ladder-empty">No tags</div>';
+    if (isRotation(t)) return '<div class="ladder-empty">No banner tags yet</div>';
+    // No primary yet, but the fall may still be somebody else's and worth drawing —
+    // a break with no first ask of its own can still take its whole walk from the
+    // global waterfall, and its shared settings belong on it.
+    return ctx.fallHtml || '';
   }
   const rows = slot.rungs.map((r, n) => suUnitHtml(t, n, r, ctx));
   // A flat ladder has no first ask — a rotation's banners take turns, and the shared
@@ -527,7 +535,12 @@ function suLadderHtml(t, ctx) {
   // A rotation names its rows ("Banner 3"), so its ladder keeps the wide position
   // column; every other ladder here numbers them and rides narrow.
   if (isRotation(t) || ctx.flat) return `<div class="rung-list${isRotation(t) ? ' rot' : ''}">${rows.join('')}</div>`;
-  const fall = rows.slice(1);
+  // THE FALL IS NOT ALWAYS THE BREAK'S (8 Sep, user call — *"when switched to global why
+  // is primary ad unit being removed, it should stay"*). `ctx.fallHtml` lets the caller
+  // put something else where the fall goes — the global waterfall's shared settings, or
+  // nothing — while the PRIMARY block above it is drawn exactly as it always is. Absent,
+  // the break owns its fall and draws its own rows.
+  const fall = ctx.fallHtml == null ? rows.slice(1) : [];
   // COUNTED OVER THE REAL RUNGS, BOTH SIDES (8 Sep, user call): the units that would be
   // asked, of the units that are actually there. An empty row waiting to be filled used
   // to inflate the total, so a ladder could read "7 of 8 active" with nothing off.
@@ -539,13 +552,19 @@ function suLadderHtml(t, ctx) {
   // is too, in that rule's exact grammar. Same distinction, said once, and every unit
   // in the ladder starts on the same x with its handle beside it.
   return `
+    ${/* THE RULE IS THE WORD (8 Sep, user call — *"asked first, every time: remove this
+          text"*). `Primary` already says which row it names; the gloss explained the
+          ladder to someone who had read it nine breaks ago. */''}
     <div class="fall-rule lead-rule">
       <span class="fall-w">Primary</span>
-      <span class="fall-n">asked first, every time</span>
     </div>
     <div class="rung-list lead">${rows[0]}</div>
+    ${/* The source band rides here, under the primary and above the fall (8 Sep, user
+          call, asked twice) — the break's first ask opens its zone, and where the FALL
+          begins is where swapping the source belongs. Supplied by the caller, because
+          only the setup editor's ladder breaks have a source to state. */''}
     ${ctx.midHtml || ''}
-    ${fall.length ? `
+    ${ctx.fallHtml != null ? ctx.fallHtml : fall.length ? `
       <div class="fall-rule">
         <span class="fall-w">Waterfall order</span>
         <span class="fall-n">${liveFall} of ${fallRungs.length} active</span>

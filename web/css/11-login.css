@@ -1,0 +1,201 @@
+/* 11-login.css — THE FRONT DOOR (8 Sep, user call). The eleventh sheet, loaded by
+   login.html only — which loads 01–10 first, in the same numeric order index.html does, so
+   every control the door borrows (the .field box, the accent .btn, the house dialog, the
+   receipt pill, .eh-menu) is the same object here as in the console. Nothing shared is
+   restated below; this file is the plate and the two shapes only the door has.
+
+   THE DOOR IS A CONFIRM, NOT A PAGE. It asks one question and offers two ways to answer,
+   so it takes the frame ladder's first rung — 440, the confirm width (see 01-base.css) —
+   and the panel's own anatomy inside it: the .field label/box/error grammar, the accent
+   .btn, the uppercase micro-label on the divider, a hairline before the secondary act.
+   Nothing here is a new visual language; the only shapes the panel did not already own
+   are the leading glyph in the box and the remembered-account row. */
+
+/* The band is dark and the rooms are grey; the door is neither. One soft light from the
+   top lifts the plate off the page without a second colour or a picture behind it. */
+.door-page {
+  min-height: 100vh;
+  background: radial-gradient(128% 62% at 50% 0%, #fff 0%, var(--bg) 58%);
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px 20px 56px;
+}
+/* The plate is the page's <main>, and 09-chrome gives every main the console's page
+   padding — which the door does not want: its own column IS the measure. */
+.door { width: 100%; max-width: 440px; padding: 0; margin: 0 auto; flex: 0 1 440px; }
+
+/* The band's own lockup, bigger and in page ink: the mark rides transparent, never boxed,
+   and the product's name is beside it — this is the one screen where nothing else on the
+   page says which console you are standing at. */
+.door-brand { display: flex; align-items: center; justify-content: center; gap: 9px; margin-bottom: 26px; }
+.door-mark { width: 30px; height: 30px; flex: 0 0 30px; }
+.door-word { font-size: 18px; font-weight: 700; letter-spacing: -.2px; color: var(--ink); }
+
+.door h1 { font-size: 25px; font-weight: 700; letter-spacing: -.5px; text-align: center; margin-bottom: 7px; }
+.door-sub { font-size: 13.5px; color: var(--ink-soft); text-align: center; margin-bottom: 22px; }
+
+/* The plate: the fieldset's own paper, at dialog padding. */
+.door-card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: var(--shadow-2); padding: 22px 22px 18px;
+}
+
+/* ---------- the one field ---------- */
+/* .field/.field.grow (02-publish-rail.css) carries the label, the box, the focus ring and
+   the refused state — so a refusal here looks like a refusal anywhere else in the panel.
+   All this adds is room for a leading glyph, which is why the padding is the box's own
+   plus the glyph's column. */
+.door-card .field { margin-bottom: 14px; }
+.in-icon { position: relative; display: block; }
+.in-icon > svg {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  width: 17px; height: 17px; color: var(--ink-faint); pointer-events: none;
+}
+.in-icon input[type=text] { padding-left: 38px; }
+.field.err .in-icon > svg { color: var(--bad); }
+
+/* The primary act, the width of the plate. The arrow is the reference's — it says the
+   door leads somewhere rather than saving something. */
+.door-go {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 9px;
+  padding: 11px 16px; font-size: 14px;
+}
+/* Where a remembered account leads, this is the alternate and wears .btn.ghost — one accent
+   per plate. The ghost's own ink is --ink-soft, which on a full-width act reads as disabled;
+   the act is live, so it says so in the panel's own accent while the FILL stays absent. */
+/* …and it sits at the FIELD's height, not the primary's: a 44px empty outline under a 38px
+   empty input read as two stacked boxes waiting for something. The primary row keeps its air. */
+.door-go.ghost {
+  color: var(--accent); border-color: #c7d6f8; font-weight: 650;
+  padding: 9px 16px; font-size: 13.5px;
+}
+.door-go.ghost:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.door-go.ghost:disabled { color: var(--ink-faint); border-color: var(--line); }
+.door-arrow { font-style: normal; font-size: 15px; line-height: 1; }
+/* A refused act greys where it sits with its reason on hover — the house rule, and the
+   reason is on the button's own title (per the 7 Sep tooltip policy: refusals may). */
+.door-go:disabled { box-shadow: none; }
+
+/* ---------- OR CONTINUE WITH ---------- */
+/* The panel's micro-label — the group header's exact grammar (.rvw-gh), hung between two
+   hairlines instead of on a tinted band. */
+.door-or {
+  display: flex; align-items: center; gap: 12px; margin: 16px 0 15px;
+  font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.door-or::before, .door-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+/* ---------- the remembered account ---------- */
+/* A FACT, wearing a control: the console has seen this person before, so the row states
+   who and offers to go straight in. Its shape is the card chooser's (.dlg-card) at row
+   scale — hairline box, accent on hover, one press to act. The identity comes from
+   /panel/session; the door never invents a name (the ME rule, 7 Sep).
+   THREE PARTS, IN THE REFERENCE'S ORDER: the person (a button — pressing it signs in),
+   the chevron beside them (a second button — it opens the other accounts, which is a
+   different act and therefore not the same control), and the provider's mark at the far
+   edge, which is a fact and not pressable at all. */
+.acct-wrap { position: relative; }
+.acct {
+  display: flex; align-items: center; gap: 2px;
+  border: 1px solid var(--line); border-radius: 10px; background: #fff;
+  padding: 7px 12px 7px 9px; transition: border-color .12s, box-shadow .12s;
+}
+.acct:hover { border-color: #d4d9e3; }
+/* THE PRIMARY ACT (8 Sep, user call — Google is what most people will press). It is the act
+   people take, so it leads the card and carries the weight; the email button below turns
+   ghost to leave one accent on the plate.
+   WHY NOT A FILLED ACCENT ROW: the provider's mark is multicolour and belongs on white —
+   filling this blue would either fight it or force a mark we are not allowed to recolour. So
+   the weight comes from the panel's OWN "this is the one that applies now" treatment
+   (.dlg-card.current, 10-surfaces.css): accent-tinted hairline on near-white paper, a
+   little more air, and the accent proper on hover. */
+.acct.primary {
+  border-color: #c7d6f8; background: #fbfcff; box-shadow: var(--shadow-1);
+  padding: 10px 12px 10px 10px;
+}
+.acct.primary:hover { border-color: var(--accent); box-shadow: var(--shadow-2); }
+/* On the primary the WHOLE ROW is the hover (its border and lift), so the button inside drops
+   its own fill: a tinted block around the name inside an already-tinted row read as a second,
+   smaller object sitting in the first. The secondary row keeps the inner fill — there the row
+   is plain paper and the fill is the only thing saying the name is pressable. */
+.acct.primary .acct-main:hover { background: transparent; }
+.acct.primary .acct-av { flex: 0 0 30px; width: 30px; height: 30px; font-size: 11.5px; }
+.acct.primary .acct-name { font-size: 13.5px; font-weight: 700; }
+.acct-wrap.open .acct { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+.acct-main {
+  display: flex; align-items: center; gap: 10px; min-width: 0;
+  border: 0; background: none; padding: 3px 4px; margin: -3px 0 -3px -4px;
+  border-radius: 8px; font-family: inherit; text-align: left; cursor: pointer;
+}
+.acct-main:hover { background: var(--accent-soft); }
+.acct-av {
+  flex: 0 0 28px; width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .3px;
+}
+.acct-who { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.acct-name { font-size: 13px; font-weight: 650; color: var(--ink); white-space: nowrap; }
+.acct-mail {
+  font-size: 11.5px; color: var(--ink-faint); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+/* The chevron is the panel's SELECT chevron — same glyph, same 10px, same faint ink
+   (.sel-chev, 03-controls.css): it opens a list of options, which is what a select does.
+   At the profile mark's 9px on white paper it read as a stray comma. */
+.acct-pick {
+  flex: 0 0 20px; width: 20px; height: 20px; border: 0; background: none; cursor: pointer;
+  color: var(--ink-faint); font-size: 11px; line-height: 1; border-radius: 6px; font-family: inherit;
+  /* On the ADDRESS's line, not floating in the gap between the two — the address is what
+     it changes. (Centred on a two-line row it read as a speck of punctuation.) */
+  align-self: flex-end; margin: 0 0 -1px -2px;
+}
+.acct-pick:hover { background: #f2f5fa; color: var(--ink); }
+.gmark { flex: 0 0 18px; width: 18px; height: 18px; margin-left: auto; display: block; }
+
+/* The other accounts wear the PANEL'S MENU, whole: .eh-menu / .eh-item (07-setup-editor.css)
+   is the grammar every menu in the console reads — the profile menu already borrows it the
+   same way. All this adds is where it hangs (the row's full width, not the button's right
+   edge) and what opens it. Nothing about the menu itself is restated here, so a restyle
+   there restyles this. */
+.acct-menu { left: 0; right: 0; min-width: 0; }
+.acct-wrap.open .acct-menu { display: block; }
+.eh-item .acct-av { flex: 0 0 22px; width: 22px; height: 22px; font-size: 9.5px; }
+.acct-io { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.acct-osub { font-size: 11px; color: var(--ink-faint); }
+/* "Use another address" is not one of the accounts, so a hairline separates it. */
+.eh-item.other { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 9px; border-radius: 0 0 6px 6px; }
+
+/* Nothing remembered: the row AND the divider under it go together — a divider with one
+   thing on either side of nothing is furniture. The email act takes the accent back in that
+   state (login.js), so the plate always has exactly one primary. */
+.door-alt.none { display: none; }
+
+/* ---------- the way in for someone who has no account ---------- */
+/* A hairline, then the one secondary act — the dialog foot's arrangement, centred because
+   the plate has no columns. */
+.door-foot {
+  margin: 16px -22px -18px; padding: 14px 22px 15px;
+  border-top: 1px solid var(--line); text-align: center;
+  font-size: 12.5px; color: var(--ink-soft);
+}
+.door-link {
+  border: 0; background: none; padding: 0 0 0 3px; font-family: inherit;
+  font-size: 12.5px; font-weight: 650; color: var(--accent); cursor: pointer;
+}
+.door-link:hover { text-decoration: underline; }
+
+/* Under the plate: the one thing someone standing here needs told, in the panel's quiet
+   ink. It says what sign-in IS, not what it is built from. */
+.door-note {
+  margin: 16px auto 0; max-width: 380px; text-align: center;
+  font-size: 11.5px; line-height: 1.6; color: var(--ink-faint);
+}
+
+/* The server not answering is not a refusal — nothing was typed wrong. It reads as the
+   banner it is, above the field, in the panel's own bad-news colour. */
+.door-card .banner { margin-bottom: 16px; }
+
+@media (max-width: 480px) {
+  .door-page { padding: 24px 14px 40px; align-items: flex-start; }
+  .door h1 { font-size: 22px; }
+}

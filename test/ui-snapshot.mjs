@@ -86,7 +86,18 @@ async function capture(label) {
   const page = await browser.newPage();
   await page.setViewport({ width: 1440, height: 900 });
   const errors = [];
-  page.on('console', m => { if (m.type() === 'error') errors.push('CONSOLE: ' + m.text()); });
+  // A REFUSAL IS NOT AN ERROR. The walk deliberately earns one — the door's refused sign-in —
+  // and Chrome logs every 4xx as a console error, which would fail the run for capturing
+  // exactly the screen it was asked to capture. In this panel a refusal is a normal answer
+  // with a machine-readable body, so the two statuses refusals come back with are allowed;
+  // a 5xx, a script error or a failed request still fails the run. (Chrome's line carries no
+  // URL, so the allowance cannot be narrowed to the route.)
+  const EXPECTED_CONSOLE = [/Failed to load resource.*\b(400|403)\b/];
+  page.on('console', m => {
+    if (m.type() !== 'error') return;
+    if (EXPECTED_CONSOLE.some(re => re.test(m.text()))) return;
+    errors.push('CONSOLE: ' + m.text());
+  });
   page.on('pageerror', e => errors.push('PAGEERROR: ' + e.message));
   page.on('requestfailed', r => errors.push('REQFAIL: ' + r.url()));
 
@@ -98,6 +109,16 @@ async function capture(label) {
       return `<!-- nav -->\n${part('nav')}\n<!-- main -->\n${part('main')}`
         + `\n<!-- dialog -->\n${part('dialog-root')}\n<!-- toasts -->\n${part('toasts')}`;
     });
+    const stem = out + String(++n).padStart(2, '0') + '-' + name;
+    writeFileSync(stem + '.html', norm(html));
+    await page.screenshot({ path: stem + '.png' });
+  };
+  // The door has no #main and no #nav — its whole screen is the plate.
+  const snapDoor = async name => {
+    await sleep(250);
+    const html = await page.evaluate(() =>
+      `<!-- door -->\n${document.querySelector('.door')?.innerHTML || ''}`
+      + `\n<!-- dialog -->\n${document.getElementById('dialog-root')?.innerHTML || ''}`);
     const stem = out + String(++n).padStart(2, '0') + '-' + name;
     writeFileSync(stem + '.html', norm(html));
     await page.screenshot({ path: stem + '.png' });
@@ -140,8 +161,14 @@ async function capture(label) {
   await click('.drive-reset'); await snap('key-drive-reset');
   await click('.pcc-add'); await snap('key-config-added');
   await click('.eh-more-btn'); await snap('key-more-menu'); await click('.eh-more-btn');
-  await click('.ads-fills .row-kebab'); await click('.ads-fills .eh-item'); await snap('key-change-setup');
-  await click('.dlg-foot .btn.ghost');
+  // The chip IS the change door (8 Sep), and the journey is two steps in one frame.
+  await click('.ads-fills .fs-setup'); await snap('key-change-setup');
+  await click('.dlg-cards .sc-card:not(.current)', 0); await snap('key-change-setup-picked');
+  await click('#chg-foot .btn:not(.ghost)'); await snap('key-change-setup-use');
+  await click('#chg-foot .btn.ghost');                 // Back — the cards, selection intact
+  await click('#chg-foot .btn.ghost', 1); await snap('key-change-setup-copy');
+  await click('#chg-foot .btn.ghost');                 // Back again
+  await click('#chg-foot .btn.ghost');                 // Cancel
   await click('.v-item:not(.pending) .v-head', 0); await snap('key-version-sheet'); await click('.dlg [data-act=no]');
   await click('.ehead .btn.ghost', 0); await snap('key-save-nothing');
   await go('keys/key_5'); await snap('key-unpublished');
@@ -170,15 +197,13 @@ async function capture(label) {
   await click('.slot-line', 1); await snap('setup-midroll');
   await click('.pl-tabs .stab', 1); await snap('setup-second-placement');
   await click('.slot-line', 2); await snap('setup-linked-break');
-  // The source switch, both ways. This break starts on its OWN units, so the round trip
-  // is own → follow → own. (Until 7 Sep these two steps clicked `Custom` while Custom was
-  // already lit — a no-op that snapped the same screen twice — and then called landing ON
-  // the waterfall "back". Both are corrected here.) The dialog is a screen in its own
-  // right: it is where the act is spelled out, and the counted stash is worth pinning.
-  await click('.wf-src-sw'); await snap('setup-source-ask-follow');
-  await click('.dlg [data-act=yes]'); await snap('setup-source-following');
-  await click('.wf-src-sw'); await snap('setup-source-ask-own');
-  await click('.dlg [data-act=yes]'); await snap('setup-source-own');
+  // THE SOURCE, IN TWO CONTROLS (8 Sep, third round): a switch, then — only while it is
+  // on — Custom│Global. The round trip is Custom → Global → Custom, then the switch off
+  // and on again (which restores the answer that was serving). `No ads` on a break a live
+  // integration plays is refused ON the switch, so the off leg is walked on as_4 below.
+  await snap('setup-source-custom');
+  await click('.src-seg button', 1); await snap('setup-source-global');
+  await click('.src-seg button', 0); await snap('setup-source-custom-again');
   await click('.pl-tabs .stab.add'); await snap('setup-placement-added');
   await click('.slot-line', 0); await snap('setup-empty-break-source');
   await click('.eh-more-btn'); await snap('setup-more-menu');
@@ -189,13 +214,36 @@ async function capture(label) {
   // break's ⋯ still exists at all: a published setup's one door is the source switch.
   await go('setups/as_4'); await click('.slot-line', 0);
   await click('.slot-menu-ph .row-kebab', 0); await snap('setup-slot-menu');
+  // THE SWITCH OFF, AND THE WAY BACK (8 Sep) — on a setup that has never gone on air,
+  // because a break a live integration plays refuses the OFF direction where it sits
+  // (suSrcDarkWhy). Off parks every unit; on hands them all back.
+  await click('.wf-src-sw'); await snap('setup-source-off');
+  await click('.wf-src-sw'); await snap('setup-source-back-on');
   await go('setups/as_3'); await snap('setup-single-placement');
   await click('.slot-line', 3); await snap('setup-outstream');
 
-  // The property switcher scopes both rooms
-  await click('.ps-btn'); await snap('property-menu');
-  await click('.ps-opt', 2); await snap('property-scoped');
-  await go('keys'); await snap('keys-list-scoped');
+  // The band's right seat: the profile menu (7 Sep — it took the property switcher's seat,
+  // and this block still clicked `.ps-btn` until 8 Sep, so every run reported two MISSING
+  // selectors and exited 1). Log out is the one act here the walk does NOT press: it ends
+  // the session and lands on the door, which would strand every screen after it.
+  await go('keys');
+  await click('.me-btn'); await snap('profile-menu');
+  await click('.me-menu .eh-item', 0); await snap('profile-view'); await click('.dlg [data-act=yes]');
+
+  // THE FRONT DOOR (8 Sep) — its own page, so it has its own capture: the plate instead of
+  // #main, and the session is emptied first because that is the state it is on screen in.
+  await fetch(`${BASE}/panel/session`, { method: 'DELETE' });
+  await page.goto(`${BASE}/login.html`, { waitUntil: 'networkidle0' }); await sleep(300);
+  await snapDoor('door');
+  await click('.acct-pick'); await snapDoor('door-accounts'); await click('.acct-pick');
+  // The refused field. Since 8 Sep any address SHAPED like one gets in, so the one refusal left
+  // (`bad_address`) is not reachable by clicking: the door disables its own act until the shape
+  // passes, and a disabled default button also blocks Enter. So the submit is driven directly —
+  // the painted refusal is worth pinning even though the path to it is now this narrow.
+  await page.focus('#door-email'); await page.keyboard.type('not-an-address', { delay: 5 });
+  await page.evaluate(() => doorSubmit()); await snapDoor('door-refused');
+  await page.evaluate(() => { document.getElementById('door-email').value = ''; doorTyped(); });
+  await click('.door-foot .door-link'); await snapDoor('door-request-access');
 
   writeFileSync(out + 'errors.txt', errors.join('\n'));
   await browser.close();

@@ -621,9 +621,13 @@ function breakPanelHtml(t) {
 // understood by a layman"*). The rare act was hidden behind a ⋯ while the chip did the
 // common one backwards: clicking the NAME of the thing you want to swap opened a second
 // tab. Now the chip swaps (a ⌄ says a picker is behind it) and reading the setup is its
-// own labelled button — the word `Open` with the arrow that means "elsewhere", the same
-// `open ↗` every card in the picker wears. Nothing hides in a kebab; nothing is a glyph
-// on its own. Nothing mapped still says so in words.
+// own labelled button — the same act every card in the picker carries. Nothing hides in
+// a kebab; nothing is a glyph on its own. Nothing mapped still says so in words.
+// THE WORD IS `Preview` (8 Sep, user call — *"the open cta is quite immature; make it
+// preview and improve the weight"*): "Open" beside a chip that also opens something said
+// nothing about which of the two took you elsewhere, and a bare ↗ at link weight read as
+// a footnote. It is a button at the map card's own act weight now, wearing the same
+// drawn icon, so one act looks the same in both rooms.
 function adsCardHtml(meta) {
   const setup = sectionSetup(0);
   return `
@@ -641,7 +645,8 @@ function adsCardHtml(meta) {
                ${!KEY_ORIGINAL && FORM.data.copyAtCreate ? `<span class="podl">${FORM.data.copyName
                  ? `becomes “${esc(FORM.data.copyName)}” at create`
                  : `becomes this integration's own copy at create`}</span>` : ''}
-               <button type="button" class="zlink fs-open" onclick="openSetupTab('${setup.id}')">Open <i class="fs-arr">↗</i></button>`
+               <button type="button" class="sc-act reads fs-open"
+                 onclick="openSetupTab('${setup.id}')">Preview ${EXT_ICON}</button>`
             : `<span class="sg-empty">none yet — pick one below</span>`}
         </div>
       </div>

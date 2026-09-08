@@ -1,5 +1,413 @@
 # Player Console — the Integrations Panel (StreamAds repo) — v1
 
+**THE IN-PAGE AD SETUP PICKER RESTS AT SIX AND SEARCHES ALL OF THEM (8 Sep, user call).**
+*"While we create a new integration, in case of mapping an ad setup in the Ad behaviour section we
+should have a search there, since we only show 6 recent ad setups there — but what if there are
+more than 6 for that property?"*
+
+- **Measured first, in the `scale` world: 24 ad setups on TOI.** The in-section picker had no cap
+  at all — it painted every one of them, ~1600px of cards below the form, so `Create integration`
+  and everything under Ad behaviour left the screen (page height 2192px on a 1000px viewport). And
+  the shared card search only appears past EIGHT (`dlgSearchHtml`, 7 Sep), so between six and eight
+  setups the only way to reach one was to scroll a page-length grid.
+- **The grid rests at six** (`SP_CAP` — two rows of three at 1440), newest work first, which is the
+  order it already sorted in. Beside the field, a counted line says exactly what is held back:
+  *newest 6 of 24 — search to reach the rest*. Page height at scale: **2192px → 1124px**, and the
+  whole create form fits one screen again.
+- **The search reaches EVERY setup on the property, not the six on screen.** All the cards are in
+  the DOM; the ones past the cap are painted `hidden` (`setupMapCardHtml(s, mine, acts, held)`), and
+  `spFilter` re-decides which are shown on every keystroke — no query shows the newest six, a query
+  shows every match (*2 of 24 match*), nothing matching says so in place. The bar paints once and
+  `.sp-count` is written by hand, so the caret survives typing (the toolbar rule).
+- **THE FIELD IS ALWAYS DRAWN, AT THE TOP RIGHT** (same day, second pointer — *"I can't see the
+  search; it should be there on the top right, and even if ad setup cards are less than 6"*). A
+  control that only appears past a threshold has to be discovered twice — once the day a property
+  has five setups and again the day it has seven — and by then the reader has learned the door has
+  no search. So **one bar serves both doors** (`spBarHtml` / `spFilter`, replacing this section's
+  private pair and the shared `dlgSearchHtml` in the modal): the counted fact hard left, the field
+  hard right, drawn whenever there is at least one card to search — with none, the empty line is
+  the whole answer and a search box would be furniture. The bar carries its own `data-cap`, six in
+  the page and none in the modal (which owns its scroll and can list all 24), so ONE filter reads
+  both, and the count says the right thing in each state: *4 ad setups on TOI* · *newest 6 of 24 —
+  search to reach the rest* · *2 of 24 match* · *Nothing matches*.
+- **The modal's frame was re-measured, not nudged** (the 7 Sep rule): the bar costs 45px, which
+  pushed the second row of cards into a scroll. Head 18 + 10 · body 426 (bar 33 + 12, two rows of
+  184px cards + the 10px gap) + its 16 · foot 36 · 44 of dialog padding = **550**, and the overflow
+  is 0 at exactly that number. Step two's reading is 298 and still centres in what is left, so the
+  two steps measure the same from the outside. `dlgSearchHtml`'s `min` argument was reverted with
+  its last caller — the other choosers still search past eight, untouched.
+
+**THE AD SETUP CARDS ARE THE LISTING, STOOD UP — AND THE SWAP IS ONE FRAME (8 Sep, user call —
+three pointers).** *"The cards opened are looking pretty ugly and immature — make them refined and
+polished, maybe use the metadata present on the listing page of ad setup; the one selected should
+be shown as selected with a border and a tick mark on the top right, how you see on many
+enterprise products. The next step: the size of the modal should not change, it should remain the
+same, and improve the IA and visuals of the second step to make it clean and easy to understand.
+The `open` CTA is quite immature — make it Preview and improve the weight, make it clean and more
+mature."*
+
+- **The card wears the Ad Setups row's own columns.** It used to say a name, a property monogram
+  and `pre 2 · mid 2 · post — · out —` — engineering shorthand in a sentence — with its acts
+  hidden until hover. It is the listing row now, in four tiers read top to bottom: **who**
+  (monogram + name, `Current` where it applies), **the counted marks** (the SAME break chips the
+  list lights, the extra-placement count, the live version and any waiting work), **the facts**
+  down a label column (`FILLS` — this integration, the others that ask from it, or *not mapped
+  yet* — and `UPDATED` — who touched it last, when), and **the acts** on a rule of their own. One
+  reading learned on the list answers the same questions at the door: `scStatusHtml` restates the
+  listing's three version answers, `setupChipsHtml`/`relWhen` are the list's own.
+- **Selection is a border and a tick, not a tint.** The 2px accent frame stays, but the mark that
+  says *this one* is a filled tick in the **top-right corner** — the enterprise convention the
+  user named. Its well is reserved on every selectable card and the mark scales into it, so
+  nothing reflows when it appears; the cards are a real `role="radiogroup"` and each carries
+  `aria-checked`. The ground went from `--accent-soft` to the faintest blue, because a 2px frame
+  plus a tick plus a tinted card is three marks for one fact.
+- **Nothing fades in on hover any more.** The two acts left the top-right corner (where the tick
+  now lives) for the card's foot, at rest, right-aligned and ordered by reach: `Preview` → `Use a
+  copy` → `Use`. A card that hides something under the cursor cannot be scanned, and the corner
+  ramp that carried the buttons over the tail of a long name is gone with them.
+- **`open ↗` is `Preview`, at button weight.** An 11.5px accent link with a typed arrow read as a
+  footnote on the card it was the main way out of — and next to a chip that also opens something,
+  "Open" said nothing about which of the two took you elsewhere. It is a labelled button now
+  (`.sc-act.reads`) with the external-tab icon **drawn** (`EXT_ICON`), and the Ad behaviour title
+  row's own act says the same word at the same weight, so one act looks the same in both rooms.
+  `AD SETUP  [ TOI VideoShow demand ⌄ ]  [ Preview ↗ ]`. No hover explains it — the word and the
+  icon are the explanation (the 7 Sep tooltip policy); the two `title=`s a card does carry are
+  exact values, the placement count and the full list of holders behind *+2 more*.
+- **BOTH STEPS OF THE SWAP NOW LIVE IN ONE FRAME.** Step two was an `ask()` at 440 (Use) or an
+  `askForm()` sheet at 620 (Copy & use) thrown over the 860 picker: the dialog appeared to be
+  REPLACED mid-journey and the foot the eye had just learned moved twice. The head, the body and
+  the foot swap inside a fixed **860 × 520** `.dlg.wide.chgdlg` — one dialog turning a page —
+  which is exactly the case the 7 Sep frame ladder wrote its opt-in floor for. `CHG_STEP`
+  ('pick' | 'use' | 'copy') is the only new state; `Back` returns to the cards with the selection
+  AND the filter intact, and the copy's name survives the trip both ways (`CHG_NAME`).
+  *(The class is `chgdlg`, not `chg`: the bare word is the unsaved-change rule in 03-controls.css,
+  which drew a 2px amber bar down the dialog's edge — caught in the first screenshot.)*
+- **Step two answers three questions in the order they are asked.** WHAT replaces WHAT — two
+  plates and an arrow, each wearing the property monogram, the break chips, the counted demand
+  (`pre 10 · mid 4 · post 3` → `pre 2 · mid 2 · post —`, so a break about to go quieter is
+  visible, not described) and who touched it last. Then what it COSTS — `WHAT CHANGES`, one clause
+  a line, with the one consequence that costs something (a section whose breaks switch off) still
+  wearing its warn banner at the foot of the reading. Then, for a copy, what the new thing is
+  CALLED — the field, echoing live into the After plate as it is typed. A short reading sits
+  centred in the frame (`margin: auto`, so a long one still scrolls whole) rather than leaving the
+  air in one lump under it.
+- **The copy still refuses in place**, in the same words, from the same write: `makeSetupCopy` +
+  `finishSetupCopy` are shared by the change journey's second step and the in-section picker's own
+  button, so a name already taken reddens the field with nothing retyped, and the dialog stands.
+  145 cases pass; the UI walk now drives the chip and both steps.
+
+**A SETTINGS KEY IS NOT A HEADING (8 Sep, user call — *"the delivery settings keys should
+not be bold i feel in the ad setup"*).** `.lr-l` carried **600** because the class does
+double duty: it is also the label on a `.lr.head` band, where it governs the rows beneath
+it. In a settings row it governs nothing — the control beside it is the figure — so
+`Start offset` · `Total Target Impressions` · `Total timeout` were reading a tier ABOVE
+the ad units' own setting labels three rows up, which sit at 400/11.5px/`--ink-soft`.
+**`.lr.rule .lr-l` is 500 now**: still a label, no longer a heading voice. Ink and size
+are untouched — the row stays scannable, and the segment's chosen option is still the
+boldest thing in it, which is the hierarchy we want.
+
+One rule for the whole family, deliberately: delivery settings, the waterfall's shared
+settings and the integration's Ad behaviour card are the SAME row drawn by three
+renderers (`behaviourRowsHtml`, `accRow`, `suWfMirrorHtml`), and every live `.lr` in the
+app is a `.lr.rule` — so a delivery-only override would have left the row above it heavy.
+`.lr.tail`'s 750 (the bulk sheet's folds) still wins on cascade order. The bulk sheet's
+own `.bqf-l` keeps 600: at rest those rows have no control, so the label IS the row.
+Checked at 600 / 500 / 400 side by side at 2× before choosing — 400 lost the label
+entirely, and the difference from 600 is exactly the heading voice going away.
+
+**THE BULK SHEET'S FRAME IS ONE NUMBER, MEASURED (8 Sep, user call — *"a lot of empty
+space here in the bottom … make it clean and more compact and mature"*).** Measured
+before touching anything, as the 7 Sep frame ladder demands: the ad sheet's body was
+pinned at **340px** by `.steady` while the tallest tab holds **199px** of levers at rest
+and **220px** with every lever open — so every break tab floated in 120px of air, and the
+out-stream tab, whose whole body is one line, in 300px. The number was a guess from
+before three fields were cut (Break cap, Display ad position, and 8 Sep's out-stream
+switch); nothing had re-measured it since.
+
+- **The frame moved from the body to the DIALOG, and each journey states its own.**
+  There used to be two floors kept in step by hand — 340 on the sheet's body, 411 on the
+  review's, the 71px between them being the tab strip the review has no equivalent of, so
+  that both dialogs measured 529 from the outside. That arithmetic is gone: a journey
+  declares `--frame` once and both steps read it (`min-height: min(var(--frame), calc(100vh
+  - 80px))`, so a short window shrinks the frame instead of overflowing it — the old body
+  floor fought its own `max-height` there). The ad sheet is **409px** (220 + its chrome);
+  the player sheet keeps **529px**, because its master-detail content genuinely fills
+  388px. `reviewChanges` takes `steady: 'ads' | 'player'` instead of `true` — **the
+  journey names its frame**, `.dlg.rvw.steady-ads` / `-player` — so step 2 measures the
+  same as step 1 by construction rather than by two people remembering to add 71.
+- **The row that wrapped, fixed rather than budgeted for.** The pre-roll's Start offset
+  stacked its `7 sec` field UNDER the Immediate│Delayed segment: a 36px field beside a
+  27px segment, 259px of controls in a 240px column. The number now matches the
+  segment's height (they are one decision, and looked like two kinds of control), and the
+  Pending-changes card gives the form column 16px back (268 → 252, split gap 22 → 20).
+  That row: **86px → 44px**, which is what let the frame be 409 and not 445.
+- **The out-stream tab says what it can do.** A rotation has no lever to bulk-edit, so
+  its body was one stray sentence in a 340px void. It now names the decision that IS
+  there — *"Banners take turns — the switch above is the only bulk decision here.
+  Schedule, display duration and impressions are set in each ad setup."*
+
+**Result, measured on all four tabs and both steps:** the sheet is **409px, and holds
+still** — 199 at rest, 214/220/170 with every lever open, 33 on the out-stream, all
+inside the frame, so nothing resizes under the cursor while you work; step 2 comes back
+409 too. 120px off a 529px dialog, and the player journey is untouched.
+
+**THE OUT-STREAM LOSES A SWITCH AND GAINS THE BREAKS' OWN WORDS (8 Sep, user call).** Two moves
+on one row-set, both in the direction the rest of the delivery settings already went.
+
+- **`Hide during in-stream` is GONE.** The switch asked whether the idle-player banner steps
+  aside while a video ad has the screen — and there was never a second answer: an in-stream ad
+  **owns** the screen while it runs, and the player steps the banner aside on its own. A control
+  with one sane setting is a question with no decision in it, so it goes. **Removed, not hidden**,
+  the house rule: out of `SLOT_BEHAVIOUR_FIELDS.outstream`, out of `normalizeSlotBehaviour`, off
+  `/panel/meta`, off the wire (`hideOnInStream` is never emitted now), and into
+  `DEAD_BEHAVIOUR_FIELDS`, where a payload still carrying it is **refused by name** — *"Hide
+  during in-stream is not a setting any more — an in-stream ad owns the screen while it runs, the
+  player steps the out-stream aside on its own."* The label and its two words (`Hide it` /
+  `Keep showing`) left `web/js/util.js` with it, and `bool` left the ladders' imports as the last
+  reader of it. Out-stream delivery is four rows now: Schedule · Display duration · Total Target
+  Impressions · Request timeout.
+- **`Impression cap` is `Total Target Impressions`, typed.** The same words the breaks got on
+  8 Sep, because it is the same idea — how many impressions this slot is aiming for — and the
+  out-stream had been saying it in a second dialect (`Impression cap`, suffixed `/session`). It
+  reads `fieldName('perSession')` rather than a hard-coded string, like `podAds` and `nextAd`
+  before it, so the next rename is one line and the review, the version rail and the row cannot
+  drift apart. **Where the shapes differ, deliberately:** a break picks from a fixed 1 / 2 / 3
+  segment; a rotation runs the whole session, so out-stream **takes a typed number** (0–20, the
+  bounds it always had, refused by name past them — the server's words are *the total target
+  impressions* now, not *how many a session*). The `/session` suffix is gone with the old name:
+  the row already says impressions, and `num()` now omits the suffix span entirely when a field
+  passes none, rather than leaving 13px of dead space beside the value.
+
+The wire key does not move — out-stream still emits `totalImpression`, per the panel's key
+policy (legacy keys on the wire, words only in the console). 142 cases: the two out-stream
+pins now read the switch as absent, and one new case earns the refusal, saves a typed 12 and
+gets refused at 99 with the ceiling named.
+
+**TWO STEPS, NO WORDS: WHERE THIS BREAK'S ADS COME FROM (8 Sep, user call — three cuts in
+one review).** *"In the ad setup, in every slot there is not a clear demarcation of three state
+— no waterfall, custom waterfall and the global waterfall connected. It is very unclear; it
+should be very clear the journey to a layman user."* → *"There are too many switches and CTAs
+here… when I come on an ad slot I have the option — do I want a waterfall or no? If yes, custom
+or global."* → *"It has to be more simplified, in 2 steps and no text or byline."* → *"This should
+be below the primary ad unit."*
+
+**Where it landed.** The question is two questions, and each is its own control, under the primary
+ad unit:
+
+```
+  ○ Waterfall                                 → nothing serves this break
+  ⬤ Waterfall   [ Custom │ Global ]   View     → step two exists only while step one says yes
+```
+
+No state name, no counted byline, no dialog. The state is the LADDER under the controls, which
+is already on screen, and the closed break row carries the walk.
+
+- **What the words used to carry, the shape carries now.** The consequence of switching off was
+  spelled out in a dialog before the act (*"its 10 units are kept, switched off"*). It is now
+  three things, none of them prose: the act is instantly reversible (flip it back and the units
+  return), the unsaved-change rail marks it like any other edit, and the count rides the one
+  hover the tooltip policy still keeps a `title=` for.
+- **Switching back on returns the answer you left** (`SU_SRC_BACK`, session-scoped, per break).
+  Nothing is stored for it — the server has one answer per break, and inventing a second field to
+  remember a discarded one would be a lie in the payload — but inside one editing session an off
+  is usually a slip. A fresh load lands on its own units. With nothing at all to come back to,
+  switching on opens a first empty row: the answer was "give this break a waterfall".
+- **The two refusals grey the direction they refuse, never the control.** `Global` greys while the
+  global waterfall is empty. The switch's OFF direction greys while a live integration plays the
+  break — the store refuses that save outright (*"Default" post-roll would go dark…*), so
+  `suSrcDarkWhy` says so in the same words on hover. That switch is drawn **held, not dead**: it
+  keeps the paint that says ON and gives up only a little of it plus the cursor. (Draining the
+  accent from its track was tried first and made an on switch read as off, which is worse than
+  either.)
+- **A seg, after all.** A seg was refused for this decision on 7 Sep, when it stood alone and had
+  to carry the whole question — *"pick a view"* is what a seg says, and the source decides what
+  serves. Behind a switch it is not the whole question: the switch answers WHETHER, the seg
+  answers WHICH, and which-of-two is exactly what a seg is for.
+- **`waterfallSource` gained a third value, `none`** (`AD_SOURCES` in `store/state.js`). Stored,
+  not inferred from an empty ladder, because *emptying a ladder* and *switching a break off* are
+  different acts with different ways back: the first has nothing to come back to, the second has
+  everything. All three answers keep the break's own units in `ownRungs` — only served `rungs`
+  differ (`[]` for `none`) — and `own` is still the answer said by ABSENCE, so every payload and
+  snapshot written before either answer existed reads exactly as it always did. The publish
+  snapshot carries any non-`own` answer; the change review calls the move **Where ads come from**.
+- **Every count now reads what SERVES, not what is parked** (`suSrcServed`): the closed row's
+  glimpse, the placement's unit totals, the dark-pod guard. A switched-off pod is dark like an
+  empty one — it keeps its units and serves none of them.
+- **What went away**: the `Follow the waterfall` switch and `suWfAsk`; the `+ Add custom waterfall`
+  fork of the ladder foot (a ladder break with nothing has no foot at all — its one act is the
+  switch); the second cut's whole vocabulary — the stated band (`.src-dot` / `.src-now` /
+  `.src-fact`, three tinted skins) and the three-card dialog (`suSrcOpen`, `.src-card`,
+  `.chg-why` reasons); `No tags` under an empty ladder (a rotation, which has no source to state,
+  keeps `No banner tags yet`); and the closed row's `no demand`, which named the market rather
+  than the break — those words stay in the server's refusal.
+- **145 cases** (three new in `11-waterfall.spec.js`: nothing serves and nothing is deleted, the
+  way back restores exactly what stood, and both refusals by name); the screen walk drives the
+  switch and the seg. *(Also cut on review: the second band read `8 of 10 units asked` above a
+  ladder whose own rule said `7 of 9 active` and whose foot said `10 of 10` — three true "x of y"
+  pairs at three scales, which is how a page teaches a reader to trust none of them.)*
+
+**THE PRIMARY IS THE BREAK'S OWN, IN EVERY ANSWER (8 Sep, user call — two bugs, one root
+cause).** *"First of all the enable/disable switch is not working here, and when switched to
+global why is primary ad unit being removed? It should stay."* Both traced to the same wrong
+model: the switch was made to govern the WHOLE ladder, when what it governs is the fall under
+the primary.
+
+- **`setup` and `none` now keep rung 1.** Served rungs are `own`, `[primary, …global waterfall]`,
+  or `[primary]`. The primary is this break's own headline demand; a link to a shared ladder is
+  not a reason to lose it, and the switch sitting *under* the primary said as much. Over
+  `MAX_RUNGS` the overflow is **named in a warning** rather than truncated in silence, and the
+  primary is never the unit that goes.
+- **That is why the switch was dead.** Switching off used to leave nothing serving, so on every
+  break a published integration plays, the store refused the save and the switch greyed itself —
+  which on a live setup is most breaks. With the primary carrying the break, switching the fall
+  off darkens nothing: the switch is live everywhere except a break with no primary serving at
+  all (`suSrcDarkWhy`, narrowed, in the server's own words).
+- **The zone draws the primary in all three answers.** `suLadderHtml` gained `ctx.fallHtml` — the
+  caller puts the global waterfall's shared settings, or nothing, where the fall's own rows would
+  go, and the PRIMARY block above is drawn exactly as it always is. A break with no primary yet
+  keeps the controls at the head and offers `+ Add ad unit`; with a primary and its own fall the
+  foot adds the next fall rung; with a fall that is not its own there is nothing to add.
+- **Two things the change exposed, both fixed.** The publish snapshot stored only SERVED rungs,
+  so a linked break's own primary was invisible to the diff (`nothing_to_publish` on a real
+  edit) and a restore rebuilt its stash from a frozen copy of the waterfall. The snapshot carries
+  `ownRungs` for any non-`own` answer now, and the change review diffs **what the break owns**
+  rather than what it serves — the served array is derived, and the waterfall is diffed once at
+  the top. (`slotGroupDefs` hands back a bare `{rungs, behaviour}` for a single-group slot, so
+  `ownRungs` is read off the slot there, the same fallback the source diff uses.)
+- **`asked first, every time` is gone from the PRIMARY rule** (user call, same review): the word
+  already names the row it labels.
+- The closed break row shows a linked break's own primary badge beside the `GLOBAL` mark — the
+  7 Sep rule that hid the walk on a linked break was about not repeating the *waterfall's* story
+  on four breaks, and rung 1 is not the waterfall's. **146 cases**: the eight that encoded "a
+  linked break serves the waterfall's units" now pin the primary riding first, plus the walk the
+  player is handed with and without one, and the fail-closed case narrowed to a break with no
+  primary at all.
+
+**THE GLOBAL WATERFALL, NAMED (8 Sep, same review).** *"Rename the top waterfall as global
+waterfall or suggest any better name for it."* The bare word collided with the one every break's
+own ladder wears: a break said `Waterfall order` about its own fall a centimetre from a switch
+reading `Follow the waterfall` about the shared one. It is **Global waterfall** now — the head
+section, the connected break's rule, the review's group, the Apply-on-ad-slots dialog and the
+server's own refusals — spelled once as `WF_WORD` in `util.js`, and paired on every break with
+`Custom`, which is the pair a seller actually chooses between. `Global` beat **Shared** (what it
+was called until 7 Sep: co-owned, not one-for-everything), **House** (already means house ads
+and promos in this product) and **Default** (implies a fallback that applies when nothing else is
+set, where this is a link a break opts into). The closed break row's mark is now `global`. **The
+wire key is untouched** — `waterfallSource: 'setup'`, `setup.waterfall`, `ownRungs` — because a
+rename that reaches the payload is a migration, and this is a word.
+
+**THE FRONT DOOR (8 Sep, user call).** *"Keeping the design philosophy of the panel in mind
+design the login page as well… the IA and fields should be like the one shared."* The panel grew
+a real **Log out** on 7 Sep and had nowhere to go: it cleared the page and offered a reload. It
+has a way back in now — `web/login.html`, the eleventh stylesheet, and a session the server
+actually holds.
+
+- **The reference's IA, kept exactly**: mark and product name · *Welcome back* · *Sign in to your
+  account to continue* · one card holding **Email address** (a leading envelope glyph, the
+  placeholder speaking the domain the console signs in) · **Continue with email →** full width ·
+  `OR CONTINUE WITH` · **Continue as *first name*** with the address under it, a chevron, and the
+  provider's mark at the far edge · a hairline · *Don't have an account? **Request access***.
+- **Dressed in the panel's own controls, not new ones.** The field is `.field.grow`, so a refusal
+  looks like every other refusal; the act is the accent `.btn`; the divider wears the group
+  header's micro-label; the account picker is `.eh-menu` / `.eh-item`, the menu every room reads;
+  Request access is the house `ask` dialog. The plate takes the frame ladder's first rung (440 —
+  it asks one question and offers two answers, which is a confirm). The door loads **01–10 then
+  11**: on a subset, the shared dialog would have drifted from the console's (05 refines its
+  radius and veil, 08 refines `.dlg-note`), and nothing shared is restated in 11.
+- **Two shapes the panel did not already own**: the leading glyph inside the box, and the
+  remembered-account row. The row is a *fact* wearing a control — the console has seen this
+  person — so the name and address come from `/panel/session`, never from the view (the 7 Sep ME
+  rule). Its chevron is a **different act** (choose somebody else) and therefore a second
+  control, sitting on the address's own line; the provider's mark is a fact and not pressable.
+- **No password field, because there is no password to check.** The door promises nothing it
+  cannot do: it never says a link is on its way and never shows a spinner over a check that is
+  not happening. What is mocked is the identity provider, exactly as GAM's directory is — written
+  down in ARCHITECTURE §11, not dressed up on screen. One quiet line under the plate says the
+  only thing a person standing there needs: *your work address signs you in — there is no
+  password.*
+- **Three refusals, each naming what it read** (`store/session.js`, painted under the field and
+  never in the receipt pill): `bad_address` (not shaped like one), `not_work_address` — *Work
+  addresses only — x@gmail.com is on gmail.com, not example.com* — and `no_account`, which is the
+  Request access door rather than a complaint. The act greys with its reason until the address is
+  shaped like one. **Request access names a person** (`ACCESS_OWNER`) and hands over their
+  address: a door that says *ask someone* without saying who is a dead end.
+- **The loop is closed at both ends.** `POST/GET/DELETE /panel/session` is the one seam the typed
+  address, the remembered row and the profile menu's Log out all go through. `main.js` grew **the
+  gate**: the session is read once before anything paints, and no session lands on the door — so
+  Back cannot walk into the rooms. A reset signs the fixture's first account in, which is the
+  world the console has always opened onto, so nothing else moved. A server that does not answer
+  is *not* a missing session: the rooms paint and the banner says what failed, because bouncing
+  someone to a door that also cannot reach the server would strand them.
+- **What went away**: the logged-out plate and `window.SIGNED_OUT` (Log out has somewhere to go
+  now), and with them the `.signed-out` rules in 01-base. *(First cut: a sign-out that did not
+  reach the server changed nothing and said so. Reversed the same day — see below.)*
+- Ten cases in `test/cases/13-session.spec.js` (**139** now), and the door joined the screen walk
+  — which also stopped clicking the property switcher the profile menu replaced on 7 Sep, and
+  stopped counting a deliberately-earned 403 as a console error.
+
+**GOOGLE LEADS, THE ADDRESS FOLLOWS (8 Sep, same review).** *"Can we swap the google login with
+email login… most people will tend to login with google."* The reference put the address first
+and the account second; the traffic is the other way round, so the order is too. The remembered
+account is now the plate's first object and its only accent; the address sits under the divider,
+which stopped saying `OR CONTINUE WITH` and started saying `OR CONTINUE WITH EMAIL` — it names
+what follows it.
+
+- **One accent per plate, decided from a fact, once.** With an account to continue as, the row
+  wears it and the email act turns `.btn.ghost`. With nobody remembered there is no Google act at
+  all — no account to continue AS and no chooser behind it — the row and its divider are not
+  drawn, and the email act takes the accent back. The accent never follows the cursor or the
+  caret; `doorPaintAlt` settles it at paint and nothing moves after.
+- **Why the primary row is not a filled blue button.** The provider's mark is multicolour and
+  belongs on white; filling the row accent would either fight it or force a recolour that is not
+  ours to make. So the weight comes from the panel's own *this is the one that applies now*
+  treatment — `.dlg-card.current`'s accent-tinted hairline on near-white paper, a little more
+  air, the accent proper on hover.
+- **Two things the swap exposed, both fixed in place**: the ghost act stood 44px under a 38px
+  input and read as a second empty box waiting for something (it sits at the field's height
+  now), and the row's inner hover fill became a smaller tinted block inside an already-tinted
+  row (on the primary the whole row is the hover; the plain row keeps the inner fill, where it
+  is the only thing saying the name is pressable).
+- The caret no longer opens in the address box unless that box is the primary act, and the line
+  under the plate speaks to both paths: *either way there is no password — your work address is
+  the sign-in.*
+
+**THE DOOR IS OPEN, AND LEAVING ALWAYS WORKS (8 Sep, same review).** *"It should work when a
+user clicks on logout, and for now let it enter based on any email."* Two asks, one story: the
+reviewer logged out, landed on the door, and was refused by their own address. Both halves are
+reversals of things written hours earlier, and both were wrong for the same reason — a lock is
+only honest if there is a key.
+
+- **Any address shaped like an address gets in.** The wrong-domain and no-account refusals are
+  deleted. They were a lock with no key: there is no exchange behind this door — no password, no
+  token, no OAuth — so *no account here for you* turned away the very people meant to walk around
+  the prototype, which is what a prototype is for. **One refusal survives** and it is not about
+  permission: `bad_address`, for something that is not an address at all — the server refusing
+  what the door's own greyed act already refuses. Fail closed, and the server is the authority.
+- **A known address keeps its identity; a stranger gets only what they typed.** The fixture
+  accounts carry a name, initials and a role the band and the version history read. An address
+  nobody knows is read as a person — the local part's words, capitalised (`asha.rao-nair@…` →
+  *Asha Rao Nair*, mark `AR`) — and its **role stays null rather than invented**: the band draws
+  no role where there is none, which is the honest shape for a visitor. A visitor is not added to
+  the remembered rows either; those are accounts a provider vouched for.
+- **Log out is now unconditional.** The first cut refused to move when the sign-out call did not
+  reach the server, reasoning that a door you could walk back through is a lie. The way it failed
+  proved the trade wrong: against a server that had not been restarted (a pre-change process has
+  no `/panel/session`) the act did nothing but drop a pill, and somebody leaving a shared machine
+  was left standing in the console. **You leave every time**, and the part we are not sure of is
+  the part that gets said: the door carries an amber banner — *you have left the console, but the
+  server never confirmed it — it may still hold your session* — passed in the one store that
+  survives the navigation (`DOOR_UNCONFIRMED`), read once and cleared. Nobody can use the console
+  without a server anyway; being left signed in on screen is the worse failure.
+- **A nameless failure got a name.** `api.js` answered any non-envelope error with *Request
+  failed*, which is what the stale-server Log out showed — nothing a person can act on. It now
+  names the commonest real cause: *the server did not recognise that request — it may be running
+  an older version of the console.* No status code and no URL; neither belongs on screen.
+- Twelve cases now (**141**), pinning that any shaped address enters, that a known one keeps its
+  record, that a visitor is not remembered, and that shape is still refused. The screen walk's
+  refused-door step drives `doorSubmit` directly, because the door's own greyed act means that
+  refusal is no longer reachable by clicking — and a refusal is a normal answer here, so the walk
+  stopped counting the 400 it deliberately earns as a console error.
+
 **AN AD SETUP MAY FILL MANY INTEGRATIONS (8 Sep, user call).** *"Allow the ad setup to be
 configured in multiple integrations."* The 26 Aug promise ran one setup ↔ one integration and
 the server enforced it by name. It reversed the real case: the same ladder across mweb, desktop
@@ -42,7 +450,8 @@ second tab, while the swap hid behind a `⋯`. Now **the chip opens `Change ad s
 where the `↗` was, because a picker sits behind it), and **reading the setup is its own labelled
 button — `Open ↗`** — the word plus the arrow that means "elsewhere", the same `open ↗` every
 card in the picker wears. The kebab and its one-item menu are gone: nothing hides, and nothing
-is a bare glyph. `AD SETUP  [ TOI VideoShow demand ⌄ ]  Open ↗`.
+is a bare glyph. `AD SETUP  [ TOI VideoShow demand ⌄ ]  Open ↗`. *(Later the same day: the word
+is `Preview`, the arrow is drawn, and it sits at button weight — see the head of this file.)*
 
 **ONE COLOUR FOR EVERY FACT VALUE (8 Sep, user call).** *"The settings read-only beneath the ad
 unit — in it the colour of the value should be same; currently text fields are different colour and
@@ -1156,8 +1565,10 @@ on (behind its confirm; never offered at one pod). The dead dialect's CSS
    (one word · not `default` · not a key already here), an abandoned row is dropped by `keyPayload`
    instead of earning a server refusal, and its `×` asks nothing. `askName` had no callers left
    and is gone, with its CSS.
-10. **A map card offers two acts on hover** (*8 Sep: `Use` and `Use a copy`, and never a disabled
-   one — see the head of this file*) — in the card's TOP-RIGHT
+10. **A map card offers two acts on hover** (*8 Sep, first: `Use` and `Use a copy`, and never a
+   disabled one. 8 Sep, later — SUPERSEDED: the acts left the corner for the card's foot, at rest
+   and right-aligned; the corner belongs to the selection tick. See the head of this file.*) —
+   in the card's TOP-RIGHT
    corner (3 Sep, second cut), where an "in use / free" pill used to sit saying what the foot
    already says in words ("fills X"). `Use` is the small solid button, `Duplicate & use` the
    outlined one beside it; they are absolutely placed and faded in, so the title never reflows,

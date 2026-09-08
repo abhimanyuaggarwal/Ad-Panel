@@ -266,7 +266,7 @@ function bulkFieldDefs(t) {
       f: 'start', label: 'Start offset',
       ctl: () => `${accSeg(dv('start'), ['start', 'deferred'], ['Immediate', 'Delayed'],
         o => `bulkDriveSet('${t}', 'start', '${o}')`)}
-        <div class="num-wrap${dv('start') === 'deferred' ? '' : ' off'}">
+        <div class="num-wrap sm${dv('start') === 'deferred' ? '' : ' off'}">
           <input value="${esc(d.dTouched.has('deferSec') ? d.dv.deferSec : '')}" placeholder="7" inputmode="numeric" ${dv('start') === 'deferred' ? '' : 'disabled'}
             oninput="bulkDriveSet('${t}', 'deferSec', Number(this.value))"><span class="unit">sec</span></div>`,
     });
@@ -380,7 +380,10 @@ function bulkUnsetField(t, f) {
 
 function bulkFieldsHtml(t, shownOff) {
   if (isRotation(t)) {
-    return '<div class="bt-note">Banners take turns — set in each ad setup</div>';
+    // A rotation has no lever to bulk-edit, so the tab says what it CAN do rather than
+    // leaving the frame to explain itself: the switch above is the whole decision here.
+    return `<div class="bt-note">Banners take turns — the switch above is the only bulk
+      decision here. Schedule, display duration and impressions are set in each ad setup.</div>`;
   }
   return bulkFieldDefs(t).map(def => bulkFieldRowHtml(t, def, shownOff)).join('');
 }
@@ -540,7 +543,7 @@ async function reviewBulk() {
     okLabel: `Apply to ${keys.length}`,
     cancelLabel: 'Back',
     // Step 2 of the tabbed sheet: same footprint, so confirming is not a new dialog.
-    steady: true,
+    steady: 'ads',
   });
   // Back leaves the sheet exactly as it was — the queue is still there to edit.
   if (!ok) { renderUnitScreen(); return; }

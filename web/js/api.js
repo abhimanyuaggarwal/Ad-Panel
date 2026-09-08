@@ -25,7 +25,14 @@ async function call(method, path, body) {
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const err = new Error(data.message || 'Request failed');
+    // Every refusal this server makes carries its own sentence. When there is none, the body
+    // was not our envelope at all — an unknown route, or something in front of the server
+    // answering for it — and the old fallback ('Request failed') named nothing a person could
+    // act on. The commonest real cause, and the one worth naming, is a server older than the
+    // app it is serving (8 Sep: a pre-restart process has no /panel/session, and Log out said
+    // only "Request failed"). No status code and no URL: neither belongs on screen.
+    const err = new Error(data.message
+      || 'The server did not recognise that request — it may be running an older version of the console.');
     err.code = data.error;
     err.errors = data.errors || [];
     err.usedBy = data.usedBy || [];
@@ -36,6 +43,15 @@ async function call(method, path, body) {
 
 const API = {
   meta: () => call('GET', '/panel/meta'),
+
+  // THE FRONT DOOR (8 Sep). Three operations, one seam: the door reads `session`, the
+  // typed address and the remembered-account row both go through `signIn`, and the profile
+  // menu's Log out is `signOut`. A refused sign-in arrives as an Error carrying `code`
+  // ('bad_address' | 'not_work_address' | 'no_account') and the server's own words, which
+  // the door paints under the field — never a toast (a refusal belongs where it happened).
+  session: () => call('GET', '/panel/session'),
+  signIn: email => call('POST', '/panel/session', { email }),
+  signOut: () => call('DELETE', '/panel/session'),
 
   listKeys: () => call('GET', '/panel/keys'),
   getKey: id => call('GET', `/panel/keys/${id}`),

@@ -20,7 +20,6 @@ async function getMeta() {
 let ROUTE_SEQ = 0;
 
 async function route() {
-  if (window.SIGNED_OUT) return; // logged out (meLogOut) — the plate stands until a reload
   const seq = ++ROUTE_SEQ;
   startProgress();
   const hash = location.hash || '#keys';
@@ -67,6 +66,27 @@ async function refreshCounts() {
   } catch { /* API down — the view already shows the banner */ }
 }
 
-getMeta().then(m => renderMe(m.me)).catch(() => renderMe(null));
-window.addEventListener('hashchange', route);
-route();
+// THE GATE (8 Sep, the front door). The console is a room you have to be in the session to
+// stand in, so the session is read ONCE, before anything paints: no session and the browser
+// goes to login.html instead of the rooms. Nothing else in the app asks — every view assumes
+// it is past this point, exactly as it did when there was no door at all.
+//
+// A server that does not answer is NOT a missing session: it leaves `session` null, the
+// rooms paint, and route() shows the banner that names the failure. Bouncing someone to a
+// door that also cannot reach the server would strand them.
+async function boot() {
+  let session = null;
+  try {
+    session = await API.session();
+  } catch { /* the panel server is down — route() paints the banner that says so */ }
+  if (session && !session.signedIn) { location.replace('login.html'); return; }
+  // Who is signed in comes from the SESSION now, not from meta's fixture: one seam, and the
+  // band names the very account the door signed in. `meta.me` stays as it was for anything
+  // that wants the world's own person without a session.
+  renderMe(session ? session.account : null);
+  getMeta().catch(() => { /* every view awaits it too; this only warms the cache */ });
+  window.addEventListener('hashchange', route);
+  route();
+}
+
+boot();

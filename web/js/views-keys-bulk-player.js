@@ -204,8 +204,8 @@ async function pbReview() {
     changes,
     okLabel: `Apply to ${touched.length}`,
     cancelLabel: 'Back',
-    // Step 2 of the master-detail sheet: same footprint (see .dlg.rvw.steady).
-    steady: true,
+    // Step 2 of the master-detail sheet: same footprint (see .dlg.rvw.steady-player).
+    steady: 'player',
   });
   if (!ok) { renderPBScreen(); return; }
   let saved = 0;

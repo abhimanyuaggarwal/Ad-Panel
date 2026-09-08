@@ -4,7 +4,7 @@
 import { listKeys } from './keys.js';
 import { askWord, driveAsk, groupWalks, liveRungs, localWalk, normalizeRungs, normalizeSlotBehaviour, refuseDeadRules, slotGroupDefs } from './ladders.js';
 import { isPublished } from './publish.js';
-import { DIRECTORY_PROVIDERS, MAX_MIDROLL_GROUPS, MAX_RUNGS, MAX_SECTIONS, PAUSE_MODES, PROPERTY_SCOPES, Refusal, SLOT_ALSO_TAKES, SLOT_FAMILY, SLOT_KIND, SLOT_TYPES, SLOT_WORD, state } from './state.js';
+import { AD_SOURCES, DIRECTORY_PROVIDERS, WF_WORD, MAX_MIDROLL_GROUPS, MAX_RUNGS, MAX_SECTIONS, PAUSE_MODES, PROPERTY_SCOPES, Refusal, SLOT_ALSO_TAKES, SLOT_FAMILY, SLOT_KIND, SLOT_TYPES, SLOT_WORD, state } from './state.js';
 import { diff, fmtSecs, httpUrl, intIn, mustGet, oneOf, str, uniqueName } from './validate.js';
 
 // ---------- ad setups (the ops room's object) ----------
@@ -26,13 +26,13 @@ import { diff, fmtSecs, httpUrl, intIn, mustGet, oneOf, str, uniqueName } from '
 export function normalizeSharedWaterfall(input, errors) {
   const w = input || {};
   const errs = [];
-  const rungs = normalizeRungs(w.rungs, 'video', errs, 'waterfall', 'Waterfall', 'display', 'ladder', null);
+  const rungs = normalizeRungs(w.rungs, 'video', errs, 'waterfall', 'Global waterfall', 'display', 'ladder', null);
   const depth = w.depth === undefined || w.depth === null || w.depth === ''
-    ? null : intIn(w.depth, 'waterfall depth', 1, MAX_RUNGS, errs);
+    ? null : intIn(w.depth, 'global waterfall depth', 1, MAX_RUNGS, errs);
   const pauseAll = w.pauseAll === undefined || w.pauseAll === null || w.pauseAll === ''
     ? null : oneOf(w.pauseAll, 'content pause', PAUSE_MODES, errs);
   for (const e of errs) {
-    errors.push({ field: 'waterfall', message: e.message.startsWith('Waterfall') ? e.message : `Waterfall: ${e.message}` });
+    errors.push({ field: 'waterfall', message: e.message.startsWith('Global waterfall') ? e.message : `Global waterfall: ${e.message}` });
   }
   return { rungs, depth, pauseAll };
 }
@@ -95,23 +95,55 @@ export function normalizeSetup(input, exceptId) {
       // own rungs/behaviour, so every single-group path reads exactly what it always
       // read. A top-level rungs/behaviour patch lands on group 1; a groups patch is
       // authoritative.
-      // THE INDIRECT SOURCE (5 Sep): a break either OWNS its units or FOLLOWS the
-      // waterfall. Following keeps the break's own units (`ownRungs` — off keeps
-      // its tags: switching back is one click and nothing is re-typed) and serves the
-      // waterfall's, materialized here so every downstream read is the one it always was.
+      // WHERE THE BREAK'S WATERFALL COMES FROM (5 Sep; three answers 8 Sep). The break's
+      // ladder is its PRIMARY — asked first, every time — and then a fall. The answer
+      // here decides the FALL only:
+      //   own   → the break's own fall (rungs 2…N)
+      //   setup → the global waterfall's served units, under this break's own primary
+      //   none  → no fall at all; the primary is the whole walk
+      //
+      // THE PRIMARY IS THE BREAK'S OWN IN EVERY ANSWER (8 Sep, user call — *"when
+      // switched to global why is primary ad unit being removed, it should stay"*).
+      // Following the global waterfall replaces what comes AFTER the first ask, never the
+      // first ask itself: that unit is this break's own headline demand, and a link to a
+      // shared ladder is not a reason to lose it. Before this, `setup` served the global
+      // ladder alone and `none` served nothing, which quietly deleted the primary from
+      // the walk on a switch nobody read as touching it.
+      //
+      // All three answers keep every own unit in `ownRungs` — switching back is one click
+      // and nothing is re-typed — so only what SERVES (`rungs`) differs, materialized
+      // here so every downstream read is the one it always was. And `none` is a real
+      // stored answer rather than "a fall with no rungs", because emptying a fall and
+      // switching it off are different acts with different ways back: the first has
+      // nothing to come back to, the second has everything.
       const readIndirect = (gIn, gWhere) => {
-        let source = gIn.waterfallSource == null || gIn.waterfallSource === 'own' ? 'own' : gIn.waterfallSource;
-        if (source !== 'own' && source !== 'setup') {
-          errors.push({ field: 'sections', message: `${gWhere}: “${gIn.waterfallSource}” is not an ad source — its own units (own), or the waterfall (setup)` });
+        let source = gIn.waterfallSource == null ? 'own' : gIn.waterfallSource;
+        if (!AD_SOURCES.includes(source)) {
+          errors.push({ field: 'sections', message: `${gWhere}: “${gIn.waterfallSource}” is not an ad source — its own units (own), the ${WF_WORD} (setup), or nothing (none)` });
           source = 'own';
         }
-        if (source === 'setup' && SLOT_KIND[t] !== 'ladder') {
-          errors.push({ field: 'sections', message: `${where}the ${SLOT_WORD[t].toLowerCase()} takes turns — a rotation has no waterfall to follow` });
+        if (source !== 'own' && SLOT_KIND[t] !== 'ladder') {
+          errors.push({ field: 'sections', message: `${where}the ${SLOT_WORD[t].toLowerCase()} takes turns — a rotation has no waterfall to follow or switch off` });
           source = 'own';
         }
-        const own = normalizeRungs(source === 'setup' ? (gIn.ownRungs ?? gIn.rungs) : gIn.rungs,
+        const own = normalizeRungs(source === 'own' ? gIn.rungs : (gIn.ownRungs ?? gIn.rungs),
           SLOT_FAMILY[t], errors, 'sections', gWhere, SLOT_ALSO_TAKES[t], SLOT_KIND[t], t);
-        return { waterfallSource: source, ownRungs: own, rungs: source === 'setup' ? servedWaterfallRungs(waterfall) : own };
+        // The primary rides every answer; a break that has none yet simply contributes
+        // nothing here, and the global waterfall is then the whole walk.
+        const primary = own.slice(0, 1);
+        let rungs = own;
+        if (source === 'setup') {
+          rungs = [...primary, ...servedWaterfallRungs(waterfall)];
+          // A ladder holds MAX_RUNGS. Naming what fell off beats truncating in silence:
+          // the primary is never the unit that goes.
+          if (rungs.length > MAX_RUNGS) {
+            warnings.push(`${gWhere}: the primary plus the ${WF_WORD} is ${rungs.length} units — the last ${rungs.length - MAX_RUNGS} never run (a ladder holds ${MAX_RUNGS})`);
+            rungs = rungs.slice(0, MAX_RUNGS);
+          }
+        } else if (source === 'none') {
+          rungs = primary;
+        }
+        return { waterfallSource: source, ownRungs: own, rungs };
       };
       if (t === 'midroll') {
         let gsIn = Array.isArray(slotIn.groups) && slotIn.groups.length ? slotIn.groups.slice() : null;
@@ -291,7 +323,8 @@ export function updateSetup(id, input) {
     // A slot patch that touches only the ladder keeps its behaviour, and vice versa.
     if (patch.behaviour) out.behaviour = { ...(prevSlot?.behaviour || {}), ...patch.behaviour };
     // Unlinking without naming units means "back to what stood": the kept own units,
-    // exactly — the whole point of keeping them.
+    // exactly — the whole point of keeping them. (`none` needs no such rule: nothing
+    // serves it, and normalizeSections computes that from the source alone.)
     if (patch.waterfallSource === 'own' && !patch.rungs && prevSlot?.ownRungs) out.rungs = prevSlot.ownRungs;
     return withDirect(out);
   };

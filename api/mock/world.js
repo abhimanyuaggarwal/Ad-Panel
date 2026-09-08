@@ -10,7 +10,7 @@
 
 import {
   resetState, createSetup, createKey, createTag, createTemplate,
-  setGamUnits, getKey, getSetup, seedPublish, updateSetup,
+  setGamUnits, setAccounts, getKey, getSetup, seedPublish, updateSetup,
 } from '../store.js';
 import { BASE_UNITS, PENDING_UNITS } from './gamunits.js';
 
@@ -26,6 +26,29 @@ export const ME = {
   role: 'ad ops',
   email: 'priya.sharma@example.com',
 };
+
+// --- WHO THE CONSOLE KNOWS (8 Sep, user call — the front door) -------------
+// The panel grew a real Log out before it had a way back in. The front door needs two
+// things a fixture has to supply: the addresses the console signs in, and the accounts it
+// has seen before — the "Continue as …" row states a remembered account as a FACT, and a
+// picker holding one row is a picker lying about having a choice. So there are two, and the
+// second is Rohit, whose name already signs versions in the seeded history.
+// `provider` is what remembers the account. The exchange behind it is not built (see
+// store/session.js): the row is the same one seam the typed address goes through.
+export const WORK_DOMAIN = 'example.com';
+// Who Request access goes to. A door that says "ask someone" without naming them is a
+// dead end, and a name is invented data — so it is here, and the dialog reads it.
+export const ACCESS_OWNER = { name: 'Priya Sharma', role: 'ad ops', email: 'priya.sharma@example.com' };
+export const ACCOUNTS = [
+  { ...ME, provider: 'google' },
+  {
+    name: 'Rohit Verma',
+    initials: 'RV',
+    role: 'monetization',
+    email: 'rohit.verma@example.com',
+    provider: 'google',
+  },
+];
 
 // --- Creation presets (the old three shapes, reborn as value-sets) ---------
 export const PLAYER_PRESETS = [
@@ -107,6 +130,10 @@ function place(name, preset, ladders = {}) {
 export function resetWorld(opts = {}) {
   resetState();
   setGamUnits(BASE_UNITS, PENDING_UNITS);
+  // The door, on the same seam the ad unit directory uses: invented data pushed INTO the
+  // store, never imported by it. A reset signs the first account in — the seeded world is
+  // one somebody is already standing in.
+  setAccounts(ACCOUNTS, WORK_DOMAIN, ACCESS_OWNER);
 
   // --- Ad tags: every tag is a video tag or a display tag ------------------
   const tag = (name, type, value, property, provider) => createTag({ name, type, value, property, provider }).id;

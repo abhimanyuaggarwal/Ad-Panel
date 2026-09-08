@@ -639,7 +639,9 @@ function behaviourRowsHtml(t, a) {
   const seg = (f, opts, labels, why) => `<div class="seg small${why ? ' off' : ''}">${opts.map((o, ix) =>
     `<button type="button"${why ? ' disabled' : ''} class="${String(a.v(f)) === String(o) ? 'on' : ''}"${why ? '' : ` onclick="${a.set(f, o)}"`}>${esc(labels[ix])}</button>`).join('')}</div>`;
   const mix = f => (a.v(f) === undefined ? 'mixed' : '');
-  const num = (f, unit, why) => `<div class="num-wrap${why ? ' off' : ''}"><input value="${esc(a.tv(f))}" placeholder="${esc(mix(f))}" inputmode="numeric"${why ? ' disabled' : ''} oninput="${a.num(f)}"><span class="unit">${esc(unit)}</span></div>`;
+  // A number whose row already names its unit passes '' and wears no suffix at all —
+  // an empty suffix span would just hold dead space beside the value.
+  const num = (f, unit, why) => `<div class="num-wrap${why ? ' off' : ''}"><input value="${esc(a.tv(f))}" placeholder="${esc(mix(f))}" inputmode="numeric"${why ? ' disabled' : ''} oninput="${a.num(f)}">${unit ? `<span class="unit">${esc(unit)}</span>` : ''}</div>`;
   // A field the JSON keeps in milliseconds, asked for in SECONDS (3 Sep, user call):
   // the box shows and takes seconds, the adapter converts on the way to the model.
   const numSec = (f, why) => `<div class="num-wrap${why ? ' off' : ''}"><input value="${esc(a.tvSec ? a.tvSec(f) : a.tv(f))}" placeholder="${esc(mix(f))}" inputmode="decimal"${why ? ' disabled' : ''} oninput="${a.numSec ? a.numSec(f) : a.num(f)}"><span class="unit">sec</span></div>`;
@@ -728,14 +730,14 @@ function behaviourRowsHtml(t, a) {
   // no next-ad question. Structural, not a reveal.
   const cfg = a.rungCount ? a.rungCount() : 0;
   const ms = Number(a.v('tagTimeoutMs')) || 0;
-  // Out-stream: banners while nothing plays. Its show times are its own schedule, and
-  // one switch of its own — whether it steps aside while a video ad has the screen.
+  // Out-stream: banners while nothing plays. Its show times are its own schedule. The
+  // in-stream switch went 8 Sep (user call — an in-stream ad owns the screen anyway),
+  // and its count wears the breaks' own words: Total Target Impressions, typed, because
+  // a rotation runs all session where a break picks from 1/2/3.
   return `
     ${row('times', 'Schedule', `${text('times', '8:00, 16:00')}`)}
     ${row('hold', 'Display duration', `${num('hold', 'sec')}`)}
-    ${row('perSession', 'Impression cap', `${num('perSession', '/session')}`)}
-    ${row('hideOnInStream', 'Hide during in-stream',
-      seg('hideOnInStream', [true, false], ['Hide it', 'Keep showing']))}
+    ${row('perSession', fieldName('perSession'), `${num('perSession', '')}`)}
     ${row('tagTimeoutMs', 'Request timeout', `${numSec('tagTimeoutMs')}${note(cfg ? `${cfg} × ${fmtMs(ms)}` : '')}`)}`;
 }
 
@@ -744,6 +746,8 @@ function behaviourRowsHtml(t, a) {
 // The choosers and the setup map were a wall of 67 cards in the scale scenario. Above
 // eight cards a search sits over the grid and filters in place — no rerender, the caret
 // stays. Cards carry their words in data-q; the create card never hides.
+// (The two ad-setup doors left this helper on 8 Sep: their field is always drawn and
+// always at the top right — see `spBarHtml` in views-keys-editor-load.js.)
 function dlgSearchHtml(n, placeholder) {
   if (n <= 8) return '';
   return `<input class="search dlg-search" type="search" placeholder="${esc(placeholder || 'Search…')}"

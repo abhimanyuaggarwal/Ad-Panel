@@ -135,7 +135,7 @@ export function versionChanges(kind, before, after) {
   {
     const wb = b.waterfall || { rungs: [] };
     const wa = after.waterfall || { rungs: [] };
-    const wWhere = 'Waterfall';
+    const wWhere = 'Global waterfall';
     out.push(...ladderChanges(wWhere, wb.rungs, wa.rungs));
     out.push(...rungFactChanges(wWhere, wb.rungs, wa.rungs));
     if ((wb.depth ?? null) !== (wa.depth ?? null)) {
@@ -186,17 +186,32 @@ export function versionChanges(kind, before, after) {
           const bg = gb[gi];
           if (!a) { out.push({ where: gWhere, field: 'Break group', from: 'there', to: 'removed' }); continue; }
           if (!bg) { out.push({ where: gWhere, field: 'Break group', from: '—', to: 'added' }); }
-          // A break FOLLOWING the waterfall (5 Sep): the link moving is the
-          // change; its rungs merely mirror the waterfall, which is diffed once above.
-          const followsA = (a.waterfallSource ?? slA.waterfallSource) === 'setup';
-          const followsB = bg ? (bg.waterfallSource ?? slB.waterfallSource) === 'setup' : false;
-          if (followsA !== followsB) {
-            const word = x => (x ? 'waterfall' : 'its own units');
-            out.push({ where: gWhere, field: 'indirect', from: word(followsB), to: word(followsA) });
+          // WHERE THE BREAK'S ADS COME FROM (5 Sep as a link; three answers 8 Sep): the
+          // source moving IS the change — a following break's rungs merely mirror the
+          // waterfall (diffed once above) and a switched-off break serves none at all,
+          // so the ladder diff below runs only while both versions served their own.
+          const srcOf = (g, sl) => (g?.waterfallSource ?? sl.waterfallSource) || 'own';
+          const srcA = srcOf(a, slA);
+          const srcB = bg ? srcOf(bg, slB) : 'own';
+          if (srcA !== srcB) {
+            const word = x => (x === 'setup' ? 'the waterfall' : x === 'none' ? 'no ads' : 'its own units');
+            out.push({ where: gWhere, field: 'ad sources', from: word(srcB), to: word(srcA) });
           }
-          if (a.rungs && !followsA && !followsB) {
-            out.push(...ladderChanges(gWhere, bg?.rungs, a.rungs));
-            out.push(...rungFactChanges(gWhere, bg?.rungs, a.rungs));
+          // THE LADDER DIFF READS WHAT THE BREAK OWNS (8 Sep). `rungs` is the SERVED
+          // walk, and for a break taking its fall from the global waterfall — or with no
+          // fall at all — that array is derived: its own primary plus the waterfall's
+          // units, which are diffed once above. `ownRungs` is what this break actually
+          // holds, in every answer, so diffing that says exactly what a person changed
+          // here (an old snapshot has no `ownRungs` and its `rungs` ARE its own units).
+          // `slotGroupDefs` hands back a bare { rungs, behaviour } for a single-group
+          // slot, so `ownRungs` is read off the slot itself there — the same fallback the
+          // source above uses. A real mid-roll pod carries its own.
+          const ladderOf = (g, sl) => (g && (g.ownRungs ?? sl?.ownRungs ?? g.rungs)) || null;
+          const ladA = ladderOf(a, slA);
+          if (ladA) {
+            const ladB = ladderOf(bg, slB);
+            out.push(...ladderChanges(gWhere, ladB, ladA));
+            out.push(...rungFactChanges(gWhere, ladB, ladA));
           }
           for (const f of Object.keys(a.behaviour || {})) {
             if (JSON.stringify(bg?.behaviour?.[f]) !== JSON.stringify(a.behaviour[f])) {

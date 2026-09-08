@@ -293,15 +293,43 @@
    confirmed `remove`, because switching now costs nothing: the answer you leave keeps
    every unit it had. The row shares the settings column's width so its right edge lands
    where the DELIVERY SETTINGS controls end — one edge down the whole break. */
-.wf-src { display: flex; align-items: center; gap: 12px; min-height: 30px; max-width: 620px; }
+/* ---------- THE SOURCE: TWO CONTROLS, NO PROSE (8 Sep, user call, third round) ---------- */
+/* *"It has to be more simplified, in 2 steps and no text or byline: one switch on/off
+   waterfall; if switched on, which one — custom or global waterfall."* The row spent the
+   morning stating the state in words (a dot, a name, a counted fact, three tinted skins)
+   and the afternoon explaining consequences in a dialog. What is left is the two
+   questions themselves: a switch, and — only while it is on — the answer it unlocks. No
+   frame, no fill, no state skins: this row is CONTROLS, and a tinted card around a switch
+   and a seg dresses two controls as a panel.
+   It rides under the primary inside the ladder, so it takes the ladder's own rhythm — the
+   air a fall rule would have had above it — and its right edge is wherever its controls
+   end, stretched to nothing it does not need. */
+.wf-src { display: flex; align-items: center; gap: 14px; min-height: 30px; }
+.rung-list.lead + .wf-src { margin: 11px 0 3px; }
+
+/* STEP TWO IS A SEG, AND ONLY EXISTS WHILE STEP ONE SAYS YES. A seg was refused for this
+   decision on 7 Sep, when it stood ALONE and had to carry the whole source question —
+   "pick a view" is what a seg says, and the source decides what serves. Behind a switch
+   it is not the whole question any more: the switch answers WHETHER, the seg answers
+   WHICH, and answering which-of-two is exactly what a seg is for.
+   `Global` greys where it sits while there is nothing in it to serve, reason on hover. */
+.src-seg button.dead, .src-seg button.dead:hover {
+  color: var(--ink-faint); opacity: .5; cursor: default; background: transparent;
+}
+
 /* THE SOURCE WEARS A LABEL (7 Sep, user call — the seg read as a view picker). The house
    toggle already carried `gap: 9px` for a label nobody had yet; `tiny` closes it, so the
    one variant that speaks re-opens it. The label is the switch's own hit area, not a
    neighbour: the whole thing is one control. */
 .toggle.tiny.wf-src-sw { gap: 8px; font-size: 12.5px; color: var(--ink); white-space: nowrap; }
-.toggle.tiny.wf-src-sw.dead { cursor: default; }
-.wf-src-fact { font-size: 11.5px; color: var(--ink-faint); }
-.wf-src-view { margin-left: auto; }
+/* HELD ON, NOT DEAD (8 Sep). A live integration playing this break refuses the OFF
+   direction — the store refuses that save outright — but the switch is not broken, it is
+   settled. So it keeps the paint that says ON and gives up only a little of it — draining
+   the track's accent instead made an on switch read as off, which is worse than either —
+   and it gives up the cursor, so the row never promises a click it would refuse. The
+   reason rides the hover, the one thing the tooltip policy still keeps a title= for. */
+.toggle.tiny.wf-src-sw.held { cursor: default; opacity: .72; }
+.wf-src-view { font-size: 11px; }
 
 /* A connected break's body (7 Sep, user call): the three settings, STACKED, on the page's
    own `.lr.rule` + `.bhv-grid` rows — same label edge, same control edge, same rhythm as

@@ -14,6 +14,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resetWorld } from './mock/world.js';
 import metaRoutes from './routes/meta.js';
+import sessionRoutes from './routes/session.js';
 import keyRoutes from './routes/keys.js';
 import publishRoutes from './routes/publish.js';
 import bulkRoutes from './routes/keys-bulk.js';
@@ -31,6 +32,7 @@ app.use(express.static(path.join(__dirname, '..', 'web')));
 // Route order is the original registration order; no two routes overlap, so it is
 // kept for readability, not correctness.
 app.use(metaRoutes);
+app.use(sessionRoutes);
 app.use(keyRoutes);
 app.use(publishRoutes);
 app.use(bulkRoutes);

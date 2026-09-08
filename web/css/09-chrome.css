@@ -64,14 +64,21 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
    Publish, Restore or Delete it is the only screen there is, so it wears the `.sheet`
    width and its own content's height: it was spending 860×529 on 251px of changes. */
 .dlg.rvw { width: 620px; max-height: calc(100vh - 80px); display: flex; flex-direction: column; }
-.dlg.rvw.steady { width: 860px; }
-/* 340 (the sheet's body) + 71 for the tab strip and its margin, which the review has no
-   equivalent of — so the two dialogs measure the same from the outside. */
+/* THE JOURNEY NAMES ITS FRAME (8 Sep — see the head of 06-bulk-sheet.css). The review
+   used to carry the sheet's body floor plus 71px for the tab strip it does not have, a
+   sum somebody had to redo by hand every time either dialog's head changed. Now step 1
+   and step 2 read the SAME number off the dialog, and the body fills what is left, so
+   the two measure the same from the outside by construction rather than by arithmetic.
+   Reached STANDALONE from Save, Publish, Restore or Delete the review is the only screen
+   there is, so it wears the `.sheet` width and its own content's height. */
+.dlg.rvw.steady { width: 860px; --frame: 529px; min-height: min(var(--frame), calc(100vh - 80px)); }
+.dlg.rvw.steady-ads { --frame: 409px; }     /* step 2 of the ad sheet */
+.dlg.rvw.steady-player { --frame: 529px; }  /* step 2 of the player sheet */
 .rvw-body {
   flex: 0 1 auto; max-height: calc(100vh - 260px);
   overflow-y: auto; margin-bottom: 10px !important; padding-right: 2px;
 }
-.dlg.rvw.steady .rvw-body { flex: 1; min-height: 411px; }
+.dlg.rvw.steady .rvw-body { flex: 1; }
 /* EACH GROUP IS A BOUNDED OBJECT (2 Sep, UX pass): flat hairlines running edge to edge
    made Pre-roll and Mid-roll one continuous grey mass — the eye had to read the
    headings to find the seams. Now a group is a bordered block with a tinted header
@@ -127,9 +134,11 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
    review's own bounded anatomy, so step 1's card IS step 2 growing. The card owns the
    right column at a fixed width and scrolls inside itself; the space holds still
    whether it lists nothing or twelve changes. */
-.bulk-split { display: flex; gap: 22px; align-items: flex-start; height: 100%; }
+.bulk-split { display: flex; gap: 20px; align-items: flex-start; height: 100%; }
 .bulk-fields { flex: 1; min-width: 0; }
-.bqp { flex: 0 0 268px; min-height: 0; max-height: 100%; align-self: stretch; }
+/* 252px, not 268 (8 Sep): the 16px goes to the form column, which is where a row was
+   wrapping its number field under its segment for want of them. */
+.bqp { flex: 0 0 252px; min-height: 0; max-height: 100%; align-self: stretch; }
 /* One card, the review's face: tinted header band, hairline rows. The × keeps quiet
    until the row is hovered — a revert is an act you reach for, not furniture. */
 .bqp-card {
@@ -164,6 +173,12 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
 .bqf-c { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; row-gap: 6px; }
 .bqf-s { display: flex; align-items: center; gap: 6px; justify-content: flex-end; white-space: nowrap; }
 .bqf-today { font-size: 11.5px; color: var(--ink-faint); }
+/* A number standing beside a segment matches the segment's height (8 Sep): the pre-roll
+   delay was a 36px field next to a 27px segment — two kinds of control for one decision,
+   and the pair no longer fits one line at this column width, so it wrapped. */
+.bqf-c .num-wrap { height: 27px; }
+.bqf-c .num-wrap input { padding: 0 4px 0 10px; }
+.bqf-c .num-wrap .unit { padding: 0 9px 0 2px; }
 
 /* The player sheet's queue rows keep the shared anatomy. */
 .bqs { margin: 0 0 2px; }
@@ -249,8 +264,9 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
 
 /* ---------- AD DELIVERY, NOTHING MAPPED: CARDS IN THE SECTION (3 Sep) ---------- */
 .setup-pick { padding: 6px 0 2px; }
-/* Three across, not four (3 Sep): a card carries a name AND two acts in its corner, and
-   at 330px the acts had to sit on top of the name to fit. */
+/* Three across, not four (3 Sep): a card carries a name, the listing's own marks and its
+   acts, and at 330px they had to sit on top of each other to fit. (The acts moved from
+   the corner to the card's foot on 8 Sep; the width is still what the name needs.) */
 .setup-pick .dlg-cards.sp-cards { grid-template-columns: repeat(auto-fill, minmax(430px, 1fr)); padding: 0; }
 .sc-foot { display: flex; align-items: baseline; gap: 8px; margin-top: 9px; min-width: 0; }
 .sc-foot .podl { margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

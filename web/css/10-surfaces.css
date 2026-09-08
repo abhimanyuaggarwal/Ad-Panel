@@ -498,30 +498,58 @@
 }
 .fs-setup:hover { border-color: var(--accent); box-shadow: var(--shadow-1, 0 1px 3px rgba(16,24,43,.08)); }
 .fs-setup .fs-arr { font-style: normal; font-size: 12px; opacity: .7; }
-/* Reading the setup is its own labelled act beside the chip (8 Sep) — the word, then the
-   arrow that means "elsewhere". It sits at link weight: the chip is the decision here,
-   this is the way out to another room. */
-.fs-open { display: inline-flex; align-items: center; gap: 4px; margin-left: 2px; }
-.fs-open .fs-arr { font-style: normal; font-size: 11px; }
+/* Reading the setup is its own labelled act beside the chip (8 Sep) — the word Preview,
+   then the icon that means "another tab". It wears the map card's act weight (.sc-act),
+   not link weight: the chip is still the decision here, but a way out of the room is a
+   button, not a footnote. */
+.fs-open { margin-left: 2px; }
 
 
-/* ---------- THE MAP CARD'S TWO ACTS (3 Sep, user call — second cut) ---------- */
-/* They live in the card's top-right corner, where an "in use / free" pill used to sit
-   saying what the foot already says in words. Absolutely placed and faded in on hover,
-   so the title never reflows and nothing moves under the cursor; a short white ramp
-   carries them over the tail of a long name instead of colliding with it. */
-.sc-card { position: relative; }
-.sc-acts {
-  position: absolute; top: 11px; right: 14px;
-  display: flex; align-items: center; gap: 7px;
-  opacity: 0; pointer-events: none; transition: opacity .12s;
-  padding-left: 34px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0, #fff 32px);
+/* ---------- THE AD SETUP CARD = THE LISTING ROW, STOOD UP (8 Sep, user call) ---------- */
+/* *"Use the metadata present on the listing page; the one selected should be shown as
+   selected with a border and a tick mark on the top right."* Four tiers, read top to
+   bottom, each one a listing column: WHO (monogram + name, and "Current" where it
+   applies), the COUNTED MARKS (the same break chips the list lights, the placement count,
+   the live version), the FACTS in a label column (which integrations it fills, who
+   touched it last), and the ACTS on a hairline of their own. Nothing fades in on hover
+   any more — the acts hid in the corner, which made a card feel like it was hiding
+   something; they sit in the foot at rest, so the card is a complete, still object. */
+.sc-card { position: relative; padding: 13px 15px 12px; }
+.sc-head { display: flex; align-items: center; gap: 8px; min-width: 0; padding-right: 20px; }
+.sc-who { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sc-who .dc-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.sc-head .dc-reach { margin-left: auto; }
+/* The counted band: break chips, then the quiet facts a list reads at a glance. */
+.sc-band { display: flex; align-items: center; gap: 9px; margin-top: 9px; min-width: 0; }
+.sc-extra {
+  font-size: 10.5px; font-weight: 650; color: var(--ink-faint); white-space: nowrap;
 }
-.dlg-card:hover .sc-acts, .dlg-card:focus-within .sc-acts { opacity: 1; pointer-events: auto; }
+.sc-stat { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.sc-stat .stat { font-size: 11px; gap: 5px; cursor: default; }
+.sc-stat .stat::before { width: 6px; height: 6px; }
+/* The facts, down a label column — the review rail's voice at card scale. */
+.sc-facts { margin-top: 10px; display: grid; gap: 3px; }
+.sc-f { display: grid; grid-template-columns: 52px 1fr; align-items: baseline; gap: 8px; min-width: 0; }
+.sc-fl {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.sc-fv {
+  font-size: 12px; color: var(--ink-soft); min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* The acts sit on their own rule, right-aligned in one row and ordered by reach: the way
+   out of the room first, then the act that lands. (Left-aligned, a lone Preview left the
+   card looking unfinished on the side the tick and the meta both hold.) */
+.sc-card .sc-foot {
+  margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+}
+.sc-card .sc-acts { display: flex; align-items: center; gap: 7px; }
 .sc-act {
-  flex: 0 0 auto; font: inherit; font-size: 11px; font-weight: 650; letter-spacing: -.05px;
-  white-space: nowrap; cursor: pointer; padding: 4px 10px; border-radius: 7px;
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px;
+  font: inherit; font-size: 11.5px; font-weight: 650; letter-spacing: -.05px;
+  white-space: nowrap; cursor: pointer; padding: 5px 11px; border-radius: 8px;
   border: 1px solid var(--line); background: #fff; color: var(--ink-soft);
   transition: border-color .12s, color .12s, background .12s;
 }
@@ -529,6 +557,15 @@
 .sc-act.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .sc-act.primary:hover { background: var(--accent-ink, #1c4fd6); border-color: var(--accent-ink, #1c4fd6); color: #fff; }
 .sc-act:focus-visible { outline: 0; box-shadow: 0 0 0 3px var(--ring); }
+/* PREVIEW, NOT "open ↗" (8 Sep, user call — *"the open cta is quite immature; make it
+   preview, improve the weight, make it clean and more mature"*). An 11.5px accent link
+   with a bare arrow glyph read as a footnote on a card it was the main way out of. It is
+   a labelled button now, at the acts' own weight, with the icon that means "another
+   tab" drawn rather than typed. */
+.sc-act.reads { color: var(--ink-soft); }
+.sc-act.reads .ext-i { opacity: .65; }
+.sc-act.reads:hover .ext-i { opacity: 1; }
+.ext-i { flex: 0 0 auto; }
 
 /* ---------- THE HEAD SECTIONS FOLD (6 Sep, user call) ---------- */
 /* Ad unit templates and the Shared waterfall rest as one counted line each — the break
@@ -559,12 +596,91 @@
 
 
 /* ---------- THE CHANGE MODAL SELECTS; ITS FOOT ACTS (8 Sep, user call) ---------- */
-/* A selected card is the figure on the page: accent border, a faint accent ground, and
-   the lift held so it stays put while the foot beneath it changes. The foot's reason
-   line sits hard left, in the count's own voice, where a dead button used to stand. */
-.dlg-card.sel { border-color: var(--accent); background: var(--accent-soft, #eef2fd); }
-.dlg-card.sel:hover { transform: none; }
+/* A selected card is the figure on the page: a 2px accent frame, the faintest accent
+   ground, and the lift held so it stays put while the foot beneath it changes. The
+   foot's reason line sits hard left, in the count's own voice, where a dead button used
+   to stand. */
+.dlg-card.sel { border-color: var(--accent); border-width: 2px; padding: 12px 14px 11px; background: #f8faff; }
+.dlg-card.sel:hover { transform: none; box-shadow: 0 0 0 3px var(--ring); }
 .chg-why { margin-right: auto; align-self: center; font-size: 12.5px; color: var(--ink-faint); }
+/* THE TICK IN THE CORNER (8 Sep, user call — the enterprise mark for "this one"). Its
+   26px well is reserved on every selectable card and the mark scales into it, so the
+   selection is unmistakable and nothing under it reflows when it appears. */
+.sc-tick {
+  position: absolute; top: 9px; right: 9px;
+  width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent); color: #fff;
+  opacity: 0; transform: scale(.6); transition: opacity .12s, transform .12s;
+}
+.dlg-card.sel .sc-tick { opacity: 1; transform: none; }
+
+/* ---------- ONE FRAME, TWO STEPS (8 Sep, user call — *"the size of the modal should not
+   change, it should remain the same"*) ---------- */
+/* The change journey used to hand step two to a 440 confirm or a 620 sheet, so the 860
+   picker appeared to be replaced by a different dialog and the foot moved twice. Both
+   steps are painted into THIS frame now — the ladder's `.wide`, held at a height that
+   fits the cards without air (a two-step journey is exactly the case the opt-in floor
+   was written for, 01-base.css). */
+/* (`.chgdlg`, not `.chg` — the bare word is the unsaved-change rule, 03-controls.css.) */
+/* Measured, not guessed (the 7 Sep frame rule): head 18 + 10 · body 426 (the search bar
+   33 + 12, two rows of 184px cards + the 10px gap) + its 16 · foot 36 · the dialog's own
+   44 of padding = 550. Step two's reading is 298 and centres in what is left. */
+.dlg.wide.chgdlg { height: min(550px, calc(100vh - 80px)); }
+/* Step one fills the frame with its bar and cards; step two is shorter by nature, so its
+   reading sits in the MIDDLE of the same frame rather than leaving the air under it
+   — a confirm's own anatomy: the question up top, the reading centred, the acts at the
+   foot. `margin:auto` (not `justify-content`) so a long reading still scrolls whole. */
+.dlg.wide.chgdlg .dlg-body.mid { display: flex; flex-direction: column; }
+.dlg.wide.chgdlg .dlg-body.mid > .chg2 { margin: auto 0; width: 100%; }
+
+/* STEP TWO: WHAT REPLACES WHAT, THEN WHAT IT COSTS. Two plates and an arrow answer the
+   swap at a glance — the incoming one wearing the accent hairline, both wearing the
+   listing's break chips so the demand is compared, not described. Under them the
+   consequences read as one clause a line, and the single thing that costs something
+   keeps its warn banner at the foot of the reading. */
+.chg2 { display: grid; gap: 18px; }
+.swap { display: grid; grid-template-columns: 1fr 30px 1fr; align-items: stretch; gap: 2px; }
+.swap-side { min-width: 0; display: grid; grid-template-rows: auto 1fr; gap: 6px; }
+.swap-l {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.swap-plate {
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px 13px;
+  background: #fbfcfe; min-width: 0;
+}
+.swap-plate.to { border-color: #c7d6f8; background: #f8faff; }
+.swap-plate.empty { display: flex; align-items: center; font-size: 12.5px; color: var(--ink-faint); }
+.swap-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.swap-nm {
+  font-size: 14px; font-weight: 700; letter-spacing: -.1px; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.swap-sub { margin-top: 4px; font-size: 11.5px; color: var(--ink-faint); }
+.swap-chips { margin-top: 10px; }
+/* The plate answers the seller's question about a swap — WHICH breaks (the chips) and
+   HOW MANY units behind each (the count), both counted from the setup itself. */
+.swap-cnt { margin-top: 9px; font-size: 12px; color: var(--ink-soft); }
+.swap-meta { margin-top: 5px; font-size: 11px; color: var(--ink-faint); }
+/* The arrow centres on the PLATES, not on the row — the labels above them are a header,
+   so its cell carries their height as padding. */
+.swap-arr {
+  font-style: normal; display: flex; align-items: center; justify-content: center;
+  padding-top: 20px; color: var(--ink-faint); font-size: 15px;
+}
+.chg-name { max-width: 420px; }
+.chg-wh {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-faint); margin-bottom: 8px;
+}
+.chg-wl { list-style: none; display: grid; gap: 7px; }
+.chg-wl li { position: relative; padding-left: 15px; font-size: 13px; line-height: 1.45; }
+.chg-wl li::before {
+  content: ""; position: absolute; left: 3px; top: .58em;
+  width: 4px; height: 4px; border-radius: 50%; background: var(--ink-faint);
+}
+.chg-warn { margin: 0; }
 
 /* ---------- USE A COPY, SAID BEFORE IT RUNS (8 Sep, user call) ---------- */
 /* Two facts in a label column — what is copied, what it will fill — above the field that
@@ -598,6 +714,15 @@
 .pcfg-msg { font-size: 11.5px; line-height: 1.3; }
 /* Pickers past a handful search in place; the create card never hides. */
 .dlg-search { width: 100%; margin: 0 0 10px; box-sizing: border-box; }
+/* THE AD SETUP DOORS' ONE BAR (8 Sep, user call — always drawn, field at the top right).
+   The counted fact hard left, the field hard right, on the cards' own top line. The bar
+   paints once and `.sp-count` is written by hand, so typing never loses the caret. */
+.sp-bar { display: flex; align-items: center; gap: 14px; margin: 0 0 12px; min-width: 0; }
+.sp-count {
+  font-size: 12px; color: var(--ink-faint); min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sp-search { margin-left: auto; flex: 0 0 auto; width: 280px; max-width: 45%; }
 .setup-pick .dlg-search { max-width: 420px; }
 .dlg-none { font-size: 12.5px; color: var(--ink-faint); padding: 14px 2px; }
 .dlg-err { margin-bottom: 12px; }

@@ -8,7 +8,7 @@ file stays current and short.
 
 > Last verified: 8 Sep 2026 against branch `Ui/UX_Changes` @ `2b6f8b6` (with a large
 > uncommitted working tree — HEAD predates the routes/store split). Verified by reading
-> the code, plus `npm test` (129 passed) and `npm run check` (syntax ok).
+> the code, plus `npm test` (145 passed) and `npm run check` (syntax ok).
 
 ## At a glance
 
@@ -20,7 +20,7 @@ file stays current and short.
 - **Start reading** — `api/server.js` (assembly) → `api/store/state.js` (the model and every
   enum) → `api/store/publish.js` (the two planes) → `web/js/main.js` (the router).
 - **The map is §2; the model is §3; the request path is §4; the screens are §5.**
-- **Before you change anything** — `npm test` (129 HTTP cases, ~1 s) and, for UI work,
+- **Before you change anything** — `npm test` (145 HTTP cases, ~1 s) and, for UI work,
   `npm run ui:snapshot before` / `… after` / `… diff before after` (§10).
 
 ## 1. What it is
@@ -41,7 +41,7 @@ Two processes, no build step:
 | --- | --- | --- |
 | API (Express, in-memory) | `api/` | `npm start` → http://localhost:4200 |
 | Web app (vanilla JS, served by the API) | `web/` | open http://localhost:4200 |
-| Rule suite (HTTP, self-hosting on :4299) | `test/` | `npm test` (~1 s, 129 cases) |
+| Rule suite (HTTP, self-hosting on :4299) | `test/` | `npm test` (~1 s, 145 cases) |
 
 Everything is in memory. `POST /panel/mock/reset` rebuilds the demo world with the same ids
 every time, so a polluted state is a one-line fix (`npm run demo`, `npm run scale`).
@@ -56,6 +56,7 @@ panel/
 │   ├── response-shapes.js what the API answers with: keyView, setupView, tagView, …
 │   ├── routes/            one router per subject; a handler parses, calls the store, shapes
 │   │   ├── meta.js        GET /panel/meta — enums, caps, presets the web app draws from
+│   │   ├── session.js     /panel/session — who is signed in, sign in, sign out (the front door)
 │   │   ├── keys.js        /panel/keys — integrations CRUD, player patch, duplicate
 │   │   ├── keys-bulk.js   POST /panel/keys/bulk — the cohort acts over a selection
 │   │   ├── setups.js      /panel/setups — ad setups CRUD, behaviour patch, duplicate
@@ -71,6 +72,7 @@ panel/
 │   │   ├── ladders.js     slot behaviour fields, drive fields, rungs, the walks
 │   │   ├── setups.js      ad setups: placements, pods, direct deals, the waterfall, GAM dir
 │   │   ├── keys.js        integrations: identity, player, custom configs, drive, the seam
+│   │   ├── session.js     the accounts the console knows, the session, the sign-in refusals
 │   │   ├── publish.js     THE PUBLISH PLANE: snapshots, versions, restore, liveConfig()
 │   │   └── version-changes.js  versionChanges(): two snapshots → the changes, in words
 │   └── mock/
@@ -78,7 +80,9 @@ panel/
 │       └── gamunits.js    the mock GAM ad unit tree
 ├── web/
 │   ├── index.html         the shell + the script tags, in dependency order
-│   ├── css/01–10-*.css    the stylesheet, split by subject; load order is the cascade
+│   ├── login.html         THE FRONT DOOR — its own page: the whole cascade + 11, three scripts
+│   ├── css/01–11-*.css    the stylesheet, split by subject; load order is the cascade
+│   │                      (11 is the door's plate, loaded by login.html only)
 │   └── js/                see §5
 ├── test/
 │   ├── run.js             boots the API on :4299, runs every cases/*.spec.js, prints totals
@@ -116,7 +120,7 @@ Four kinds of object live in `state` (see `api/store/state.js`):
  │          expandInMini, …}          │        ├─ rungs[]   {tagId, on, pause, displaySlot, …}
  ├─ playerConfigs[] (named forks)     │        ├─ behaviour {start, podAds, tagTimeoutMs, …}
  ├─ sections[] overlays, by name      │        ├─ direct    {rungs:[one deal]}
- │   └─ slots{t: {on}}                │        ├─ waterfallSource own|setup, ownRungs
+ │   └─ slots{t: {on}}                │        ├─ waterfallSource own|setup|none, ownRungs
  └─ drive {t: {ask, tries, start,     │        └─ groups[]  (mid-roll pods: each a slot anatomy)
             deferSec, podAds, …}}     └─ (an integration asks from ONE setup;
                                               a setup may fill MANY integrations)
@@ -131,10 +135,12 @@ Vocabulary, so the code reads the same as the UI:
 | **placement / section** | a named area inside a surface (Default, Shorts feed). The setup defines them; the integration overlays a switch per break |
 | **slot / break** | pre-roll, mid-roll, post-roll (ladders) and out-stream (a rotation of banners) |
 | **rung / ad unit** | one tag in a ladder, with its own switch and banner facts |
-| **ladder / waterfall** | rung 1 is the primary; rungs 2…10 are the waterfall, tried in order |
+| **ladder / waterfall** | rung 1 is the primary — the break's own first ask, asked before anything else and never replaced by a source answer; rungs 2…10 are the fall, tried in order |
 | **pod / break group** | a mid-roll may run up to three pods, each with its own cadence, ladder and direct deal |
 | **direct** | the one sold deal a break tries before its primary |
-| **waterfall** (the setup's) | one ladder at the setup's head that any break may connect to instead of serving its own units; a break's own ladder is its **custom** waterfall |
+| **global waterfall** | one ladder at the setup's head that any break may connect to instead of serving its own units; a break's own ladder is its **custom** waterfall. Named `Global waterfall` on screen since 8 Sep (`WF_WORD` in `web/js/util.js`, spelled once) — the wire key stays `waterfallSource: 'setup'` |
+| **the source row** | the two controls in every break's Ad sources zone, under the primary where there is one: a `Waterfall` on/off switch, and — only while it is on — `Custom │ Global`. They decide the FALL only; the primary above them always serves. No state name and no byline: the ladder around them is the state. Off parks the fall (`waterfallSource: 'none'`) |
+| **`waterfallSource`** | where a ladder break's **fall** comes from: `own` (rungs 2…N of its own), `setup` (the global waterfall's served units), `none` (no fall). **The primary — rung 1 — is the break's own in every answer and always serves**, so served `rungs` are `own`, `[primary, …global]`, or `[primary]`. All three keep every own unit in `ownRungs`, so every answer is reversible. `own` is the answer said by absence, so payloads and snapshots written before each answer existed still read as they always did |
 | **drive** | the integration's per-break quick decisions, stored sparse as intent and resolved against the setup at read time |
 | **the seam** | the check, in both rooms, that never lets a switched-on break end up with nothing to ask |
 | **Refusal** | a rule violation: HTTP 4xx with `{ error, message, errors:[{field, message}] }` that names the number found and the number required |
@@ -182,6 +188,7 @@ routes overlap.
 | Router | Routes |
 | --- | --- |
 | `routes/meta.js` | `GET /panel/meta` — every enum, cap, preset and per-slot field list the web app draws from, plus `me` (a fixture, see §11) |
+| `routes/session.js` | `GET /panel/session` — who is signed in, the accounts the console remembers, the example domain, who grants access · `POST /panel/session` — sign an address in; **any address shaped like one enters** (8 Sep), and the only refusal is `bad_address` for something that is not an address · `DELETE /panel/session` — sign out. Nothing authenticates the address (§11) |
 | `routes/keys.js` | `GET/POST /panel/keys` · `GET/PATCH/DELETE /panel/keys/:id` · `PATCH /panel/keys/:id/player` · `POST /panel/keys/:id/duplicate` |
 | `routes/keys-bulk.js` | `POST /panel/keys/bulk` — every target validated before any is touched; the answer counts changed / already-so / refused / skipped, per name |
 | `routes/setups.js` | `GET/POST /panel/setups` · `GET/PATCH/DELETE /panel/setups/:id` · `PATCH /panel/setups/:id/sections/:index/behaviour` · `POST /panel/setups/:id/duplicate` |
@@ -212,7 +219,7 @@ cross-file call happens later, at runtime, after all scripts have loaded.
 | `review.js` | THE CHANGE REVIEW — the one dialog every write (save, publish, bulk, restore) confirms on |
 | `views-tag-lookup.js` | the ad-tag lookup control and its search |
 | `views-setups-list.js` | Ad Setups list, the new-setup chooser, ad unit templates UI |
-| `views-setups-waterfall.js` | the waterfall section, the Apply-on-ad-slots grid, and a connected break's levers |
+| `views-setups-waterfall.js` | the waterfall section, the Apply-on-ad-slots grid, the per-break **source band** (its three states: no waterfall · custom waterfall · connected), and a connected break's shared levers |
 | `views-setups-rungs.js` | one ad-unit block: the rung writers, walk positions, its head row, its facts tier, its settings tier, its collapsed off line |
 | `views-setups-placements.js` | placement tabs, mid-roll pods, Clear, the closed row's glimpse |
 | `views-setups-editor.js` | the ad setup editor itself: load, slot addressing, delivery settings, the slot row, save |
@@ -223,7 +230,8 @@ cross-file call happens later, at runtime, after all scripts have loaded.
 | `views-keys-editor-ad-behaviour.js` | its Ad behaviour card: the walk mirror, the drive, break tabs |
 | `views-keys-editor-player.js` | its player fields and the custom config table |
 | `views-keys-editor-frame.js` | its frame: header, payload, save / create / duplicate / delete, the chooser |
-| `main.js` | hash router (`#keys`, `#keys/:id`, `#setups`, `#setups/:id`), nav counts, `getMeta()` |
+| `login.js` | THE FRONT DOOR (`login.html`): the remembered-account row and its picker (the primary act), the address field under it, which of the two carries the accent, the three refusals painted in place, Request access |
+| `main.js` | THE GATE (the session, read once before anything paints — no session lands on `login.html`), the hash router (`#keys`, `#keys/:id`, `#setups`, `#setups/:id`), nav counts, `getMeta()` |
 
 ### Conventions that keep the UI stable
 
@@ -251,8 +259,8 @@ cross-file call happens later, at runtime, after all scripts have loaded.
   version rail shows.
 
 ### Shared client state (globals)
-`window.ME` (the signed-in person, from `meta.me`), `window.SIGNED_OUT` (set by
-`meLogOut` — `route()` stands down), `KL_META` (the `/panel/meta` answer),
+`window.ME` (the signed-in person — from `/panel/session` since 8 Sep, not `meta.me`),
+`DOOR` (the front door's own state; `login.html` only), `KL_META` (the `/panel/meta` answer),
 `KEYS_CACHE`/`SETUPS_CACHE`/`SETUPS_LIST` (last list answers), `TAG_TYPE`/`TAG_PROVIDER`/
 `TAG_PROPERTY`/`TAG_OFFDIR`/`TAG_TPL` (filled by `API.listTags`), `KEY_RETURN`/`KEY_RESTORE`
 (stash-and-return between the two editors), `SU_PENDING` (a rung the other room sent you to
@@ -345,8 +353,8 @@ rule the suite pins rather than a knob an operator turns.
 | Command | What it proves |
 | --- | --- |
 | `npm run check` | every JS file parses |
-| `npm test` | the 129 HTTP cases (rules, refusals, the publish plane, the player's JSON) |
-| `npm run ui:snapshot <label>` | the screens: walks 54 states in headless Chrome at 1440×900, writes their markup and a PNG each, and fails on any console error |
+| `npm test` | the 145 HTTP cases (rules, refusals, the publish plane, the player's JSON, the front door) |
+| `npm run ui:snapshot <label>` | the screens: walks 65 states in headless Chrome at 1440×900 (the console's, then the front door's), writes their markup and a PNG each, and fails on any console error |
 | `npm run ui:snapshot diff a b` | that two captures are identical |
 
 `ui:snapshot` boots its own server on **:4300**, never your :4200, so a capture cannot be
@@ -365,11 +373,21 @@ These are deliberate for the prototype and must be closed before real traffic:
 
 - **No persistence.** Everything is in memory; a restart is a reset. Needs a database
   behind `store/state.js`'s Maps (the store's function surface is the seam to keep).
-- **No authentication or authorship.** `updatedBy` is written as the literal `'You'` in
-  `store/keys.js`, `store/setups.js` and `store/tags.js`; the publish actor is the same
-  literal, passed from `routes/publish.js`; the signed-in person `GET /panel/meta` returns
-  as `me` is the `ME` fixture in `mock/world.js`. Nothing authenticates any request. Needs
-  identity, roles (product vs ad ops), and an audit trail.
+- **A session, but no authentication — and the door is deliberately open.** There IS a session
+  since 8 Sep: `store/session.js` holds it, the front door (`web/login.html`) signs an address
+  in, sign-out empties it, and `main.js`'s gate sends a browser with no session to the door.
+  What is missing is the **identity exchange**: nothing proves the person typing an address owns
+  it — no password, no token, no OAuth round trip — so **any address shaped like an address gets
+  in**, and one that no fixture account claims is signed in as a visitor with a derived name and
+  no role. That is a deliberate prototype call (a lock with no key only turns away the people
+  meant to try the thing); the suite pins it, so re-closing the door is an explicit act, and the
+  real exchange answers at `signIn` with refusals of its own. Nothing authenticates any REQUEST
+  either: `/panel/keys` answers a signed-out client, and the suite pins that too, so the day
+  those become 401s is a deliberate change.
+  Authorship is the same story: `updatedBy` is the literal `'You'` in `store/keys.js`,
+  `store/setups.js` and `store/tags.js`, and the publish actor is that literal passed from
+  `routes/publish.js`. Needs the real exchange behind `signIn`, request-level checks, roles
+  (product vs ad ops), and an audit trail.
 - **CORS is wide open** and there is no rate limiting or request size limit beyond
   Express defaults.
 - **GAM is mocked.** `api/mock/gamunits.js` stands in for the ad unit directory;

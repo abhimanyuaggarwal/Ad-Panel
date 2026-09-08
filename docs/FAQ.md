@@ -72,9 +72,9 @@
 ### Q5. Is this the final code? Do we deploy this repo?
 
 - **No, we rebuild.** The prototype is the spec, not the product.
-- It runs an in-memory mock API so everything is fast and repeatable; there is no database, no auth, no persistence.
+- It runs an in-memory mock API so everything is fast and repeatable; there is no database and no persistence. There is a front door and a session since 8 Sep (`/login.html`, `/panel/session`), but **no authentication behind it**: any address shaped like an address gets in, nothing proves it belongs to the person typing it, and no request is checked — the identity provider is mocked, like the GAM directory. Port the door's IA; replace `signIn` with the real exchange and give it refusals of its own.
 - What you copy is the **behaviour**: the served JSON, the refusal rules, the publish semantics, the caps.
-- The safest way to carry the behaviour over: port the 128 test cases first (Q36).
+- The safest way to carry the behaviour over: port the 145 test cases first (Q36).
 
 ### Q6. How do I run it locally?
 
@@ -150,7 +150,8 @@ GET /live?key=sak_toi_mweb_…&placement=shorts_feed
 
 - **Cut on breaks** (pods). Reasoning: a repeating cadence runs until the video ends, and with fixed positions the positions *are* the cap.
 - Sending it for a pod is refused by name: *"Break cap is not a setting any more."*
-- It **survives on out-stream** as "Max a session": an idle-player rotation genuinely needs a session cap.
+- It **survives on out-stream**, wearing the breaks' own words since 8 Sep: **Total Target Impressions**, typed rather than picked from a fixed set, because a rotation runs all session where a break plays 1, 2 or 3.
+- **The out-stream's `hideOnInStream` went with the same call (8 Sep).** An in-stream ad owns the screen while it runs and the player already steps the banner aside, so the switch only ever had one sane answer. Off the row, off the wire, refused by name: *"Hide during in-stream is not a setting any more."*
 
 ### Q13. `timeout`, `totalTimeout`, `prefetch`: one value in `conf`, or per break?
 
@@ -375,6 +376,7 @@ Everything else on the contract is settled.
 - The page's own standing display units: `adjacent*` stays dead. The console places only banners **it** serves.
 - Banner `sizes`: player-side, per slot (Q14).
 - A mid-way break cap: `totalImpression` on pods (Q12).
+- The out-stream's `hideOnInStream` switch: an in-stream ad owns the screen anyway (Q12).
 - Per-pod quick decisions from the surface: the mid-roll switch covers all pods.
 - Pod duration enforcement (`breakSec`, `overrun`): a pod plays its count, ads run their length.
 - The squeeze-back as its own slot: a banner in a break is a waterfall unit; the idle player is out-stream.
@@ -553,8 +555,8 @@ Seconds ×1000 at the boundary; `tagTimeoutMs` and `waitMs` are already ms and p
 |---|---|---|
 | `init` + `repeat` | Shows at (list of moments) | flag B: recommend one entry per show time |
 | `impression` | fixed at 1 per moment | `1` |
-| `totalImpression` | Max a session | `perSession`, as-is |
-| `hideOnInStream` | Hide during in-stream | as-is (default true) |
+| `totalImpression` | **Total Target Impressions** (typed) | `perSession`, as-is |
+| `hideOnInStream` | **Cut 8 Sep** (Q12) — refused by name | never emitted |
 | (no key) | Each holds [n] sec | flag C: recommend emitting as each unit's `hide` |
 
 ## Appendix 4 — The original ads JSON, annotated
@@ -623,9 +625,9 @@ ads: {
     {
       init: 0,
       impression: 1,
-      totalImpression: 2,      // Q12 — Max a session (survives here)
+      totalImpression: 2,      // Q12 — Total Target Impressions (survives here)
       repeat: [30000, 90000],  // Q17 flag B
-      hideOnInStream: true,    // Q19 — the out-stream switch
+                               // hideOnInStream: cut 8 Sep (Q12) — never emitted
       units: [
         {
           slot: "PLAYER_BOTTOM",

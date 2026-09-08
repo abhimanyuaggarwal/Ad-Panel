@@ -51,8 +51,20 @@ const PUBLISHABLE = {
           rungs: sec.slots[t].rungs.map(snapRung),
           behaviour: { ...sec.slots[t].behaviour },
           // A break that follows the waterfall says so — the diff reads the
-          // link, and a restore puts the link back rather than a frozen copy.
-          ...(sec.slots[t].waterfallSource === 'setup' ? { waterfallSource: 'setup' } : {}),
+          // link, and a restore puts the link back rather than a frozen copy. A break
+          // switched off says so too (8 Sep): `own` remains the answer said by ABSENCE,
+          // so an old snapshot still reads exactly as it always did.
+          // AND IT CARRIES WHAT IT OWNS (8 Sep). `rungs` is the SERVED walk, which for
+          // these two answers is derived — the break's own primary plus the waterfall's
+          // units, or the primary alone. What the break itself holds is `ownRungs`, so
+          // the snapshot keeps that too: without it a restore rebuilt the stash from the
+          // served array (a frozen copy of the waterfall), and the diff could not see a
+          // linked break's own primary change at all.
+          ...(sec.slots[t].waterfallSource && sec.slots[t].waterfallSource !== 'own'
+            ? {
+              waterfallSource: sec.slots[t].waterfallSource,
+              ownRungs: (sec.slots[t].ownRungs || []).map(snapRung),
+            } : {}),
         };
         if (sec.slots[t].direct) {
           out.direct = { rungs: (sec.slots[t].direct.rungs || []).map(snapRung) };
@@ -63,7 +75,8 @@ const PUBLISHABLE = {
           out.groups = sec.slots[t].groups.map(g => ({
             rungs: g.rungs.map(snapRung),
             behaviour: { ...g.behaviour },
-            ...(g.waterfallSource === 'setup' ? { waterfallSource: 'setup' } : {}),
+            ...(g.waterfallSource && g.waterfallSource !== 'own'
+              ? { waterfallSource: g.waterfallSource, ownRungs: (g.ownRungs || []).map(snapRung) } : {}),
             ...(g.direct ? { direct: { rungs: (g.direct.rungs || []).map(snapRung) } } : {}),
           }));
         }

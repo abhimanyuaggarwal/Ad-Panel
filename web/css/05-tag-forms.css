@@ -314,6 +314,14 @@ tr.rowlink:hover td:first-child::before {
    they start where the label column ends, every row at the same x, and a dependent field
    exists only while the option needing it is chosen. */
 .lr.rule { grid-template-columns: 14px 118px minmax(0, 1fr) 88px; height: auto; min-height: 38px; padding: 5px 2px; }
+/* A SETTINGS KEY IS NOT A HEADING (8 Sep, user call — *"the delivery settings keys should
+   not be bold"*). `.lr-l` carries 600 because it is also the label on a HEAD band, where
+   it governs the rows under it. In a settings row it governs nothing: the control beside
+   it is the figure, and 600 was making Start offset · Total timeout read a tier above the
+   ad units' own fact labels three rows up. 500 keeps it a label without the heading
+   voice. One rule for the whole family — delivery settings, the waterfall's shared
+   settings and the integration's Ad behaviour card are the same row, drawn three times. */
+.lr.rule .lr-l { font-weight: 500; }
 .lr.rule .lr-ctl.form { justify-content: flex-start; }
 .lr.rule .lr-ctl.form { min-width: 0; flex-wrap: wrap; row-gap: 6px; }
 .lr.rule .num-wrap { flex: 0 0 96px; width: 96px; }

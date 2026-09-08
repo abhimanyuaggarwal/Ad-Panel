@@ -6,6 +6,7 @@
 // seam reads its integrations). That is safe because every cross-module reference is
 // made inside a function, at call time — never at module top level. Keep it that way.
 export * from './store/state.js';
+export * from './store/session.js';
 export * from './store/validate.js';
 export * from './store/tags.js';
 export * from './store/ladders.js';
