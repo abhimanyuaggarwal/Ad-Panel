@@ -665,8 +665,7 @@ function behaviourRowsHtml(t, a) {
     if (!a.set) return '';
     const cur = a.v('headerBidding') || 'auto';
     const mode = cur === 'auto' ? 'auto' : cur === 'off' ? 'off' : 'custom';
-    const partners = ((KL_META.headerBidding && KL_META.headerBidding.length) ? KL_META.headerBidding : HB_ANSWERS)
-      .filter(x => x !== 'off');
+    const partners = hbPartners();
     const served = a.hbServed ? a.hbServed() : '';
     const start = partners.includes(served) ? served : partners[0];
     const modes = [['auto', 'Auto', 'auto'], ['off', 'Off', 'off'], ['custom', 'Custom', start]];
@@ -735,7 +734,10 @@ function behaviourRowsHtml(t, a) {
   const fillRows = () => {
     const cfg = a.rungCount ? a.rungCount() : 0;
     const ms = Number(a.v('tagTimeoutMs')) || 0;
-    // The unreachable tail, counted from the two numbers on screen (31 Aug).
+    // The unreachable tail, counted from the two numbers on screen (31 Aug). This is the
+    // web-side MIRROR of `unreachableTail` in api/store/ladders.js — same arithmetic, said
+    // live while you type rather than on save. No bundler, so the two sides of HTTP cannot
+    // share a module; move them together (as with servedHeaderBidding / suHbServed).
     const fillNote = () => {
       const fill = Number(a.v('fillTimeoutSec')) || 0;
       if (!fill || !ms || cfg < 2) return '';
@@ -804,4 +806,34 @@ function dlgCardsFilter(el) {
   if (!shown && q) {
     if (!none) grid.insertAdjacentHTML('afterend', '<div class="dlg-none">Nothing matches</div>');
   } else if (none) none.remove();
+}
+
+// ---------- CHANGES TO APPLY — every bulk sheet's queue, beside the fields that made it ----------
+// Shared by the ad sheet and the player sheet (14 Sep, user call — *"can we have them the same
+// way as the change ad behaviour pending changes on the right side section; the pending changes
+// can be renamed to something clear and communicative"*). One card, one tinted header, no nested
+// boxes: a row is the field, its from → to underneath, and an × that surfaces on hover. Empty, it
+// says so in a few words and holds its ground, so the sheet does not resize as the queue fills.
+//
+// `rows` are `{ label, from, to, drop }` — `drop` being the inline-handler STRING for that row's
+// ×. `opts.clear` is the same for the header's Clear, `opts.empty` the words for an empty queue.
+function changesCardHtml(rows, opts = {}) {
+  return `<aside class="bqp">
+    <div class="bqp-card">
+      <div class="bqp-hd">
+        <span>Changes to apply${rows.length ? ` · ${rows.length}` : ''}</span>
+        <span class="bqs-gap"></span>
+        ${rows.length && opts.clear ? `<button type="button" class="zlink" onclick="${opts.clear}">Clear</button>` : ''}
+      </div>
+      ${rows.length ? rows.map(r => `
+        <div class="bqp-r">
+          <div class="bqp-top">
+            <span class="bqp-f">${esc(r.label)}</span>
+            ${r.drop ? `<button type="button" class="bqs-x" onclick="${r.drop}">×</button>` : ''}
+          </div>
+          <div class="bqp-vc">${esc(r.from)}<i class="rvw-arr">→</i><b>${esc(r.to)}</b></div>
+        </div>`).join('')
+      : `<div class="bqp-empty">${esc(opts.empty || 'Nothing changed yet')}</div>`}
+    </div>
+  </aside>`;
 }

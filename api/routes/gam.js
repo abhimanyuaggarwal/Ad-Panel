@@ -1,5 +1,6 @@
 // api/routes/gam.js — /panel/gam — the mock GAM ad unit directory: search and sync.
 import express from 'express';
+import { gamSyncDelayMs } from '../config.js';
 import * as store from '../store.js';
 import { handle } from '../error-handler.js';
 
@@ -16,7 +17,7 @@ r.post('/panel/gam/sync', (req, res) => {
     const { added, lastSync } = store.gamSync();
     rs.json({ added: added.length, units: added, lastSync });
   });
-  setTimeout(() => go(req, res), process.env.NODE_ENV === 'test' ? 0 : 1800);
+  setTimeout(() => go(req, res), gamSyncDelayMs());
 });
 
 export default r;

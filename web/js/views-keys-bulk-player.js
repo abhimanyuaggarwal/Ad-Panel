@@ -1,270 +1,48 @@
-// views-keys-bulk-player.js — the two PLAYER bulk sheets over a selection:
-//   · Custom player behaviour — master-detail: every integration's default player and
-//     named configs, edited together, reviewed, written as drafts (API.updateKey)
-//   · Default player behaviour — one step: blanket-set the default player's facts across
-//     the selection (the `playerFields` bulk action)
+// views-keys-bulk-player.js — PLAYER BEHAVIOUR, the cohort act over a selection: the five
+// playback facts a team decides for a whole estate at once, blanket-set on each selected
+// integration's player (the `playerFields` bulk action).
 // Loads after views-keys-bulk-ads.js; uses the list file's selection helpers at runtime.
+//
+// ONE SHEET, NOT TWO (14 Sep, second cut, user call — *"let's drop Change default player
+// behaviour and Custom player behaviour and have a Player behaviour which will have options
+// to control a few fields"*). There used to be a cohort sheet beside a master-detail sheet
+// that walked every custom config of every selected surface. The master-detail sheet is
+// gone: a config belongs to the surface that owns it, and the integration page already
+// draws the whole catalogue — default and custom alike — in one place, with a working copy,
+// Cancel and Done. Editing thirty configs from a cohort bar was capability nobody asked for
+// standing where the one simple act should have been.
+//
+// The rows come from `BULK_ROWS` and are drawn with the integration page's own control
+// renderer (`cfgCtlHtml`, `cfgDefs()`), so a control here can never drift from the same
+// control there — this sheet only supplies its own receiver. The anatomy is the ad sheet's
+// (14 Sep, user call): levers on the left, CHANGES TO APPLY on the right in the card both
+// sheets now share (`changesCardHtml`), so the two cohort acts are one screen learnt once.
 
-// ---------- CHANGE PLAYER BEHAVIOUR (2 Sep, user call) ----------
-// The bulk bar's second object: every player config of every selected integration —
-// Default first, then each named fork — on one sheet, read and edited together. One
-// bordered group per integration (the review's own anatomy), one row per config, the
-// three per-placement facts as columns. Edits queue in a draft; Review reads them back
-// grouped the same way before a single draft is written. Publishing stays per surface.
-let PB_DRAFT = null;   // { keys: [{ id, name, platform, player, playerConfigs, orig }] }
+let PB = null;   // { fields: {}, seed: {}, open: Set(field) }
 
 function playerBehaviourJourney() {
   if (!KSEL.size) return;
-  PB_DRAFT = {
-    keys: selectedKeys().map(k => ({
-      id: k.id, name: k.name, platform: k.platform,
-      player: JSON.parse(JSON.stringify(k.player)),
-      playerConfigs: JSON.parse(JSON.stringify(k.playerConfigs || [])),
-      orig: JSON.parse(JSON.stringify({ player: k.player, playerConfigs: k.playerConfigs || [] })),
-    })),
-  };
+  PB = { fields: {}, seed: {}, open: new Set() };
   renderPBScreen();
 }
 
 function closePBScreen() {
-  PB_DRAFT = null;
-  PB_SEL = { ki: 0, ci: -1 };
-  document.getElementById('dialog-root').innerHTML = '';
+  PB = null;
+  closeDialog();
 }
 
-// ci = -1 is the Default (the key's own player); 0.. are the named forks.
-function pbCfg(k, ci) { return ci < 0 ? k.player : k.playerConfigs[ci]; }
-
-function pbSet(ki, ci, f, v) {
-  pbCfg(PB_DRAFT.keys[ki], ci)[f] = v;
-  renderPBScreen();
+// ---------- what the selection holds today ----------
+// COUNTED, never a suggestion: one word when they agree, the spread when they don't.
+function pbWordOf(f, v) {
+  if (v !== undefined && v !== null) return pbWord(f, v);
+  const d = cfgDefs()[f] || {};
+  return d.dflt !== undefined ? pbWord(f, d.dflt) : '—';
 }
 
-// Every field one config moved, in the panel's words — the review rows and the foot's
-// count read the same list.
-function pbChanges() {
-  const out = [];
-  const word = (f, v) => pbFieldWord(f, v);
-  for (const k of PB_DRAFT.keys) {
-    const pairs = [[-1, 'Default', k.player, k.orig.player]];
-    k.playerConfigs.forEach((c, i) => {
-      const o = k.orig.playerConfigs.find(x => x.id === c.id);
-      if (o) pairs.push([i, c.name, c, o]);
-    });
-    for (const [ci, cfgName, cur, orig] of pairs) {
-      // ONE LIST, DRAWN IN TWO PLACES (11 Sep). The facts a fork may carry went from
-      // three to six, and this sheet's own promise — "a new player-config fact is one
-      // more form row HERE and nowhere else" — only holds if it reads the same list the
-      // integration page reads. `pcFields()` is that list; the seam holds it too
-      // (CONFIG_FORKABLE), so a fork edited here can never lose a field it carries there.
-      // Passive volume is still not among them: it is the PLAYER's one volume (7 Sep).
-      for (const f of pcFields().map(d => d.f)) {
-        if (JSON.stringify(cur[f]) !== JSON.stringify(orig[f])) {
-          out.push({
-            where: `${k.name} · ${cfgName}`, field: f,
-            fromText: word(f, orig[f]),
-            toText: word(f, cur[f]),
-            ki: PB_DRAFT.keys.indexOf(k), ci,
-          });
-        }
-      }
-    }
-  }
-  return out;
-}
-
-// MASTER-DETAIL (3 Sep, user call — a column per field cannot scale): the left rail
-// is every selected integration's configs, Default first; the right pane is the
-// SELECTED config's whole field form, which grows DOWNWARD as configs grow fields —
-// n fields is a longer form, never a wider table. A config this sheet moved wears the
-// accent bar on its rail row; the counted foot and the change review are unchanged.
-let PB_SEL = { ki: 0 };
-
-// The rail picks an INTEGRATION; a queue row picks one and scrolls its config into
-// view, so a change you queued three surfaces ago is still one click from its form.
-function pbSelect(ki, ci) {
-  PB_SEL = { ki };
-  renderPBScreen();
-  if (ci === undefined) return;
-  const el = document.getElementById(`pbg-${ci}`);
-  if (el) el.scrollIntoView({ block: 'nearest' });
-}
-
-// ONE ROW PER INTEGRATION (3 Sep, user call). The rail used to list every config of
-// every surface — with six surfaces that is thirty rows to walk, and the configs of one
-// integration were never on screen together. Now the rail is the cohort and the right
-// side is one integration WHOLE: its default, then each named fork.
-// The rail is the cohort AND the change map: a surface with edits carries the count,
-// so "what have I touched, and where" is answered without a second list of the same
-// changes in different words. The names already carry the platform.
-function pbRailHtml() {
-  return PB_DRAFT.keys.map((k, ki) => {
-    const n = pbChanges().filter(c => c.ki === ki).length;
-    return `
-      <button type="button" class="pbr-row ${PB_SEL.ki === ki ? 'sel' : ''} ${n ? 'dirty' : ''}"
-        onclick="pbSelect(${ki})">
-        <span class="pbr-n">${esc(k.name)}</span>
-        ${n ? `<span class="pbr-count">${n}</span>` : ''}
-      </button>`;
-  }).join('');
-}
-
-// The selected config's form — the SAME rows the integration page draws, stacked so a
-// future fourth or tenth fact is one more row here and nowhere else.
-// The selected integration, WHOLE: its default and every named fork, each a small
-// bounded block of the same three rows. A future fourth or tenth fact is one more row
-// here and nowhere else.
-// THE CHANGE LIVES WHERE THE CHANGE WAS MADE (3 Sep, user call — the queue on top is
-// gone). A strip above the form said the same thing twice in two vocabularies, a screen
-// apart, and grew downward as you worked — so the form moved under the cursor and the
-// dialog changed size. Now a moved field says so in its own row: an accent bar, the
-// value it held, and an × that puts it back. The rail counts them per surface, and
-// Review still reads every one before anything lands.
-// The word for a value, from the same definition that draws its control — so the rail,
-// the "was" and the review can never spell one answer three ways.
-function pbFieldWord(f, v) {
-  const d = pcFields().find(x => x.f === f);
-  return d ? d.word(v ?? d.dflt) : String(v);
-}
-function pbWasWord(f, v) { return pbFieldWord(f, v); }
-
-function pbConfigBlockHtml(ki, ci) {
-  const k = PB_DRAFT.keys[ki];
-  const c = pbCfg(k, ci);
-  const meta = KL_META;
-  const orig = ci < 0 ? k.orig.player : k.orig.playerConfigs.find(x => x.id === c.id);
-  const moved = f => !!orig && JSON.stringify(c[f]) !== JSON.stringify(orig[f]);
-  const rowMoved = f => moved(f);
-  const wasWord = f => pbWasWord(f, orig[f]);
-  const frow = (f, lbl, ctl, why) => {
-    const m = rowMoved(f);
-    return `
-    <div class="pbd-r ${m ? 'moved' : ''}"${why ? ` title="${esc(why)}"` : ''}>
-      <span class="pbd-l">${esc(lbl)}</span>
-      <span class="pbd-c">${ctl}</span>
-      <span class="pbd-s">${m ? `<span class="pbd-was">was ${esc(wasWord(f))}</span>
-        <button type="button" class="pbd-x" onclick="pbDropField(${ki}, ${ci}, '${f}')">×</button>` : ''}</span>
-    </div>`;
-  };
-  // The form grows DOWNWARD as a config grows facts — n fields is a longer form, never
-  // a wider table. Six rows today, in the integration page's own order and grouped under
-  // its own section names, so the sheet and the page read as one document.
-  let lastSec = '';
-  const rows = pcFields().map(d => {
-    const head = d.sec !== lastSec ? `<div class="pbd-sec">${esc(d.sec)}</div>` : '';
-    lastSec = d.sec;
-    return head + frow(d.f, d.l,
-      accSeg(c[d.f] ?? k.player[d.f] ?? d.dflt, d.seg[0], d.seg[1],
-        o => `pbSet(${ki}, ${ci}, '${d.f}', ${typeof o === 'string' ? `'${o}'` : o})`));
-  }).join('');
-  return `
-    <div class="pbd-g" id="pbg-${ci}">
-      <div class="pbd-gh">${esc(ci < 0 ? 'Default' : c.name)}</div>
-      ${rows}
-    </div>`;
-}
-
-function pbDetailHtml() {
-  const { ki } = PB_SEL;
-  const k = PB_DRAFT.keys[ki];
-  return `
-    <div class="pbd-h">${esc(k.name)}</div>
-    ${[-1, ...k.playerConfigs.map((_, ci) => ci)].map(ci => pbConfigBlockHtml(ki, ci)).join('')}`;
-}
-
-
-// THE QUEUE ON TOP (3 Sep, user call — the ad sheet's own logic): what this sheet has
-// changed collects in one strip above the rail and form, each row one change — where it
-// lands, what it was, what it becomes — with the ad sheet's exact anatomy: × drops it,
-// clicking it jumps the rail to that config. Review (step 2) then reads the same list.
-function pbDropField(ki, ci, f) {
-  const k = PB_DRAFT.keys[ki];
-  const cur = pbCfg(k, ci);
-  const orig = ci < 0 ? k.orig.player : k.orig.playerConfigs.find(x => x.id === cur.id);
-  if (!orig) return;
-  cur[f] = JSON.parse(JSON.stringify(orig[f]));
-  renderPBScreen();
-}
-
-
-function renderPBScreen() {
-  const d = PB_DRAFT;
-  const n = pbChanges().length;
-  document.getElementById('dialog-root').innerHTML = `
-    <div class="dlg-veil"><div class="dlg bulk pb steady">
-      <h3>Custom player behaviour<span class="dlg-kicker">${d.keys.length} integration${d.keys.length > 1 ? 's' : ''}</span></h3>
-      <div class="dlg-body pb-body">
-        <div class="pb-split">
-          <div class="pbr scrolly">${pbRailHtml()}</div>
-          <div class="pbd">${pbDetailHtml()}</div>
-        </div>
-      </div>
-      <div class="dlg-foot">
-        <button class="btn ghost" onclick="closePBScreen()">Cancel</button>
-        <button class="btn" id="pb-next" ${n ? '' : 'disabled'}
-          onclick="pbReview()">${n ? `Review ${n} change${n === 1 ? '' : 's'}` : 'Review changes'}</button>
-      </div>
-    </div></div>`;
-}
-
-async function pbReview() {
-  const changes = pbChanges();
-  if (!changes.length) return;
-  const touched = PB_DRAFT.keys.filter(k =>
-    JSON.stringify({ player: k.player, playerConfigs: k.playerConfigs }) !== JSON.stringify(k.orig));
-  const ok = await reviewChanges({
-    title: `Apply to ${touched.length} integration${touched.length > 1 ? 's' : ''}?`,
-    kicker: 'player behaviour — drafts only',
-    changes,
-    okLabel: `Apply to ${touched.length}`,
-    cancelLabel: 'Back',
-    // Step 2 of the master-detail sheet: same footprint (see .dlg.rvw.steady-player).
-    steady: 'player',
-  });
-  if (!ok) { renderPBScreen(); return; }
-  let saved = 0;
-  for (const k of touched) {
-    try {
-      await API.updateKey(k.id, { player: k.player, playerConfigs: k.playerConfigs });
-      saved++;
-    } catch (e) {
-      toast(`${k.name}: ${e.message}`, 'bad');
-    }
-  }
-  closePBScreen();
-  toast(`${saved} draft${saved === 1 ? '' : 's'} written`);
-  await refreshKeysList();
-}
-
-// ---------- BULK: DEFAULT PLAYER BEHAVIOUR (3 Sep, user call — the third act) ----------
-// Custom player behaviour walks each integration's configs one by one; this one act
-// blanket-sets the DEFAULT player's three facts across the whole selection. Custom
-// configs are never touched — they are each surface's own, edited in the other sheet.
-// The sheet reads its own change back — a set row shows “was <today>” beside its value —
-// and Apply then ends on THE CHANGE REVIEW like the other two bulk acts (7 Sep, UAT P2:
-// the one-step exception made this the only cohort write nobody read first).
-let DC_DRAFT = null;   // { fields: {}, open: Set }
-
-function defaultConfigJourney() {
-  if (!KSEL.size) return;
-  DC_DRAFT = { fields: {}, open: new Set() };
-  renderDCScreen();
-}
-
-function closeDCScreen() {
-  DC_DRAFT = null;
-  document.getElementById('dialog-root').innerHTML = '';
-}
-
-// What the selection holds today, counted — one word when they agree, the spread when
-// they don't. Never a suggestion, never a preselected answer.
-function dcTodayWord(f) {
+function pbTodayWord(f) {
   const words = [];
   for (const k of selectedKeys()) {
-    const p = k.player || {};
-    let w;
-    const w0 = pcFields().find(x => x.f === f);
-    w = w0 ? w0.word(p[f] ?? w0.dflt) : String(p[f]);
+    const w = pbWordOf(f, (k.player || {})[f]);
     if (!words.includes(w)) words.push(w);
   }
   if (words.length === 1) return words[0];
@@ -272,92 +50,197 @@ function dcTodayWord(f) {
   return `${words.length} different values`;
 }
 
-function dcOpen(f) { DC_DRAFT.open.add(f); renderDCScreen(); }
-
-function dcUnset(f) {
-  DC_DRAFT.open.delete(f);
-  delete DC_DRAFT.fields[f];
-  renderDCScreen();
+// ---------- the draft ----------
+// OPENING A ROW NEVER QUEUES ONE. A segment can draw "nothing chosen"; a number cannot, so
+// it is SEEDED — from what the selection already holds when it agrees, and from the field's
+// own default when it does not. A seed is counted, never a suggestion: nothing is queued
+// until somebody moves it, and the foot's count only ever counts real answers.
+function pbOpen(f) {
+  PB.open.add(f);
+  if (PB.seed[f] === undefined) {
+    const vals = [];
+    for (const k of selectedKeys()) {
+      const v = (k.player || {})[f];
+      if (!vals.some(x => JSON.stringify(x) === JSON.stringify(v))) vals.push(v);
+    }
+    const d = cfgDefs()[f] || {};
+    const one = vals.length === 1 && vals[0] !== undefined ? vals[0] : d.dflt;
+    if (one !== undefined) PB.seed[f] = one;
+  }
+  renderPBScreen();
 }
 
-function dcSet(f, v) {
-  DC_DRAFT.fields[f] = v;
-  renderDCScreen();
+function pbUnset(f) {
+  PB.open.delete(f);
+  delete PB.fields[f];
+  delete PB.seed[f];
+  renderPBScreen();
 }
 
-function dcRowHtml(f, lbl, ctl, why) {
-  const set = DC_DRAFT.fields[f] !== undefined;
-  const open = set || DC_DRAFT.open.has(f);
+function pbEff() { return { ...PB.seed, ...PB.fields }; }
+function pbPut(f, v) { PB.fields[f] = v; }
+function pbSet(f, v) { pbPut(f, v); renderPBScreen(); }
+function pbChip(f, o) {
+  const def = cfgDefs()[f];
+  const cur = pbEff()[f] || [];
+  const has = cur.some(x => String(x) === String(o));
+  if (has && def.keep !== undefined && String(o) === String(def.keep)) return;
+  pbSet(f, has ? cur.filter(x => String(x) !== String(o)) : [...cur, o]);
+}
+// A timing or a threshold of 0 means OFF — a switch and a number, never a zero somebody has
+// to know the meaning of. The last real value is kept while the switch is off.
+const PB_LAST = {};
+function pbZero(f, dflt) {
+  const cur = pbEff()[f] ?? 0;
+  if (cur > 0) { PB_LAST[f] = cur; pbSet(f, 0); } else pbSet(f, PB_LAST[f] || dflt);
+}
+// TYPING NEVER REPAINTS, or the caret goes with it: the row is marked queued in place and
+// the foot recounts, which is everything a repaint would have done.
+function pbNum(el, f) { const n = Number(el.value); if (Number.isFinite(n)) pbPut(f, n); pbMark(el); }
+function pbMs(el, f) { const n = Number(el.value); pbPut(f, Number.isFinite(n) ? Math.round(n * 1000) : 0); pbMark(el); }
+function pbText(el, f) { pbPut(f, el.value); pbMark(el); }
+// TYPING NEVER REPAINTS THE SHEET, or the caret goes with it — so the row is marked queued,
+// its now-redundant today-word removed, and the card and foot redrawn IN PLACE. The card holds
+// no field the caret can be in, so redrawing it costs nothing.
+function pbMark(el) {
+  const row = el.closest('.bqf-r');
+  if (row) {
+    row.classList.add('queued');
+    const tail = row.querySelector('.bqf-today');
+    if (tail) tail.remove();
+  }
+  const card = dialogRoot().querySelector('.bqp');
+  if (card) card.outerHTML = pbChangesCardHtml();
+  pbFootSync();
+}
+function pbFootSync() {
+  const n = Object.keys(PB.fields).length;
+  const keys = selectedKeys();
+  const c = dialogRoot().querySelector('.rvw-count');
+  if (c) c.textContent = n ? `${n} change${n === 1 ? '' : 's'} · ${keys.length} integration${keys.length > 1 ? 's' : ''}` : '';
+  const btn = document.getElementById('pb-apply');
+  if (btn) btn.disabled = !n;
+}
+
+// WHO RECEIVES THE ANSWER on this sheet — one verb per way a control can be written to, so
+// the page's control renderer draws for this draft without knowing anything about it. Every
+// kind is wired even though five rows use two of them: a sixth row is then a list entry,
+// never a new handler.
+const PB_H = {
+  set: (f, v) => `pbSet('${f}', ${v})`,
+  chip: (f, v) => `pbChip('${f}', ${v})`,
+  zero: (f, d) => `pbZero('${f}', ${d})`,
+  num: f => `pbNum(this, '${f}')`,
+  ms: f => `pbMs(this, '${f}')`,
+  text: f => `pbText(this, '${f}')`,
+  color: f => `pbText(this, '${f}')`,
+  hex: f => `pbText(this, '${f}')`,
+  repaint: () => 'renderPBScreen()',
+  pick: f => (x => pbSet(f, x)),
+};
+
+// ---------- the rows ----------
+// A row is SHUT until it is asked for: its name, what the selection holds today, and the one
+// word that opens it. Open, it is the page's own control with the value it is replacing
+// beside it and an × that leaves the field alone again. Nothing is preselected, so a sheet
+// nobody touched changes nothing.
+function pbRowHtml(f, def, eff) {
+  const set = PB.fields[f] !== undefined;
+  const open = set || PB.open.has(f);
+  const today = pbTodayWord(f);
   if (!open) {
     return `
-    <div class="bqf-r closed" onclick="dcOpen('${f}')"${why ? ` title="${esc(why)}"` : ''}>
-      <span class="bqf-l">${esc(lbl)}</span>
-      <span class="bqf-today">${esc(dcTodayWord(f))}</span>
+    <div class="bqf-r closed" data-r="${f}" onclick="pbOpen('${f}')">
+      <span class="bqf-l">${esc(def.l)}</span>
+      <span class="bqf-today">${esc(today)}</span>
       <span class="bqf-set">Set</span>
     </div>`;
   }
+  const na = def.na ? def.na(eff) : '';
+  // OPEN, THE ROW SAYS WHAT IT IS ANSWERING AND NOTHING ELSE. A queued row's from → to is on
+  // the card to the right; printing it here as well said one thing twice, a hand's width
+  // apart, in two vocabularies. An unset open row keeps today's value, because that is the
+  // thing the control is about to replace and there is nothing on the card yet.
   return `
-    <div class="bqf-r open ${set ? 'queued' : ''}"${why ? ` title="${esc(why)}"` : ''}>
-      <span class="bqf-l">${esc(lbl)}</span>
-      <span class="bqf-c form">${ctl()}</span>
-      <span class="bqf-s">${set
-        ? `<span class="bqf-was">was ${esc(dcTodayWord(f))}</span>`
-        : `<span class="bqf-today">${esc(dcTodayWord(f))}</span>`}
-        <button type="button" class="bqs-x on" onclick="dcUnset('${f}')">×</button></span>
+    <div class="bqf-r open ${set ? 'queued' : ''}" data-r="${f}"${na ? ` title="${esc(na)}"` : ''}>
+      <span class="bqf-l">${esc(def.l)}</span>
+      <span class="bqf-c form">${cfgCtlHtml(f, def, eff, na, PB_H)}</span>
+      <span class="bqf-s">${set ? '' : `<span class="bqf-today">${esc(today)}</span>`}
+        <button type="button" class="bqs-x on" title="Leave this one alone" onclick="pbUnset('${f}')">×</button></span>
     </div>`;
 }
 
-function renderDCScreen() {
-  if (!DC_DRAFT) return;
-  const meta = KL_META;
-  const f = DC_DRAFT.fields;
-  const n = Object.keys(f).length;
+// The queue, in the card the ad sheet draws too — one component, one grammar, one name.
+function pbChangesCardHtml() {
+  return changesCardHtml(pbChanges().map(c => ({
+    label: c.label, from: c.fromText, to: c.toText, drop: `pbUnset('${c.field}')`,
+  })), { clear: 'pbClear()', empty: 'Nothing changed yet' });
+}
+
+function pbClear() {
+  PB.fields = {};
+  PB.open = new Set();
+  PB.seed = {};
+  renderPBScreen();
+}
+
+function renderPBScreen() {
+  if (!PB) return;
+  const n = Object.keys(PB.fields).length;
   const keys = selectedKeys();
-  document.getElementById('dialog-root').innerHTML = `
-    <div class="dlg-veil"><div class="dlg sheet">
-      <h3>Default player behaviour<span class="dlg-kicker">${keys.length} integration${keys.length > 1 ? 's' : ''} · custom configs keep their own values</span></h3>
+  const eff = pbEff();
+  const defs = cfgDefs();
+  const was = dialogRoot().querySelector('.dlg-body');
+  const top = was ? was.scrollTop : 0;
+  dialogRoot().innerHTML = `
+    <div class="dlg-veil"><div class="dlg bulk pbx steady">
+      <h3>Player behaviour<span class="dlg-kicker">${keys.length} integration${keys.length > 1 ? 's' : ''} · custom configs follow unless they overrode it</span></h3>
       <div class="dlg-body">
-        ${pcFields().map(d => dcRowHtml(d.f, d.l,
-          () => accSeg(f[d.f], d.seg[0], d.seg[1],
-            o => `dcSet('${d.f}', ${typeof o === 'string' ? `'${o}'` : o})`))).join('')}
+        <div class="bulk-split">
+          <div class="bulk-fields">${BULK_ROWS.map(f => pbRowHtml(f, defs[f], eff)).join('')}</div>
+          ${pbChangesCardHtml()}
+        </div>
       </div>
       <div class="dlg-foot">
         <span class="rvw-count">${n ? `${n} change${n === 1 ? '' : 's'} · ${keys.length} integration${keys.length > 1 ? 's' : ''}` : ''}</span>
-        <button class="btn ghost" onclick="closeDCScreen()">Cancel</button>
-        <button class="btn" ${n ? '' : 'disabled'} onclick="dcApply()">Apply</button>
+        <button class="btn ghost" onclick="closePBScreen()">Cancel</button>
+        <button class="btn" id="pb-apply" ${n ? '' : 'disabled'} onclick="pbApply()">Apply</button>
       </div>
     </div></div>`;
+  const body = dialogRoot().querySelector('.dlg-body');
+  if (body && top) body.scrollTop = top;
 }
 
-function dcValueWord(f, v) { return pbFieldWord(f, v); }
-
-function dcChanges() {
-  // The same six this sheet draws (11 Sep) — words from the one definition, so the
-  // review can never name a field differently from the row that moved it.
-  const words = Object.fromEntries(pcFields().map(d => [d.f, d.l]));
-  return Object.keys(DC_DRAFT.fields).map(f => ({
-    where: 'Default player', field: f, label: words[f] || f,
-    fromText: dcTodayWord(f), toText: dcValueWord(f, DC_DRAFT.fields[f]),
+function pbChanges() {
+  return Object.keys(PB.fields).map(f => ({
+    where: 'Player behaviour', field: f, label: cfgFieldLabel(f),
+    fromText: pbTodayWord(f),
+    toText: pbWordOf(f, PB.fields[f]),
   }));
 }
 
-async function dcApply() {
-  const f = DC_DRAFT.fields;
-  if (!Object.keys(f).length) return;
-  const fields = { ...f };
+// Apply ends on THE CHANGE REVIEW like every other cohort act (7 Sep, UAT P2: the one-step
+// exception made this the only cohort write nobody read first).
+async function pbApply() {
+  if (!PB || !Object.keys(PB.fields).length) return;
+  const fields = { ...PB.fields };
+  const seed = { ...PB.seed };
   const keys = selectedKeys();
   const names = keys.slice(0, 2).map(k => k.name).join(', ') + (keys.length > 2 ? ` +${keys.length - 2} more` : '');
-  const changes = dcChanges();
-  closeDCScreen();
+  const changes = pbChanges();
+  closePBScreen();
   const ok = await reviewChanges({
     title: `Apply to ${keys.length} integration${keys.length > 1 ? 's' : ''}?`,
     kicker: names,
     changes,
     okLabel: `Apply to ${keys.length}`,
     cancelLabel: 'Back',
+    // Step 2 of this journey — same footprint, so the footer does not move (see
+    // `.dlg.rvw.steady-player`).
+    steady: 'player',
   });
   // Back leaves the sheet exactly as it was — the levers are still there to edit.
-  if (!ok) { DC_DRAFT = { fields, open: new Set(Object.keys(fields)) }; renderDCScreen(); return; }
+  if (!ok) { PB = { fields, seed, open: new Set() }; renderPBScreen(); return; }
   await bulkApplyDirect('playerFields', { fields });
   await refreshKeysList();
 }

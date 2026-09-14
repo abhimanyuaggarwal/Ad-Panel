@@ -47,10 +47,6 @@ function renderKeyForm(meta) {
           <div class="field" style="min-width: 150px"><label>Platform</label>
             ${selectHtml(d.platform, meta.platforms.map(v => ({ v, label: label('platform', v) })), v => { FORM.data.platform = v; clearErr('platform'); FORM.rerender(); })}
           </div>
-          ${!editing && d.presetName ? `
-          <div class="field" style="min-width: 170px"><label>Player preset</label>
-            ${selectHtml(d.presetName, meta.playerPresets.map(p => ({ v: p.name, label: p.name })), v => stampPreset(v))}
-          </div>` : ''}
         </div>
         <div class="frow">
           ${chipsFieldHtml('Domains', 'domains', { placeholder: 'add a domain and press Enter', grow: true, dep: 'web' })}
@@ -82,11 +78,11 @@ function keyPayload(d) {
     name: d.name, property: d.property, platform: d.platform,
     domains: d.domains, packageName: d.packageName,
     adSetupId: d.adSetupId || null,
-    drive: d.drive && Object.keys(d.drive).length ? JSON.parse(JSON.stringify(d.drive)) : null,
+    drive: d.drive && Object.keys(d.drive).length ? deepCopy(d.drive) : null,
     player: d.player,
     // A row nobody keyed is a row nobody made: it never reaches the server, so an
     // abandoned add costs a refusal to no one.
-    playerConfigs: JSON.parse(JSON.stringify((d.playerConfigs || []).filter(c => (c.name || '').trim()))),
+    playerConfigs: deepCopy((d.playerConfigs || []).filter(c => (c.name || '').trim())),
     sections: d.sections.map(s => ({
       name: s.name,
       slots: Object.fromEntries(Object.entries(s.slots || {}).map(([t, slot]) => [t, { on: !!slot.on }])),
@@ -180,36 +176,30 @@ function createChangeList() {
   born('', 'property', d.property);
   born('', 'platform', label('platform', d.platform));
   born('', web ? 'domains' : 'packageName', web ? d.domains.join(', ') : d.packageName.trim());
-  // THE PLAYER, SECTION BY SECTION (11 Sep) — the card's THREE sections, in the card's
-  // own order, so the birth certificate reads as the page someone just filled in. Only
-  // what a reader would otherwise open a fold to learn: what decides how the player acts.
+  // THE PLAYER IS ITS SEED PLUS WHAT MOVED (14 Sep). Until now the birth certificate copied
+  // the preset out — twenty-five rows of values nobody typed, under which the one or two
+  // settings somebody DID decide were indistinguishable from the rest. A new default
+  // player is a photocopy of a named shape (a preset, or the surface it was copied from),
+  // so that is the fact: the seed on one line, then every setting that moved off it as
+  // WAS → NOW against the seed — the same rows the Default card counts and the sheet
+  // wears the bar on, in the card's own sections and the sheet's own words. A copy's seed
+  // is already the `Copied from` line above, so only its moves are listed.
   const p = d.player || {};
-  const secsOf = ms => (ms > 0 ? `${ms / 1000}s` : 'off');
-  born('Playback', 'playbackMode', label('playbackMode', p.playbackMode));
-  born('Playback', 'quality', (p.quality || 'auto') === 'auto' ? 'Auto' : p.quality);
-  born('Playback', 'fallbackMediaId', (p.fallbackMediaId || '').trim());
-  born('Playback', 'autoplay', label('autoplay', p.autoplay ?? 'auto'));
-  born('Playback', 'passiveVolume', `${p.passiveVolume ?? 100}%`);
-  born('Playback', 'muted', p.muted ? 'Yes' : 'No');
-  born('Playback', 'playback', label('playback', p.playback ?? 'active'));
-  born('Playback', 'expandInMini', (p.expandInMini ?? true) ? 'Yes' : 'No');
-  born('Playback', 'rememberVolume', (p.rememberVolume ?? true) ? 'Yes' : 'No');
-  born('Playback', 'rememberAudioLang', (p.rememberAudioLang ?? true) ? 'Yes' : 'No');
-  born('Playback', 'rememberCaptions', (p.rememberCaptions ?? true) ? 'Yes' : 'No');
-  born('Controls & appearance', 'controlsMode', label('controlsMode', p.controlsMode ?? 'full'));
-  born('Controls & appearance', 'hiddenControls', (p.hiddenControls || []).length
-    ? p.hiddenControls.map(x => label('playerControl', x)).join(', ') : 'none hidden');
-  born('Controls & appearance', 'controlsAutoHideMs', secsOf(p.controlsAutoHideMs ?? 5000));
-  born('Playback', 'dock', label('dock', p.dock ?? 'lb'));
-  born('Playback', 'autoPausePct', (p.autoPausePct ?? 0) > 0 ? `${p.autoPausePct}%` : 'off');
-  born('Playback', 'loop', p.loop ? 'Yes' : 'No');
-  born('Playback', 'endScreen', label('endScreen', p.endScreen ?? 'none'));
-  born('Controls & appearance', 'brandColor', p.brandColor || '');
-  born('Controls & appearance', 'textColor', p.textColor || '');
-  born('Controls & appearance', 'logoUrl', (p.logoUrl || '').trim());
-  born('Analytics & measurement', 'analyticsLevel', label('analyticsLevel', p.analyticsLevel ?? 3));
-  born('Analytics & measurement', 'viewAfterMs', secsOf(p.viewAfterMs ?? 3000));
-  born('Analytics & measurement', 'heartbeatMs', secsOf(p.heartbeatMs ?? 10000));
+  if (d.presetName) rows.push({ where: 'Player', field: 'preset', label: 'Default config', fromText: '—', toText: `${d.presetName} preset` });
+  const seed = d.playerSeed || {};
+  // A seed that never spoke about a field left it at the player's own default — that is the
+  // word the reviewer should see it move FROM, not "follows default", which is a config's.
+  const seedWord = f => {
+    const v = seed[f];
+    if (v !== undefined && v !== null) return pbWord(f, v);
+    const def = cfgDefs()[f] || {};
+    return def.dflt !== undefined ? pbWord(f, def.dflt) : (def.none || '—');
+  };
+  for (const f of pcMovedFields()) {
+    const sec = CFG_SECTIONS.find(s => cfgSecFields(s).includes(f));
+    rows.push({ where: `Player · ${sec ? sec.name : 'Playback'}`, field: f, label: cfgFieldLabel(f),
+      fromText: seedWord(f), toText: pbWord(f, p[f]) });
+  }
   for (const c of d.playerConfigs || []) {
     const n = (KL_META.playerFields || []).filter(f => c[f] !== undefined).length;
     rows.push({ where: 'Player configs', field: c.name, label: c.name, fromText: '—',
@@ -242,7 +232,9 @@ function keyClientErrors(d) {
   if (!web && !(d.packageName || '').trim()) {
     errs.push({ field: 'packageName', message: `${plat} integrations need a package name (e.g. com.toi.reader)` });
   }
-  if ((FORM.data.playerConfigs || []).some(c => PC_BAD.has(c))) {
+  // The three key rules, read straight off the data (14 Sep) — the map of bad keys a
+  // half-born column used to need is gone with the column.
+  if ((FORM.data.playerConfigs || []).some((c, i) => pcKeyWhy((c.name || '').trim(), i))) {
     errs.push({ field: 'playerConfigs', message: 'Fix the custom config key first' });
   }
   if (typeof DRIVE_CUE_BAD !== 'undefined' && DRIVE_CUE_BAD) {
@@ -278,8 +270,8 @@ async function saveKeyClicked(opts = {}) {
       const res = await API.updateKey(KEY_ORIGINAL.id, d);
       warnings = res.warnings || [];
       KEY_ORIGINAL = res.key;
-      KEY_ORIG_CANON = keyPayload(JSON.parse(JSON.stringify(FORM.data)));
-      FORM.saved = JSON.parse(JSON.stringify(FORM.data));
+      KEY_ORIG_CANON = keyPayload(deepCopy(FORM.data));
+      FORM.saved = deepCopy(FORM.data);
       await pubReload();
       PUB.name = KEY_ORIGINAL.name;
       // The pill says the act; the header chip counts what waits to publish. The API's
@@ -395,7 +387,7 @@ async function newIntegrationChooser() {
         <div class="dc-sum">${propBadge(k.property)} <span>${esc(facts)}</span></div>
       </div>`;
   };
-  document.getElementById('dialog-root').innerHTML = `
+  dialogRoot().innerHTML = `
     <div class="dlg-veil"><div class="dlg wide autoh">
       <h3>New integration<span class="dlg-kicker">blank, or from a copy — it takes shape on its page</span></h3>
       <div class="dlg-body">
@@ -418,13 +410,13 @@ async function newIntegrationChooser() {
 
 // Cancel walks the address back too — ← and refresh keep meaning what they say.
 function chooserClose() {
-  document.getElementById('dialog-root').innerHTML = '';
+  closeDialog();
   history.replaceState(null, '', '#keys');
 }
 
 async function chooseBlank() {
   KEY_CREATE_SEED = null;
-  document.getElementById('dialog-root').innerHTML = '';
+  closeDialog();
   await viewKeyForm(null);
 }
 
@@ -432,7 +424,7 @@ async function chooseCopy(id) {
   try {
     const { key } = await API.getKey(id);
     KEY_CREATE_SEED = key;
-    document.getElementById('dialog-root').innerHTML = '';
+    closeDialog();
     await viewKeyForm(null);
   } catch (e) {
     toast(e.message, 'bad');

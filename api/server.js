@@ -1,4 +1,4 @@
-// api/server.js — the HTTP surface of the Player Console. Port 4200 (PANEL_PORT).
+// api/server.js — the HTTP surface of the Player Console. Port 4200 (PANEL_PORT, see ./config.js).
 //
 // This file only assembles the app: middleware, the static web app, and one router per
 // subject from ./routes. Response shapes live in ./response-shapes.js, the bulk action
@@ -12,6 +12,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { appPort, isTestEnv } from './config.js';
 import { resetWorld } from './mock/world.js';
 import metaRoutes from './routes/meta.js';
 import sessionRoutes from './routes/session.js';
@@ -43,8 +44,8 @@ app.use(mockRoutes);
 
 resetWorld();
 
-const PORT = process.env.PANEL_PORT || 4200;
-if (process.env.NODE_ENV !== 'test') {
+const PORT = appPort();
+if (!isTestEnv()) {
   app.listen(PORT, () => console.log(`StreamAds panel API on http://localhost:${PORT}`));
 }
 

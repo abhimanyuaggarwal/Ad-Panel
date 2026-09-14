@@ -53,6 +53,65 @@ export default async function run({ test, req, eq, assert, freshSetup, patchSlot
     }
   });
 
+  await test('a cohort act refuses what ONE surface owns — by name, and before anything lands', async () => {
+    // The shortlist the sheet draws is backed here: four fields fail the question "would a
+    // team ever want one answer on forty surfaces?", so a payload carrying one is refused
+    // whole rather than quietly stripped — otherwise the answer would report "changed" for
+    // a field it never wrote.
+    const before = (await req('GET', '/panel/keys/key_1')).body.key.player;
+    for (const [f, v, word] of [['playbackMode', 'inline', 'Player type'], ['quality', 'hd', 'Quality'],
+      ['fallbackMediaId', 'm_9', 'Fallback media'], ['redirectUrl', 'https://x.test', 'Redirect URL']]) {
+      const r = await req('POST', '/panel/keys/bulk', {
+        ids: ['key_1', 'key_6'], action: 'playerFields', value: { fields: { [f]: v } },
+      });
+      eq(r.status, 400, `${f} is refused`);
+      assert((r.body.message || '').includes(word), `named in its UI words (got ${r.body.message})`);
+      assert((r.body.message || '').includes('each integration’s own'), `and says whose it is (got ${r.body.message})`);
+    }
+    // A mixed payload never half-lands: the allowed field in it is not written either.
+    const mixed = await req('POST', '/panel/keys/bulk', {
+      ids: ['key_1', 'key_6'], action: 'playerFields',
+      value: { fields: { autoplay: 'off', quality: 'hd' } },
+    });
+    eq(mixed.status, 400, 'the whole write is refused');
+    eq((await req('GET', '/panel/keys/key_1')).body.key.player.autoplay, before.autoplay,
+      'and the allowed field beside it was never written');
+  });
+
+  await test('the cohort shortlist is the SEAM\'s list — the sheet reads it, never repeats it', async () => {
+    const m = (await req('GET', '/panel/meta')).body;
+    const never = Object.keys(m.bulkNever || {});
+    eq(never.sort(), ['fallbackMediaId', 'playbackMode', 'quality', 'redirectUrl'],
+      'the four a cohort may not answer travel on meta');
+    for (const f of never) {
+      assert(typeof m.bulkNever[f] === 'string' && m.bulkNever[f].length > 10,
+        `${f} carries the one line the greyed row prints`);
+      assert(!m.bulkPlayerFields.includes(f), `${f} is not also on the allowed list`);
+    }
+    // THE TWO LISTS ARE ONE LIST. Everything a player has, minus what one surface owns, IS
+    // what a cohort may set — so the sheet cannot draw a row the seam would drop in silence,
+    // and a field added to the player lands in a tier rather than in a gap.
+    eq([...m.playerFields].filter(f => !never.includes(f)).sort(), [...m.bulkPlayerFields].sort(),
+      'every player field is either a cohort act or one surface’s own — nothing falls between');
+  });
+
+  await test('the whole player behaviour card is one cohort act — front row and fold alike', async () => {
+    // A brand refresh and a measurement rollout are the two occasions this act exists for:
+    // one is on the sheet's front row, the other behind its counted door, and both land.
+    const r = await req('POST', '/panel/keys/bulk', {
+      ids: ['key_1', 'key_6'], action: 'playerFields',
+      value: { fields: { brandColor: '#e8123f', logoUrl: 'https://cdn.test/logo.png', gaId: 'G-ABC123' } },
+    });
+    eq(r.status, 200, 'applied');
+    eq(r.body.changed, 2, 'both integrations moved');
+    for (const id of ['key_1', 'key_6']) {
+      const p = (await req('GET', `/panel/keys/${id}`)).body.key.player;
+      eq(p.brandColor, '#e8123f', `${id} took the brand colour`);
+      eq(p.logoUrl, 'https://cdn.test/logo.png', `${id} took the logo`);
+      eq(p.gaId, 'G-ABC123', `${id} took the measurement id`);
+    }
+  });
+
   await test('bulk writes the DRIVE across a cohort — sparse, each integration\'s own decision', async () => {
     const r = await req('POST', '/panel/keys/bulk', {
       ids: ['key_1', 'key_3'], action: 'driveFields',

@@ -216,6 +216,12 @@ export const MAX_MIDROLL_GROUPS = 3;
 // user's word). The vocabulary is the PLAYER TEAM's: the panel validates against it,
 // fail closed, so ops can pick a template but never break a URL.
 export const TEMPLATE_MACROS = ['CACHEBUSTER', 'REFERRER_URL', 'PAGE_URL', 'TIMESTAMP', 'DESCRIPTION_URL'];
+// WHEN PODS ADD UP. Two mid-roll pods can each be sane and still be punishing together,
+// so the arithmetic is counted across them and said as a lever, never a wall.
+// Total ads across every pod at or above this reads as "a lot".
+export const ADS_ACROSS_PODS_WARN = 6;
+// Two pods landing breaks closer than this many seconds apart feel relentless.
+export const PODS_TOO_CLOSE_SEC = 60;
 export const ROTATION_MAX = 5;
 export const MAX_SECTIONS = 5;
 export const MAX_RUNGS = 10; // 1 primary + 9 waterfall rungs (user call, 25 Aug — was 4)
@@ -255,11 +261,27 @@ export const FIELD_WORDS = {
   analyticsLevel: 'Events reported', viewAfterMs: 'A view counts after',
   heartbeatMs: 'Heartbeat every', comscoreId: 'comScore id',
   nielsenId: 'Nielsen id', gaId: 'Google Analytics id',
+  fallbackMediaId: 'Fallback media',
   name: 'Name', domains: 'Domains', packageName: 'Package name',
 };
 
 // The UI's word for a behaviour field, so a refusal from any surface reads the same.
 export function fieldWord(f) { return FIELD_WORDS[f] || f; }
+
+// WHO TOUCHED IT. One literal, in one place, because there is no identity exchange yet
+// (ARCHITECTURE.md §11): every write and every published version is authored by the
+// person in front of the screen, and the panel calls that person "You". When the real
+// sign-in lands, the stamp below is what starts reading the session instead — one
+// function to change, not the fifteen call sites this used to be spelled at.
+export const ACTOR = 'You';
+
+/**
+ * The authorship stamp every write puts on an object: when, and by whom.
+ * @returns {{updatedAt: string, updatedBy: string}}
+ */
+export function updateStamp() {
+  return { updatedAt: new Date().toISOString(), updatedBy: ACTOR };
+}
 
 export const state = {
   keys: new Map(),

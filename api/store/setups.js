@@ -2,9 +2,9 @@
 // pods, direct deals, the waterfall, CRUD, and the mock GAM unit directory. The
 // behaviour / rung / walk machinery it builds on lives in ladders.js.
 import { listKeys } from './keys.js';
-import { askWord, driveAsk, groupWalks, liveRungs, localWalk, normalizeRungs, normalizeSlotBehaviour, refuseDeadRules, slotGroupDefs } from './ladders.js';
+import { askWord, driveAsk, groupWalks, liveRungs, normalizeRungs, normalizeSlotBehaviour, refuseDeadRules, slotGroupDefs, unreachableTail } from './ladders.js';
 import { isPublished } from './publish.js';
-import { AD_SOURCES, DIRECTORY_PROVIDERS, URL_PROVIDERS, HB_WORD, HEADER_BIDDING, WF_WORD, MAX_MIDROLL_GROUPS, MAX_RUNGS, MAX_SECTIONS, PAUSE_MODES, PROPERTY_SCOPES, Refusal, SLOT_ALSO_TAKES, SLOT_FAMILY, SLOT_KIND, SLOT_TYPES, SLOT_WORD, state } from './state.js';
+import { AD_SOURCES, ADS_ACROSS_PODS_WARN, PODS_TOO_CLOSE_SEC, DIRECTORY_PROVIDERS, URL_PROVIDERS, HB_WORD, HEADER_BIDDING, WF_WORD, MAX_MIDROLL_GROUPS, MAX_RUNGS, MAX_SECTIONS, PAUSE_MODES, PROPERTY_SCOPES, Refusal, SLOT_ALSO_TAKES, SLOT_FAMILY, SLOT_KIND, SLOT_TYPES, SLOT_WORD, state, updateStamp } from './state.js';
 import { diff, fmtSecs, httpUrl, intIn, mustGet, oneOf, str, uniqueName } from './validate.js';
 
 // ---------- ad setups (the ops room's object) ----------
@@ -87,6 +87,230 @@ export function servedUnitHeaderBidding(rung, tag, slotServed) {
   return a === 'auto' ? (slotServed || 'off') : a;
 }
 
+// ---------- ONE BREAK, WHOLE ----------
+// Everything a slot is made of, in the order it is decided: where its ads come from, its
+// pods, its behaviour, its direct deal, and the tail it will never reach. Every step
+// collects into `errors`/`warnings` instead of throwing, because a setup is refused ONCE
+// with every problem named — see normalizeSetup.
+//
+// `ctx` is one placement's context, widened per slot: { setupName, secName, index, loc,
+// where, waterfall, defaults, errors, warnings } plus { slotType, rungWhere }. It is a
+// context object rather than ten arguments because the words a refusal uses are built
+// from most of them, and threading them one by one is how they drift apart.
+
+/** Where a rung-level refusal is standing: the setup, the placement, the break. */
+function rungWhereOf(t, ctx) {
+  return `${ctx.setupName || 'this setup'} · ${ctx.secName || `placement ${ctx.index + 1}`} ${SLOT_WORD[t].toLowerCase()}`;
+}
+
+/** The break's word for one of its pods, appended to a location: '' or ' pod 2'. */
+function podTag(index, isMulti) {
+  return isMulti ? ` pod ${index + 1}` : '';
+}
+
+function normalizeSlot(t, slotIn, sectionCtx) {
+  const ctx = { ...sectionCtx, slotType: t, rungWhere: rungWhereOf(t, sectionCtx) };
+  const { slot, rawPods } = t === 'midroll'
+    ? readMidrollPods(slotIn, ctx)
+    : { slot: readSingleBreak(slotIn, ctx), rawPods: null };
+  attachDirectDeals(slot, slotIn, rawPods, ctx);
+  warnUnreachableTail(slot, ctx);
+  return slot;
+}
+
+// WHERE THE BREAK'S WATERFALL COMES FROM (5 Sep; three answers 8 Sep). The break's ladder
+// is its PRIMARY — asked first, every time — and then a fall. The answer here decides the
+// FALL only:
+//   own   → the break's own fall (rungs 2…N)
+//   setup → the global waterfall's served units, under this break's own primary
+//   none  → no fall at all; the primary is the whole walk
+//
+// THE PRIMARY IS THE BREAK'S OWN IN EVERY ANSWER (8 Sep, user call — *"when switched to
+// global why is primary ad unit being removed, it should stay"*). Following the global
+// waterfall replaces what comes AFTER the first ask, never the first ask itself: that unit
+// is this break's own headline demand, and a link to a shared ladder is not a reason to
+// lose it. Before this, `setup` served the global ladder alone and `none` served nothing,
+// which quietly deleted the primary from the walk on a switch nobody read as touching it.
+//
+// All three answers keep every own unit in `ownRungs` — switching back is one click and
+// nothing is re-typed — so only what SERVES (`rungs`) differs, materialized here so every
+// downstream read is the one it always was. And `none` is a real stored answer rather than
+// "a fall with no rungs", because emptying a fall and switching it off are different acts
+// with different ways back: the first has nothing to come back to, the second has
+// everything.
+function readAdSource(gIn, gWhere, ctx) {
+  const { slotType: t, errors } = ctx;
+  let source = gIn.waterfallSource == null ? 'own' : gIn.waterfallSource;
+  if (!AD_SOURCES.includes(source)) {
+    errors.push({ field: 'sections', message: `${gWhere}: “${gIn.waterfallSource}” is not an ad source — its own units (own), the ${WF_WORD} (setup), or nothing (none)` });
+    source = 'own';
+  }
+  if (source !== 'own' && SLOT_KIND[t] !== 'ladder') {
+    errors.push({ field: 'sections', message: `${ctx.where}the ${SLOT_WORD[t].toLowerCase()} takes turns — a rotation has no waterfall to follow or switch off` });
+    source = 'own';
+  }
+  const own = normalizeRungs(source === 'own' ? gIn.rungs : (gIn.ownRungs ?? gIn.rungs),
+    SLOT_FAMILY[t], errors, 'sections', gWhere, SLOT_ALSO_TAKES[t], SLOT_KIND[t], t);
+  return { waterfallSource: source, ownRungs: own, rungs: servedRungs(source, own, gWhere, ctx) };
+}
+
+// What the break actually SERVES under each answer. The primary rides every one of them;
+// a break that has none yet simply contributes nothing, and the global waterfall is then
+// the whole walk.
+function servedRungs(source, own, gWhere, ctx) {
+  const primary = own.slice(0, 1);
+  if (source === 'none') return primary;
+  if (source !== 'setup') return own;
+  const rungs = [...primary, ...servedWaterfallRungs(ctx.waterfall)];
+  if (rungs.length <= MAX_RUNGS) return rungs;
+  // A ladder holds MAX_RUNGS. Naming what fell off beats truncating in silence: the
+  // primary is never the unit that goes.
+  ctx.warnings.push(`${gWhere}: the primary plus the ${WF_WORD} is ${rungs.length} units — the last ${rungs.length - MAX_RUNGS} never run (a ladder holds ${MAX_RUNGS})`);
+  return rungs.slice(0, MAX_RUNGS);
+}
+
+// A MID-ROLL IS BREAK GROUPS (31 Aug, AD-JSON-SCOPE): up to 3, each its own cadence and
+// its own ladder. Group 1 IS the mid-roll — it doubles as the slot's own rungs/behaviour,
+// so every single-group path reads exactly what it always read.
+function readMidrollPods(slotIn, ctx) {
+  const { slotType: t, errors, warnings, defaults, loc } = ctx;
+  const rawPods = podsAsSent(slotIn);
+  if (rawPods.length > MAX_MIDROLL_GROUPS) {
+    errors.push({ field: 'sections', message: `${ctx.where}a mid-roll holds at most ${MAX_MIDROLL_GROUPS} break groups (got ${rawPods.length})` });
+  }
+  const isMulti = rawPods.length > 1;
+  const groups = rawPods.slice(0, MAX_MIDROLL_GROUPS).map((g, gi) => ({
+    ...readAdSource(g, `${ctx.rungWhere}${podTag(gi, isMulti)}`, ctx),
+    behaviour: normalizeSlotBehaviour(t,
+      g.behaviour || (defaults ? defaults.slots[t].behaviour : null),
+      errors, warnings, `${loc} ${SLOT_WORD[t].toLowerCase()}${podTag(gi, isMulti)}: `),
+  }));
+  const first = groups[0];
+  return {
+    slot: { rungs: first.rungs, ownRungs: first.ownRungs, waterfallSource: first.waterfallSource, behaviour: first.behaviour, groups },
+    rawPods,
+  };
+}
+
+// The pods AS SENT. A top-level rungs/behaviour patch lands on pod 1; a groups patch is
+// authoritative. Kept raw because each pod's own deal is read back off it below.
+function podsAsSent(slotIn) {
+  if (!(Array.isArray(slotIn.groups) && slotIn.groups.length)) {
+    return [{ rungs: slotIn.rungs, behaviour: slotIn.behaviour, waterfallSource: slotIn.waterfallSource, ownRungs: slotIn.ownRungs }];
+  }
+  const pods = slotIn.groups.slice();
+  if (slotIn.rungs && slotIn.rungs !== pods[0].rungs) pods[0] = { ...pods[0], rungs: slotIn.rungs };
+  if (slotIn.behaviour && slotIn.behaviour !== pods[0].behaviour) pods[0] = { ...pods[0], behaviour: slotIn.behaviour };
+  return pods;
+}
+
+/** A pre-roll, post-roll or out-stream: one break, no pods. */
+function readSingleBreak(slotIn, ctx) {
+  const { slotType: t, errors, warnings, defaults, loc } = ctx;
+  if (Array.isArray(slotIn.groups) && slotIn.groups.length > 1) {
+    errors.push({ field: 'sections', message: `${ctx.where}only a mid-roll holds break groups — a ${SLOT_WORD[t].toLowerCase()} is one break` });
+  }
+  return {
+    ...readAdSource(slotIn, ctx.rungWhere, ctx),
+    behaviour: normalizeSlotBehaviour(t,
+      slotIn.behaviour || (defaults ? defaults.slots[t].behaviour : null),
+      errors, warnings, `${loc} ${SLOT_WORD[t].toLowerCase()}: `),
+  };
+}
+
+// THE DIRECT TIER, PER POD (3 Sep, user call — it was the mid-roll's, shared by every
+// break group). ONE sold deal, tried before that pod's primary: a pod is a break with its
+// own cadence and its own ladder, so the deal sold against it is its own too. Group 1's
+// doubles as the slot's, so every single-pod path and every fixture written before this
+// reads exactly as it did. A rotation is not a break.
+function attachDirectDeals(slot, slotIn, rawPods, ctx) {
+  const { slotType: t, errors } = ctx;
+  if (SLOT_KIND[t] !== 'ladder') {
+    if (slotIn.direct && (slotIn.direct.rungs || []).length) {
+      errors.push({ field: 'sections', message: `${ctx.where}the ${SLOT_WORD[t].toLowerCase()} takes turns — direct is break demand, and this is not a break` });
+    }
+    return;
+  }
+  if (t !== 'midroll') {
+    slot.direct = readDirectDeal(slotIn.direct, '', ctx);
+    return;
+  }
+  const pods = slot.groups;
+  const isMulti = pods.length > 1;
+  pods.forEach((g, gi) => {
+    // A pod states its own deal; a fixture that only stated the mid-roll's gives it to
+    // pod 1, which is where it always fired first.
+    const dIn = (rawPods && rawPods[gi] && rawPods[gi].direct) || (gi === 0 ? slotIn.direct : null);
+    g.direct = readDirectDeal(dIn, podTag(gi, isMulti), ctx);
+  });
+  slot.direct = pods[0].direct;
+}
+
+/** One pod's sold deal: exactly one rung, refused by name if it is sent as a ladder. */
+function readDirectDeal(dIn, gTag, ctx) {
+  const { slotType: t, errors, loc } = ctx;
+  const d = dIn || {};
+  if (d.maxSession !== undefined) {
+    errors.push({ field: 'sections', message: `${loc} ${SLOT_WORD[t].toLowerCase()}${gTag}: direct has no session cap any more — the deal is tried each time the break fires` });
+  }
+  const dRungs = normalizeRungs(d.rungs, 'video', errors, 'sections',
+    `${ctx.rungWhere}${gTag} direct`, 'display', 'ladder', t);
+  if (dRungs.length > 1) {
+    errors.push({ field: 'sections', message: `${loc} ${SLOT_WORD[t].toLowerCase()}${gTag} carries ONE direct deal — the tier is the deal, not a ladder (got ${dRungs.length})` });
+  }
+  return { rungs: dRungs.slice(0, 1) };
+}
+
+// THE UNREACHABLE TAIL, counted (31 Aug), per pod: tries × per-try wait against the
+// break's own giving-up point. A lever, never a wall.
+function warnUnreachableTail(slot, ctx) {
+  const { slotType: t, warnings, loc } = ctx;
+  if (SLOT_KIND[t] !== 'ladder') return;
+  const isMulti = !!(slot.groups && slot.groups.length > 1);
+  for (const [gi, g] of slotGroupDefs(slot).entries()) {
+    const unreachable = unreachableTail(g.rungs, g.behaviour);
+    if (!unreachable) continue;
+    warnings.push(`${loc} ${SLOT_WORD[t].toLowerCase()}${podTag(gi, isMulti)}: last ${unreachable} sources never run`);
+  }
+}
+
+// ---------- WHEN PODS ADD UP ----------
+// A mid-roll's pods are each sane on their own and can still be punishing together, so
+// both of these are counted ACROSS the pods rather than inside one. Levers, never walls:
+// they warn and the save goes through.
+
+// The two crowding warnings for one placement's mid-roll, in the order they are said.
+function podCrowdingWarnings(groups, where) {
+  if (!groups || groups.length < 2) return [];
+  return [...totalAdsWarning(groups, where), ...podsTooCloseWarning(groups, where)];
+}
+
+// Every pod's breaks × its ads. Only counted when every pod says WHERE its breaks fall —
+// a pod running on an interval has no break count to add, so the total would be a guess.
+function totalAdsWarning(groups, where) {
+  const perPod = groups.map(g => ({
+    breaks: g.behaviour.mode === 'cuepoints' ? g.behaviour.cuepoints.length : null,
+    ads: g.behaviour.podAds,
+  }));
+  if (!perPod.every(p => p.breaks != null)) return [];
+  const totalAds = perPod.reduce((sum, p) => sum + p.breaks * p.ads, 0);
+  return totalAds >= ADS_ACROSS_PODS_WARN ? [`${where}${totalAds} ads across pods — a lot`] : [];
+}
+
+// Any two pods landing a break within a minute of each other, said once however many
+// pairs are close.
+function podsTooCloseWarning(groups, where) {
+  const cued = groups.map(g => g.behaviour).filter(b => b.mode === 'cuepoints');
+  const anyClose = cued.some((pod, i) => cued.slice(i + 1)
+    .some(later => anyBreakWithin(pod.cuepoints, later.cuepoints, PODS_TOO_CLOSE_SEC)));
+  return anyClose ? [`${where}pod breaks under a minute apart`] : [];
+}
+
+// Do any two of these break positions fall within `seconds` of each other?
+function anyBreakWithin(some, others, seconds) {
+  return some.some(a => others.some(b => Math.abs(a - b) < seconds));
+}
+
 export function normalizeSetup(input, exceptId) {
   const errors = [];
   const name = str(input.name);
@@ -127,167 +351,10 @@ export function normalizeSetup(input, exceptId) {
       errors.push({ field: 'sections', message: `${where}the squeeze-back slot is gone — a banner over playing content is a rung of the break\u2019s waterfall, and the idle player\u2019s rotation is Out-stream` });
     }
     const slots = {};
-    for (const t of SLOT_TYPES) {
-      const rungWhere = `${name || 'this setup'} · ${secName || `placement ${i + 1}`} ${SLOT_WORD[t].toLowerCase()}`;
-      const slotIn = sec.slots?.[t] || {};
-      let gsInRaw = null; // the mid-roll's groups AS SENT — each pod's own deal is read from it below
-      // A MID-ROLL IS BREAK GROUPS (31 Aug, AD-JSON-SCOPE): up to 3, each its own
-      // cadence and its own ladder. Group 1 IS the mid-roll — it doubles as the slot's
-      // own rungs/behaviour, so every single-group path reads exactly what it always
-      // read. A top-level rungs/behaviour patch lands on group 1; a groups patch is
-      // authoritative.
-      // WHERE THE BREAK'S WATERFALL COMES FROM (5 Sep; three answers 8 Sep). The break's
-      // ladder is its PRIMARY — asked first, every time — and then a fall. The answer
-      // here decides the FALL only:
-      //   own   → the break's own fall (rungs 2…N)
-      //   setup → the global waterfall's served units, under this break's own primary
-      //   none  → no fall at all; the primary is the whole walk
-      //
-      // THE PRIMARY IS THE BREAK'S OWN IN EVERY ANSWER (8 Sep, user call — *"when
-      // switched to global why is primary ad unit being removed, it should stay"*).
-      // Following the global waterfall replaces what comes AFTER the first ask, never the
-      // first ask itself: that unit is this break's own headline demand, and a link to a
-      // shared ladder is not a reason to lose it. Before this, `setup` served the global
-      // ladder alone and `none` served nothing, which quietly deleted the primary from
-      // the walk on a switch nobody read as touching it.
-      //
-      // All three answers keep every own unit in `ownRungs` — switching back is one click
-      // and nothing is re-typed — so only what SERVES (`rungs`) differs, materialized
-      // here so every downstream read is the one it always was. And `none` is a real
-      // stored answer rather than "a fall with no rungs", because emptying a fall and
-      // switching it off are different acts with different ways back: the first has
-      // nothing to come back to, the second has everything.
-      const readIndirect = (gIn, gWhere) => {
-        let source = gIn.waterfallSource == null ? 'own' : gIn.waterfallSource;
-        if (!AD_SOURCES.includes(source)) {
-          errors.push({ field: 'sections', message: `${gWhere}: “${gIn.waterfallSource}” is not an ad source — its own units (own), the ${WF_WORD} (setup), or nothing (none)` });
-          source = 'own';
-        }
-        if (source !== 'own' && SLOT_KIND[t] !== 'ladder') {
-          errors.push({ field: 'sections', message: `${where}the ${SLOT_WORD[t].toLowerCase()} takes turns — a rotation has no waterfall to follow or switch off` });
-          source = 'own';
-        }
-        const own = normalizeRungs(source === 'own' ? gIn.rungs : (gIn.ownRungs ?? gIn.rungs),
-          SLOT_FAMILY[t], errors, 'sections', gWhere, SLOT_ALSO_TAKES[t], SLOT_KIND[t], t);
-        // The primary rides every answer; a break that has none yet simply contributes
-        // nothing here, and the global waterfall is then the whole walk.
-        const primary = own.slice(0, 1);
-        let rungs = own;
-        if (source === 'setup') {
-          rungs = [...primary, ...servedWaterfallRungs(waterfall)];
-          // A ladder holds MAX_RUNGS. Naming what fell off beats truncating in silence:
-          // the primary is never the unit that goes.
-          if (rungs.length > MAX_RUNGS) {
-            warnings.push(`${gWhere}: the primary plus the ${WF_WORD} is ${rungs.length} units — the last ${rungs.length - MAX_RUNGS} never run (a ladder holds ${MAX_RUNGS})`);
-            rungs = rungs.slice(0, MAX_RUNGS);
-          }
-        } else if (source === 'none') {
-          rungs = primary;
-        }
-        return { waterfallSource: source, ownRungs: own, rungs };
-      };
-      if (t === 'midroll') {
-        let gsIn = Array.isArray(slotIn.groups) && slotIn.groups.length ? slotIn.groups.slice() : null;
-        if (gsIn) {
-          if (slotIn.rungs && slotIn.rungs !== gsIn[0].rungs) gsIn[0] = { ...gsIn[0], rungs: slotIn.rungs };
-          if (slotIn.behaviour && slotIn.behaviour !== gsIn[0].behaviour) gsIn[0] = { ...gsIn[0], behaviour: slotIn.behaviour };
-        } else {
-          gsIn = [{ rungs: slotIn.rungs, behaviour: slotIn.behaviour, waterfallSource: slotIn.waterfallSource, ownRungs: slotIn.ownRungs }];
-        }
-        gsInRaw = gsIn;
-        if (gsIn.length > MAX_MIDROLL_GROUPS) {
-          errors.push({ field: 'sections', message: `${where}a mid-roll holds at most ${MAX_MIDROLL_GROUPS} break groups (got ${gsIn.length})` });
-        }
-        const multi = gsIn.length > 1;
-        const groups = gsIn.slice(0, MAX_MIDROLL_GROUPS).map((g, gi) => ({
-          ...readIndirect(g, `${rungWhere}${multi ? ` pod ${gi + 1}` : ''}`),
-          behaviour: normalizeSlotBehaviour(t,
-            g.behaviour || (defaults ? defaults.slots[t].behaviour : null),
-            errors, warnings, `${loc} ${SLOT_WORD[t].toLowerCase()}${multi ? ` pod ${gi + 1}` : ''}: `),
-        }));
-        slots[t] = { rungs: groups[0].rungs, ownRungs: groups[0].ownRungs, waterfallSource: groups[0].waterfallSource, behaviour: groups[0].behaviour, groups };
-      } else {
-        if (Array.isArray(slotIn.groups) && slotIn.groups.length > 1) {
-          errors.push({ field: 'sections', message: `${where}only a mid-roll holds break groups — a ${SLOT_WORD[t].toLowerCase()} is one break` });
-        }
-        slots[t] = {
-          ...readIndirect(slotIn, rungWhere),
-          behaviour: normalizeSlotBehaviour(t,
-            slotIn.behaviour || (defaults ? defaults.slots[t].behaviour : null),
-            errors, warnings, `${loc} ${SLOT_WORD[t].toLowerCase()}: `),
-        };
-      }
-      // THE DIRECT TIER, PER POD (3 Sep, user call — it was the mid-roll's, shared by
-      // every break group). ONE sold deal, tried before that pod's primary: a pod is a
-      // break with its own cadence and its own ladder, so the deal sold against it is
-      // its own too. Group 1's doubles as the slot's, so every single-pod path and every
-      // fixture written before this reads exactly as it did. A rotation is not a break.
-      if (SLOT_KIND[t] === 'ladder') {
-        const one = (dIn, gTag) => {
-          const d = dIn || {};
-          if (d.maxSession !== undefined) {
-            errors.push({ field: 'sections', message: `${loc} ${SLOT_WORD[t].toLowerCase()}${gTag}: direct has no session cap any more — the deal is tried each time the break fires` });
-          }
-          const dRungs = normalizeRungs(d.rungs, 'video', errors, 'sections',
-            `${rungWhere}${gTag} direct`, 'display', 'ladder', t);
-          if (dRungs.length > 1) {
-            errors.push({ field: 'sections', message: `${loc} ${SLOT_WORD[t].toLowerCase()}${gTag} carries ONE direct deal — the tier is the deal, not a ladder (got ${dRungs.length})` });
-          }
-          return { rungs: dRungs.slice(0, 1) };
-        };
-        if (t === 'midroll') {
-          const gs = slots[t].groups;
-          const multiG = gs.length > 1;
-          gs.forEach((g, gi) => {
-            // A pod states its own deal; a fixture that only stated the mid-roll's gives
-            // it to pod 1, which is where it always fired first.
-            const dIn = (gsInRaw && gsInRaw[gi] && gsInRaw[gi].direct) || (gi === 0 ? slotIn.direct : null);
-            g.direct = one(dIn, multiG ? ` pod ${gi + 1}` : '');
-          });
-          slots[t].direct = gs[0].direct;
-        } else {
-          slots[t].direct = one(slotIn.direct, '');
-        }
-      } else if (slotIn.direct && (slotIn.direct.rungs || []).length) {
-        errors.push({ field: 'sections', message: `${where}the ${SLOT_WORD[t].toLowerCase()} takes turns — direct is break demand, and this is not a break` });
-      }
-      // THE UNREACHABLE TAIL, counted (31 Aug): tries × per-try wait against the
-      // break's own giving-up point. A lever, never a wall.
-      for (const [gi, g] of slotGroupDefs(slots[t]).entries()) {
-        const b = g.behaviour;
-        if (!b || SLOT_KIND[t] !== 'ladder') continue;
-        const n = localWalk(g.rungs).length;
-        const reachable = Math.max(1, Math.floor((b.fillTimeoutSec * 1000) / b.tagTimeoutMs));
-        if (n > 1 && reachable < n) {
-          const gTag = (slots[t].groups && slots[t].groups.length > 1) ? ` pod ${gi + 1}` : '';
-          warnings.push(`${loc} ${SLOT_WORD[t].toLowerCase()}${gTag}: last ${n - reachable} sources never run`);
-        }
-      }
-    }
-    // Cross-group arithmetic, counted from the groups on screen.
-    const mgs = slots.midroll.groups;
-    if (mgs && mgs.length > 1) {
-      const breaksOf = b => (b.mode === 'cuepoints' ? b.cuepoints.length : null);
-      const perGroup = mgs.map(g => ({ breaks: breaksOf(g.behaviour), ads: g.behaviour.podAds }));
-      if (perGroup.every(x => x.breaks != null)) {
-        const totalAds = perGroup.reduce((a, x) => a + x.breaks * x.ads, 0);
-        if (totalAds >= 6) {
-          warnings.push(`${where}${totalAds} ads across pods — a lot`);
-        }
-      }
-      // Two groups landing breaks within a minute of each other feel relentless.
-      const cued = mgs.map(g => g.behaviour).filter(b => b.mode === 'cuepoints');
-      outer: for (let a = 0; a < cued.length; a++) {
-        for (let bI = a + 1; bI < cued.length; bI++) {
-          for (const ca of cued[a].cuepoints) for (const cb of cued[bI].cuepoints) {
-            if (Math.abs(ca - cb) < 60) {
-              warnings.push(`${where}pod breaks under a minute apart`);
-              break outer;
-            }
-          }
-        }
-      }
-    }
+    const slotCtx = { setupName: name, secName, index: i, loc, where, waterfall, defaults, errors, warnings };
+    for (const t of SLOT_TYPES) slots[t] = normalizeSlot(t, sec.slots?.[t] || {}, slotCtx);
+    // Cross-pod arithmetic, counted from the pods on screen.
+    warnings.push(...podCrowdingWarnings(slots.midroll.groups, where));
     const out = { name: secName, isDefault: i === 0, slots };
     if (i === 0) defaults = out;
     return out;
@@ -316,10 +383,98 @@ export function setupSection(setup, secName) {
 export function createSetup(input) {
   const { warnings, ...s } = normalizeSetup(input);
   const id = `as_${++state.counters.setup}`;
-  const obj = { id, ...s, updatedAt: new Date().toISOString(), updatedBy: 'You' };
+  const obj = { id, ...s, ...updateStamp() };
   state.setups.set(id, obj);
   obj.__warnings = warnings; // read once by the route, never persisted in a view
   return obj;
+}
+
+// ---------- MERGING A SLOT PATCH ----------
+// One slot patch, merged against what stands, so a PATCH is never a replace: sending only
+// the mid-roll ladder must not wipe its behaviour, and vice versa. Pure — it reads the
+// previous slot and the patch and returns the candidate, with no state and no refusals;
+// normalizeSetup is what then validates the result.
+
+function mergeSlotPatch(prevSlot, patch) {
+  const merged = Array.isArray(patch.groups)
+    ? { groups: mergePods(patch.groups, prevSlot) }
+    : mergeSingleBreak(prevSlot, patch);
+  // The slot's direct tier merges on its own — sending only the cap wipes nothing.
+  const direct = patch.direct ? { ...(prevSlot?.direct || {}), ...patch.direct } : prevSlot?.direct;
+  return direct ? { ...merged, direct } : merged;
+}
+
+// A groups patch is authoritative for the pod LIST, but each pod merges against its
+// same-index predecessor, and a brand-new pod starts from pod 1 — a clone, never a blank.
+function mergePods(patchPods, prevSlot) {
+  const before = slotGroupDefs(prevSlot || { rungs: [], behaviour: null });
+  const blank = { rungs: [], behaviour: null };
+  return patchPods.map((g, gi) => mergePod(g, before[gi] || before[0] || blank));
+}
+
+function mergePod(patch, before) {
+  return {
+    // Unlinking without naming units means "back to what stood" — the kept own units,
+    // exactly (the whole point of keeping them).
+    rungs: patch.rungs || (patch.waterfallSource === 'own' && before.ownRungs ? before.ownRungs : before.rungs),
+    // The indirect source and the kept own units merge like the ladder does — a patch that
+    // never mentions them moves nothing.
+    ownRungs: patch.ownRungs || before.ownRungs,
+    waterfallSource: patch.waterfallSource !== undefined ? patch.waterfallSource : before.waterfallSource,
+    behaviour: patch.behaviour ? { ...(before.behaviour || {}), ...patch.behaviour } : before.behaviour,
+    // A pod's deal merges on its own, like the slot's used to.
+    ...(patch.direct || before.direct
+      ? { direct: patch.direct ? { ...(before.direct || {}), ...patch.direct } : before.direct }
+      : {}),
+  };
+}
+
+function mergeSingleBreak(prevSlot, patch) {
+  const out = { ...(prevSlot || {}), ...patch };
+  // A slot patch that touches only the ladder keeps its behaviour, and vice versa.
+  if (patch.behaviour) out.behaviour = { ...(prevSlot?.behaviour || {}), ...patch.behaviour };
+  // Unlinking without naming units means "back to what stood": the kept own units, exactly
+  // — the whole point of keeping them. (`none` needs no such rule: nothing serves it, and
+  // normalizeSetup computes that from the source alone.)
+  if (patch.waterfallSource === 'own' && !patch.rungs && prevSlot?.ownRungs) out.rungs = prevSlot.ownRungs;
+  return out;
+}
+
+// ---------- THE SEAM, OPS SIDE ----------
+// The mirror of the product-side seam in store/keys.js: an ops edit may not darken a
+// break some LIVE surface is already playing. Refuses by name on the first one it finds;
+// a drive decision the new demand strands falls back instead, warned. `ctx` carries
+// { candidate, placementNames, renames, driftWarnings }.
+
+/** One live surface's overlay of one placement, read against the candidate setup. */
+function checkLiveOverlay(key, overlay, ctx) {
+  const effName = ctx.renames.find(([old]) => old === overlay.name)?.[1] || overlay.name;
+  const onSlots = SLOT_TYPES.filter(t => overlay.slots[t].on);
+  if (!onSlots.length) return;
+  if (!ctx.placementNames.has(effName)) {
+    throw new Refusal(409, 'setup_in_use',
+      `“${overlay.name}” still runs live on ${key.name} — switch it off there before removing the placement`,
+      { usedBy: [`${key.name} · ${overlay.name}`] });
+  }
+  const secDef = ctx.candidate.sections.find(x => x.name === effName);
+  for (const t of onSlots) checkLiveBreak(key, overlay, secDef, t, ctx);
+}
+
+// One live break. Every break group answers for itself: one dark group is one dark break.
+function checkLiveBreak(key, overlay, secDef, t, ctx) {
+  const walks = groupWalks(secDef, key.drive?.[t], t);
+  const darkPod = walks.findIndex(r => r.walk.length === 0);
+  if (darkPod >= 0) {
+    // Said in the UI's words (7 Sep, UAT P1): the pod, the placement, who plays it.
+    throw new Refusal(409, 'setup_in_use',
+      walks.length > 1
+        ? `Pod ${darkPod + 1} in “${overlay.name}” is empty — ${key.name} plays its ${SLOT_WORD[t].toLowerCase()} live, so every pod needs an ad unit`
+        : `“${overlay.name}” ${SLOT_WORD[t].toLowerCase()} would go dark — ${key.name} plays it live; add an ad unit, or switch it off there first`,
+      { usedBy: [`${key.name} · ${overlay.name}`] });
+  }
+  if (!walks.some(r => r.fellBack || r.vacuous)) return;
+  const provs = askWord(driveAsk(key.drive?.[t]?.ask) || []);
+  ctx.driftWarnings.push(`${key.name} ${SLOT_WORD[t].toLowerCase()}: asks ${provs} — falls back`);
 }
 
 // The seam, ops side: an edit that would empty a family some LIVE integration has
@@ -334,48 +489,13 @@ export function updateSetup(id, input) {
   // One slot patch, merged against what stands — a groups patch is authoritative for
   // the group list, but each group merges against its same-index predecessor, and a
   // brand-new group starts from group 1 (a clone, never a blank form).
-  const mergeSlot = (prevSlot, patch) => {
-    // The slot's direct tier merges on its own — sending only the cap wipes nothing.
-    const mergedDirect = patch.direct
-      ? { ...(prevSlot?.direct || {}), ...patch.direct }
-      : prevSlot?.direct;
-    const withDirect = out => (mergedDirect ? { ...out, direct: mergedDirect } : out);
-    if (Array.isArray(patch.groups)) {
-      const prevGroups = slotGroupDefs(prevSlot || { rungs: [], behaviour: null });
-      return withDirect({
-        groups: patch.groups.map((g, gi) => {
-          const pg = prevGroups[gi] || prevGroups[0] || { rungs: [], behaviour: null };
-          return {
-            // Unlinking without naming units means "back to what stood" — the kept own
-            // units, exactly (the whole point of keeping them).
-            rungs: g.rungs || (g.waterfallSource === 'own' && pg.ownRungs ? pg.ownRungs : pg.rungs),
-            // The indirect source and the kept own units merge like the ladder does —
-            // a patch that never mentions them moves nothing.
-            ownRungs: g.ownRungs || pg.ownRungs,
-            waterfallSource: g.waterfallSource !== undefined ? g.waterfallSource : pg.waterfallSource,
-            behaviour: g.behaviour ? { ...(pg.behaviour || {}), ...g.behaviour } : pg.behaviour,
-            // A pod's deal merges on its own, like the slot's used to.
-            ...(g.direct || pg.direct ? { direct: g.direct ? { ...(pg.direct || {}), ...g.direct } : pg.direct } : {}),
-          };
-        }),
-      });
-    }
-    const out = { ...(prevSlot || {}), ...patch };
-    // A slot patch that touches only the ladder keeps its behaviour, and vice versa.
-    if (patch.behaviour) out.behaviour = { ...(prevSlot?.behaviour || {}), ...patch.behaviour };
-    // Unlinking without naming units means "back to what stood": the kept own units,
-    // exactly — the whole point of keeping them. (`none` needs no such rule: nothing
-    // serves it, and normalizeSections computes that from the source alone.)
-    if (patch.waterfallSource === 'own' && !patch.rungs && prevSlot?.ownRungs) out.rungs = prevSlot.ownRungs;
-    return withDirect(out);
-  };
   let mergedSections = existing.sections;
   if (Array.isArray(input.sections)) {
     mergedSections = input.sections.map((sec, i) => {
       const prev = existing.sections[i] || { slots: {} };
       const slots = { ...prev.slots };
       for (const [t, patch] of Object.entries(sec.slots || {})) {
-        slots[t] = mergeSlot(prev.slots?.[t], patch);
+        slots[t] = mergeSlotPatch(prev.slots?.[t], patch);
       }
       return { ...prev, ...sec, slots };
     });
@@ -386,7 +506,7 @@ export function updateSetup(id, input) {
       if (i !== 0) return sec;
       const slots = { ...sec.slots };
       for (const [t, patch] of Object.entries(input.slots)) {
-        slots[t] = mergeSlot(sec.slots?.[t], patch);
+        slots[t] = mergeSlotPatch(sec.slots?.[t], patch);
       }
       return { ...sec, slots };
     });
@@ -417,38 +537,10 @@ export function updateSetup(id, input) {
   // harm is this save, so this save is where it says so.
   const newNames = new Set(s.sections.map(x => x.name));
   const driftWarnings = [];
+  const seamCtx = { candidate: s, placementNames: newNames, renames, driftWarnings };
   for (const k of keysUsingSetup(id)) {
     if (!isPublished(k.id)) continue;
-    for (const ov of k.sections) {
-      const effName = renames.find(([o]) => o === ov.name)?.[1] || ov.name;
-      const onSlots = SLOT_TYPES.filter(t => ov.slots[t].on);
-      if (!onSlots.length) continue;
-      if (!newNames.has(effName)) {
-        throw new Refusal(409, 'setup_in_use',
-          `“${ov.name}” still runs live on ${k.name} — switch it off there before removing the placement`,
-          { usedBy: [`${k.name} · ${ov.name}`] });
-      }
-      const secDef = s.sections.find(x => x.name === effName);
-      for (const t of onSlots) {
-        // Every break group answers for itself: one dark group is one dark break.
-        const walks = groupWalks(secDef, k.drive?.[t], t);
-        const multi = walks.length > 1;
-        walks.forEach((r, gi) => {
-          if (r.walk.length === 0) {
-            // Said in the UI's words (7 Sep, UAT P1): the pod, the placement, who plays it.
-            throw new Refusal(409, 'setup_in_use',
-              multi
-                ? `Pod ${gi + 1} in “${ov.name}” is empty — ${k.name} plays its ${SLOT_WORD[t].toLowerCase()} live, so every pod needs an ad unit`
-                : `“${ov.name}” ${SLOT_WORD[t].toLowerCase()} would go dark — ${k.name} plays it live; add an ad unit, or switch it off there first`,
-              { usedBy: [`${k.name} · ${ov.name}`] });
-          }
-        });
-        if (walks.some(r => r.fellBack || r.vacuous)) {
-          const provs = askWord(driveAsk(k.drive?.[t]?.ask) || []);
-          driftWarnings.push(`${k.name} ${SLOT_WORD[t].toLowerCase()}: asks ${provs} — falls back`);
-        }
-      }
-    }
+    for (const ov of k.sections) checkLiveOverlay(k, ov, seamCtx);
   }
 
   for (const [oldName, newName] of renames) {
@@ -458,7 +550,7 @@ export function updateSetup(id, input) {
   }
 
   const changes = diff(existing, s);
-  Object.assign(existing, s, { updatedAt: new Date().toISOString(), updatedBy: 'You' });
+  Object.assign(existing, s, { ...updateStamp() });
   const warnings = [...ruleWarnings, ...driftWarnings];
   return { obj: existing, changes, warnings };
 }
@@ -512,16 +604,13 @@ export function updateSetupBehaviour(id, index, input) {
     // THE UNREACHABLE TAIL, counted here too — this door edits the numbers it counts.
     if (SLOT_KIND[t] === 'ladder') {
       const rungs = gi > 0 ? groups[gi].rungs : sec.slots[t].rungs;
-      const n = localWalk(rungs).length;
-      const reachable = Math.max(1, Math.floor((next.fillTimeoutSec * 1000) / next.tagTimeoutMs));
-      if (n > 1 && reachable < n) {
-        warnings.push(`last ${n - reachable} sources never run`);
-      }
+      const unreachable = unreachableTail(rungs, next);
+      if (unreachable) warnings.push(`last ${unreachable} sources never run`);
     }
   }
 
   if (changes.length) {
-    Object.assign(setup, { updatedAt: new Date().toISOString(), updatedBy: 'You' });
+    Object.assign(setup, { ...updateStamp() });
   }
   return { obj: setup, section: sec, changes, warnings };
 }

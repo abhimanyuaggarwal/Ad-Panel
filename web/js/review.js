@@ -179,7 +179,7 @@ function reviewChanges(opts) {
   const changes = opts.changes || [];
   const n = changes.length;
   return new Promise(resolve => {
-    const root = document.getElementById('dialog-root');
+    const root = dialogRoot();
     root.innerHTML = `
       <div class="dlg-veil"><div class="dlg rvw${opts.steady ? ` steady steady-${opts.steady}` : ''}">
         <div class="rvw-head">

@@ -103,7 +103,7 @@ function renderUnitScreen() {
       };
     }),
   ];
-  document.getElementById('dialog-root').innerHTML = `
+  dialogRoot().innerHTML = `
     <div class="dlg-veil"><div class="dlg bulk steady">
       <h3>Edit ${keys.length} integration${keys.length > 1 ? 's' : ''}<span class="dlg-kicker">${esc(keys.slice(0, 2).map(k => k.name).join(', '))}${keys.length > 2 ? ` +${keys.length - 2} more` : ''}</span></h3>
       <div class="btabs">
@@ -128,7 +128,7 @@ function renderUnitScreen() {
 function closeUnitScreen() {
   BULK_DRAFT = null;
   UNIT_DRAFT = null;
-  document.getElementById('dialog-root').innerHTML = '';
+  closeDialog();
 }
 
 function bulkSyncFoot() {
@@ -244,8 +244,7 @@ function bulkFieldDefs(t) {
   // WHO ELSE BIDS (11 Sep, user call) — the one lever every break carries, the out-stream
   // included. `As set up` is the clear, sent as the drive's own `setup` word; `Custom`
   // reveals the partners, in the same two tiers both rooms draw it in.
-  const hbPartners = (KL_META.headerBidding && KL_META.headerBidding.length ? KL_META.headerBidding : HB_ANSWERS)
-    .filter(x => x !== 'off');
+  const partners = hbPartners();
   const hbDef = {
     f: 'headerBidding', label: fieldName('headerBidding'),
     ctl: () => {
@@ -254,8 +253,8 @@ function bulkFieldDefs(t) {
       return `
         <div class="hb-ctl">
           <div class="hb-l1">${accSeg(mode, ['setup', 'off', 'custom'], ['As set up', 'Off', 'Custom'],
-            o => `bulkDriveSet('${t}', 'headerBidding', ${o === 'setup' ? "'setup'" : o === 'off' ? "'off'" : `'${hbPartners[0]}'`})`)}</div>
-          ${mode === 'custom' ? accSeg(v, hbPartners, hbPartners.map(p => label('headerBidding', p)),
+            o => `bulkDriveSet('${t}', 'headerBidding', ${o === 'setup' ? "'setup'" : o === 'off' ? "'off'" : `'${partners[0]}'`})`)}</div>
+          ${mode === 'custom' ? accSeg(v, partners, partners.map(p => label('headerBidding', p)),
             o => `bulkDriveSet('${t}', 'headerBidding', '${o}')`) : ''}
         </div>`;
     },
@@ -366,7 +365,7 @@ function bulkFieldRowHtml(t, def, shownOff) {
   const d = slotDraft(t);
   const queued = d.dTouched.has(def.f);
   const open = queued || d.open.has(def.f);
-  const today = bulkTodayWord(t, def.f);
+  const today = bulkRowTodayWord(t, def.f);
   if (!open) {
     return `
     <div class="bqf-r closed ${shownOff ? 'off-dim' : ''}" onclick="bulkOpenField('${t}', '${def.f}')"${def.why ? ` title="${esc(def.why)}"` : ''}>
@@ -413,31 +412,17 @@ function bulkFieldsHtml(t, shownOff) {
   return bulkFieldDefs(t).map(def => bulkFieldRowHtml(t, def, shownOff)).join('');
 }
 
-// THE PENDING CHANGES CARD — this break's queued changes, beside the fields that made
-// them (7th cut, user call: tab-scoped, and quieter). One card, one tinted header, no
-// nested boxes: a row is the field, its from → to underneath, and an × that surfaces on
-// hover. The other tabs' dots already say where else changes wait; cross-break reading
-// is Review's job. Empty, the card states it in five words and holds its ground.
+// THIS BREAK'S QUEUE, in the card every bulk sheet now shares (`changesCardHtml`, 14 Sep).
+// Tab-scoped: the other tabs' dots already say where else changes wait, and cross-break
+// reading is Review's job.
 function bulkPendingCardHtml(t) {
   const rows = bulkQueuedRows().filter(r => r.t === t);
-  return `<aside class="bqp">
-    <div class="bqp-card">
-      <div class="bqp-hd">
-        <span>Pending changes${rows.length ? ` · ${rows.length}` : ''}</span>
-        <span class="bqs-gap"></span>
-        ${rows.length ? `<button type="button" class="zlink" onclick="bulkClearTab('${t}')">Clear</button>` : ''}
-      </div>
-      ${rows.length ? rows.map(r => `
-        <div class="bqp-r">
-          <div class="bqp-top">
-            <span class="bqp-f">${esc(r.label)}</span>
-            <button type="button" class="bqs-x" onclick="bulkDropField('${r.t}', '${r.f}')">×</button>
-          </div>
-          <div class="bqp-vc">${esc(bulkTodayWord(r.t, r.f))}<i class="rvw-arr">→</i><b>${esc(r.to)}</b></div>
-        </div>`).join('')
-      : '<div class="bqp-empty">No changes on this break</div>'}
-    </div>
-  </aside>`;
+  return changesCardHtml(rows.map(r => ({
+    label: r.label,
+    from: bulkTodayWord(r.t, r.f),
+    to: r.to,
+    drop: `bulkDropField('${r.t}', '${r.f}')`,
+  })), { clear: `bulkClearTab('${t}')`, empty: 'No changes on this break' });
 }
 
 // Clearing this break: its queued fields follow whatever each surface holds again.
@@ -486,6 +471,17 @@ function bulkKeyWord(k, t, f) {
 // "mixed today" chip named the situation instead of answering the question, and a chip
 // repeated on every second row is noise, not information. Past three distinct answers
 // the list stops being readable and the count takes over.
+// WHAT A ROW SHOWS AT REST (14 Sep, user call — *"don't show the values as set up ... that
+// are not needed"*). "as set up" is the ABSENCE of an answer on this surface, not an answer,
+// and five rows of it down one column is a phrase repeating "nothing here". So a row prints
+// a value only when the cohort HAS one; a mixed spread still names it, because there some
+// surfaces really have dissented and some have not. The queue card is unchanged — there it
+// is the from-side of a change, and the answer to "what is this replacing".
+function bulkRowTodayWord(t, f) {
+  const w = bulkTodayWord(t, f);
+  return w === 'as set up' ? '' : w;
+}
+
 function bulkTodayWord(t, f) {
   if (f === 'runs') {
     const st = slotDraft(t).st;

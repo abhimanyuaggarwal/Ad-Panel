@@ -35,16 +35,16 @@ async function viewKeyForm(id) {
       name: key.name, property: key.property, platform: key.platform,
       domains: [...key.domains], packageName: key.packageName,
       adSetupId: key.adSetupId || '',
-      player: JSON.parse(JSON.stringify(key.player)),
-      playerConfigs: JSON.parse(JSON.stringify(key.playerConfigs || [])),
+      player: deepCopy(key.player),
+      playerConfigs: deepCopy(key.playerConfigs || []),
       // The quick decisions — key-level, sparse, intent only (DRIVING-SCOPE).
-      drive: key.drive ? JSON.parse(JSON.stringify(key.drive)) : {},
+      drive: key.drive ? deepCopy(key.drive) : {},
       sections: key.sections.map(s => ({
         name: s.name, isDefault: s.isDefault,
         slots: Object.fromEntries(meta.slotTypes.map(t => [t, { on: s.slots[t].on }])),
       })),
     };
-    KEY_ORIG_CANON = keyPayload(JSON.parse(JSON.stringify(data)));
+    KEY_ORIG_CANON = keyPayload(deepCopy(data));
     PUB.dirty = () => !!KEY_ORIG_CANON && formDiff(KEY_ORIG_CANON, keyPayload(FORM.data), KEY_FIELDS).length > 0;
     PUB.saveNow = opts => saveKeyClicked(opts);
     if (restore) data = restore.data;
@@ -70,9 +70,13 @@ async function viewKeyForm(id) {
         domains: [...(seed.domains || [])], packageName: seed.packageName || '',
         presetName: '', copiedFrom: seed.name,
         adSetupId: seed.adSetupId || '',
-        drive: seed.drive ? JSON.parse(JSON.stringify(seed.drive)) : {},
-        player: JSON.parse(JSON.stringify(seed.player)),
-        playerConfigs: (seed.playerConfigs || []).map(({ id, ...rest }) => JSON.parse(JSON.stringify(rest))),
+        drive: seed.drive ? deepCopy(seed.drive) : {},
+        player: deepCopy(seed.player),
+        // WHERE THE DEFAULT PLAYER STARTED (14 Sep) — a page fact, never a payload field.
+        // The Default card measures itself against it (`VideoShow preset · 3 changed`),
+        // and the create review reads as the seed plus what moved off it.
+        playerSeed: deepCopy(seed.player),
+        playerConfigs: (seed.playerConfigs || []).map(({ id, ...rest }) => deepCopy(rest)),
         sections: seed.sections.map(s => ({
           name: s.name, isDefault: s.isDefault,
           slots: Object.fromEntries(meta.slotTypes.map(t => [t, { on: !!s.slots[t]?.on }])),
@@ -87,7 +91,8 @@ async function viewKeyForm(id) {
         domains: [], packageName: '', presetName: pPreset.name,
         adSetupId: '',
         drive: {},
-        player: JSON.parse(JSON.stringify(pPreset.values)),
+        player: deepCopy(pPreset.values),
+        playerSeed: deepCopy(pPreset.values),
         playerConfigs: [],
         sections: [{
           name: 'Default', isDefault: true,
@@ -99,7 +104,7 @@ async function viewKeyForm(id) {
   KEY_SLOT = restore ? restore.slot : 'preroll';
   for (const k of Object.keys(QF_TEXT)) delete QF_TEXT[k];
   startForm(data, () => renderKeyForm(meta));
-  FORM.saved = KEY_ORIGINAL ? JSON.parse(JSON.stringify(data)) : null;
+  FORM.saved = KEY_ORIGINAL ? deepCopy(data) : null;
   formDeps({
     web: d => meta.webPlatforms.includes(d.platform),
     app: d => !meta.webPlatforms.includes(d.platform),
@@ -164,7 +169,7 @@ function openSetupTab(id) {
 // The blank card and the change-modal's blank card: the setup's REAL creation editor,
 // prefilled for this surface; its Create returns here with the new setup mapped.
 function newSetupFromKey() {
-  document.getElementById('dialog-root').innerHTML = '';
+  closeDialog();
   keyStash('new');
   SETUP_CREATE_SEED = null;
   SETUP_CREATE_PREFILL = {
@@ -220,7 +225,7 @@ let CHG_STEP = 'pick'; // 'pick' | 'use' | 'copy' — which page of the one dial
 let CHG_NAME = null;   // the copy's name while step two stands, so Back never re-types it
 
 function chgClose() {
-  document.getElementById('dialog-root').innerHTML = '';
+  closeDialog();
   CHG_PICK = null;
   CHG_Q = '';
   CHG_STEP = 'pick';
@@ -330,7 +335,7 @@ function chgPaint() {
     : step === 'use'
       ? { t: 'Use this ad setup', k: 'what the swap changes, before it lands' }
       : { t: 'Copy & use', k: 'a photocopy of it, this integration’s own' };
-  document.getElementById('dialog-root').innerHTML = `
+  dialogRoot().innerHTML = `
     <div class="dlg-veil"><div class="dlg wide chgdlg">
       <h3>${esc(head.t)}<span class="dlg-kicker">${esc(head.k)}</span></h3>
       <div class="dlg-body ${step === 'pick' ? '' : 'mid'}">${step === 'pick' ? chgPickHtml() : chgStepTwoHtml(step)}</div>

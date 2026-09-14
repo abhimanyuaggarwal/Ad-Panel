@@ -35,6 +35,10 @@ const PUPPETEER = process.env.PUPPETEER
 const norm = t => String(t)
   .replace(/<!-- toasts -->[\s\S]*/, '')                                  // a toast is a race
   .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g, '<ts>')        // stamps move
+  .replace(/\b1[6-9]\d{11}\b/g, '<ms>')                                   // …and so do epoch ones
+                                                                          // (`data-quiet-at`), which
+                                                                          // reported a false diff on
+                                                                          // every pair of runs
   .replace(/class="([^"]*)"/g, (_, c) => `class="${c.split(/\s+/).filter(Boolean).join(' ')}"`);
 
 function diff(a, b) {
@@ -142,15 +146,23 @@ async function capture(label) {
   await click('.bqf-r.open .seg button', 0); await snap('bulk-ads-queued');
   await click('.btabs .btab', 1); await snap('bulk-ads-midroll');
   await click('#bulk-next'); await snap('bulk-ads-review'); await click('.dlg [data-act=no]');
-  await click('#bulk-bar .btn.small', 1); await snap('bulk-default-player');
-  await click('.bqf-r.closed', 0); await click('.bqf-r.open .seg button', 1); await snap('bulk-default-player-set');
-  await click('.dlg-foot .btn.ghost');
-  await click('#bulk-bar .btn.small', 2); await snap('bulk-custom-player');
-  await click('.pbr-row', 1); await snap('bulk-custom-player-second');
-  await click('.pbd-r .seg button', 1); await snap('bulk-custom-player-moved');
+  // ONE PLAYER ACT (14 Sep, second cut): five playback facts a cohort really does answer at
+  // once, flat — no fold, and no master-detail sheet beside it.
+  await click('#bulk-bar .btn.small', 1); await snap('bulk-player');
+  await click('.bqf-r.closed', 0); await click('.bqf-r.open .seg button', 1); await snap('bulk-player-set');
+  await click('.bqf-r.closed', 0); await snap('bulk-player-number');
+  await click('#pb-apply'); await snap('bulk-player-review'); await click('.dlg [data-act=no]');
   await click('.dlg-foot .btn.ghost'); await click('#bulk-bar .btn.ghost.small');
   await click('.page-head .btn'); await snap('keys-chooser');
   await click('.dlg-card', 1); await snap('keys-new-from-copy');
+  // A blank integration's default player starts from a preset (14 Sep): the strip in the
+  // Player config card's head picks the shape, the Default card names it, an edit landed
+  // from the sheet is counted against it, and re-picking a preset over that edit asks first.
+  await go('keys'); await click('.page-head .btn'); await click('.dlg-card.create'); await snap('keys-new-blank');
+  await click('.pc-card', 0); await click('.sh-row[data-r="autoplay"] .seg button', 1);
+  await click('.sh-foot .btn:not(.ghost)'); await snap('keys-new-blank-moved');
+  await click('.pc-preset .select'); await click('.pc-preset .sel-opt', 0); await snap('keys-new-blank-restamp-ask');
+  await click('.dlg [data-act=no]');
 
   // One integration, every break tab and every door on the page
   await go('keys/key_1'); await snap('key-preroll');
@@ -159,14 +171,22 @@ async function capture(label) {
   await click('.brk-tabs .stab', 0);
   await click('.pchip.on', 1); await snap('key-ask-toggled');
   await click('.drive-reset'); await snap('key-drive-reset');
-  // The player grid (13 Sep): a fold open, then a config cell's menu — led by the default's answer
-  await click('.pg-srow', 0); await snap('key-player-playback');
-  await click('.pg-c[data-r="autoplay"][data-col="0"]'); await snap('key-player-cell-menu');
-  await page.keyboard.press('Escape'); await sleep(250); await click('.pg-srow', 0);
-  // One config beside the default (14 Sep): the count is the door, the header holds the way back
-  await click('.pg-sdiff .pg-diff', 0); await snap('key-player-one-config');
-  await click('.pg-back'); await click('.pg-srow', 0);
-  await click('.pcc-add'); await snap('key-config-added');
+  // The player config: cards (level 1), a sheet (level 2), its `more` (level 3) — 14 Sep.
+  // `.btn:not(.ghost)` is Done/Create; the ghosts are Cancel and, on a config, the way back.
+  await click('.pc-card', 0); await snap('key-player-default');
+  await click('.sh-scope button', 1); await snap('key-player-default-all');
+  await click('.sh-scope button', 0);
+  // The sheet is a transaction: a moved row wears the change bar and the head counts it,
+  // on the DEFAULT as much as on a config, and Cancel puts every one of them back.
+  await click('.sh-row[data-r="autoplay"] .seg button', 1); await snap('key-player-default-changed');
+  await click('.sh-foot .btn.ghost');                  // Cancel — nothing lands
+  await click('.pc-card', 0);
+  await click('.sh-foot .btn:not(.ghost)');            // Close — reopened clean, closes clean
+  await click('.pc-card', 1); await snap('key-player-config');
+  await click('.sh-foot .btn:not(.ghost)');
+  await click('.pc-new'); await snap('key-config-new');
+  await click('.sh-foot .btn:not(.ghost)'); await snap('key-config-new-refused');
+  await click('.sh-foot .btn.ghost');
   await click('.eh-more-btn'); await snap('key-more-menu'); await click('.eh-more-btn');
   // The chip IS the change door (8 Sep), and the journey is two steps in one frame.
   await click('.ads-fills .fs-setup'); await snap('key-change-setup');

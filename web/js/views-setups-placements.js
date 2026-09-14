@@ -196,7 +196,7 @@ function suAddSection() {
   const max = KL_META.maxSections || 5;
   if (FORM.data.sections.length >= max) return;
   const name = suUntitledName();
-  const clone = JSON.parse(JSON.stringify(FORM.data.sections[0]));
+  const clone = deepCopy(FORM.data.sections[0]);
   suBareSlots(clone.slots);
   FORM.data.sections.push({ ...clone, name, isDefault: false, _orig: -1 });
   SU_SEC = FORM.data.sections.length - 1;
@@ -217,7 +217,7 @@ function suStampPreset(name) {
   FORM.data.presetName = name;
   for (const sec of FORM.data.sections) {
     for (const t of KL_META.slotTypes) {
-      const v = () => JSON.parse(JSON.stringify(preset.values.slots[t] || {}));
+      const v = () => deepCopy(preset.values.slots[t] || {});
       if (t === 'midroll') for (const g of sec.slots[t].groups) g.behaviour = v();
       else sec.slots[t].behaviour = v();
     }
@@ -482,7 +482,7 @@ async function suAddMidGroup() {
   // A new pod clones the one on screen — never a blank form (the placement rule) — but
   // never its DEAL: a deal is sold against one pod, and two pods running it would be
   // the same inventory promised twice.
-  const clone = JSON.parse(JSON.stringify(gs[SU_MID_G] || gs[0]));
+  const clone = deepCopy(gs[SU_MID_G] || gs[0]);
   clone.rungs = [];
   clone.direct = { rungs: [] };
   gs.push(clone);

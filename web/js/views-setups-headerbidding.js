@@ -129,7 +129,7 @@ function suHbGlimpseHtml() {
   return `<span class="hb-glimpse" title="${esc(story)}"><span class="hbg-answer${cur === 'off' ? ' off' : ''}">${esc(suHbWord(cur))}</span></span>`;
 }
 
-function suHeaderBiddingZoneHtml(meta) {
+function suHeaderBiddingZoneHtml() {
   const cur = suHb();
   const c = suHbCounts();
   // ONE LINE (11 Sep, user call — *"we only have this tab and apply on ad slots; keep the
@@ -146,7 +146,7 @@ function suHeaderBiddingZoneHtml(meta) {
   const orphan = cur !== 'off' && !c.bidding;
   // Meta's list when it has one; the page's own spelling when the API predates it — a seg
   // with no buttons is a question with no answers.
-  const opts = (meta.headerBidding && meta.headerBidding.length) ? meta.headerBidding : HB_ANSWERS;
+  const opts = hbAnswers();
   return `
       <div class="zone-row hb-zone">
         <span class="zone-l">${esc(HB_WORD)}</span>
@@ -199,7 +199,7 @@ function suHbApplyCell(si, col) {
 // The foot counts the delta both ways and names it in the act's own words, so the button
 // always says exactly what it will do — and stays unavailable while there is nothing.
 function suHbApplyTick() {
-  const root = document.getElementById('dialog-root');
+  const root = dialogRoot();
   const boxes = [...root.querySelectorAll('.wfa-cell input')];
   let follow = 0, own = 0;
   for (const b of boxes) {

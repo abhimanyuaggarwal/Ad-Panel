@@ -73,7 +73,7 @@ async function newSetupChooser() {
       <div class="sc-foot">${setupChipsHtml(s)}
         <span class="podl">${esc(s.updatedBy || 'ad ops')} · ${relWhen(s.updatedAt)}</span></div>
     </div>`;
-  document.getElementById('dialog-root').innerHTML = `
+  dialogRoot().innerHTML = `
     <div class="dlg-veil"><div class="dlg wide autoh">
       <h3>New ad setup<span class="dlg-kicker">blank, or from a copy — it takes shape in the editor</span></h3>
       <div class="dlg-body">
@@ -96,13 +96,13 @@ async function newSetupChooser() {
 
 // Cancel walks the address back too — ← and refresh keep meaning what they say.
 function setupChooserClose() {
-  document.getElementById('dialog-root').innerHTML = '';
+  closeDialog();
   history.replaceState(null, '', '#setups');
 }
 
 async function chooseSetupBlank() {
   SETUP_CREATE_SEED = null;
-  document.getElementById('dialog-root').innerHTML = '';
+  closeDialog();
   await viewSetupForm(null);
 }
 
@@ -110,7 +110,7 @@ async function chooseSetupCopy(id) {
   try {
     const { setup } = await API.getSetup(id);
     SETUP_CREATE_SEED = setup;
-    document.getElementById('dialog-root').innerHTML = '';
+    closeDialog();
     await viewSetupForm(null);
   } catch (e) {
     toast(e.message, 'bad');
@@ -121,7 +121,7 @@ async function chooseSetupCopy(id) {
 // house rule: a copy, never a link), so tuning this setup later moves nothing else.
 // _orig: -1 marks each placement as new, so the counted chips never claim a saved past.
 function setupSeedSections(src, meta) {
-  const clone = v => JSON.parse(JSON.stringify(v || []));
+  const clone = v => deepCopy(v || []);
   // The editor holds a break's OWN units; a linked break carries its kept units and
   // the link — the copy's waterfall (cloned by the caller) is what it follows.
   const indirect = g => ({
@@ -132,7 +132,7 @@ function setupSeedSections(src, meta) {
     name: sec.name, isDefault: i === 0, _orig: -1,
     slots: Object.fromEntries(meta.slotTypes.map(t => {
       const s = sec.slots[t] || {};
-      const bhv = g => JSON.parse(JSON.stringify((g || s).behaviour || {}));
+      const bhv = g => deepCopy((g || s).behaviour || {});
       const direct = slotKind(t) === 'ladder' ? { rungs: clone(s.direct && s.direct.rungs) } : null;
       return [t, t === 'midroll'
         ? { direct, groups: (s.groups && s.groups.length ? s.groups : [s]).map(g => ({
@@ -395,7 +395,7 @@ function suTemplatesRowHtml() {
 // same anatomy as ask(), plus a read step on OK.
 function askForm(opts, readFn) {
   return new Promise(resolve => {
-    const root = document.getElementById('dialog-root');
+    const root = dialogRoot();
     root.innerHTML = `
       <div class="dlg-veil">
         <div class="dlg ${esc(opts.cls || '')}">
@@ -407,40 +407,50 @@ function askForm(opts, readFn) {
           </div>
         </div>
       </div>`;
-    root.querySelector('[data-act=no]').onclick = () => { root.innerHTML = ''; resolve(null); };
+    wireDialogExit(root, () => resolve(null));
     // A REFUSAL STAYS IN THE DIALOG (7 Sep, UAT P1): with `opts.submit`, the write runs
     // while the form still stands — a refused field wears its reason where it was typed,
     // nothing is re-typed. Only a write that lands closes the dialog.
     root.querySelector('[data-act=yes]').onclick = async () => {
       const out = readFn(root);
-      if (!opts.submit) { root.innerHTML = ''; resolve(out); return; }
+      if (!opts.submit) { closeDialog(); resolve(out); return; }
       const ok = root.querySelector('[data-act=yes]');
       ok.disabled = true;
       root.querySelectorAll('.field.err').forEach(f => { f.classList.remove('err'); f.querySelector('.field-err')?.remove(); });
       root.querySelector('.dlg-err')?.remove();
       try {
         await opts.submit(out);
-        root.innerHTML = '';
+        closeDialog();
         resolve(out);
       } catch (e) {
         ok.disabled = false;
-        const errs = (e.errors && e.errors.length) ? e.errors : [{ message: e.message }];
-        let loose = [];
-        for (const er of errs) {
-          const f = er.field && root.querySelector(`[data-dfield="${er.field}"]`);
-          if (f && !f.classList.contains('err')) {
-            f.classList.add('err');
-            f.insertAdjacentHTML('beforeend', `<div class="field-err">${esc(er.message)}</div>`);
-            f.querySelector('input')?.focus();
-          } else if (!f) loose.push(er.message);
-        }
-        if (loose.length) root.querySelector('.dlg-body').insertAdjacentHTML('afterbegin', `<div class="banner bad dlg-err">${esc(loose[0])}</div>`);
+        paintDialogRefusal(root, e);
       }
     };
-    root.querySelector('.dlg-veil').onclick = e => {
-      if (e.target.classList.contains('dlg-veil')) { root.innerHTML = ''; resolve(null); }
-    };
   });
+}
+
+// A REFUSAL, PAINTED WHERE IT WAS TYPED: each named field wears its own reason, and
+// anything the form has no field for goes to one banner at the top of the body. Called
+// with the dialog still standing — nothing the person typed is thrown away.
+function paintDialogRefusal(root, e) {
+  const errs = (e.errors && e.errors.length) ? e.errors : [{ message: e.message }];
+  const loose = errs.filter(er => !paintFieldRefusal(root, er)).map(er => er.message);
+  if (!loose.length) return;
+  root.querySelector('.dlg-body')
+    .insertAdjacentHTML('afterbegin', `<div class="banner bad dlg-err">${esc(loose[0])}</div>`);
+}
+
+// One field's reason, under the field. Returns false when there is no field to wear it —
+// or when one already does, which is how the FIRST reason for a field is the one shown.
+function paintFieldRefusal(root, er) {
+  const field = er.field && root.querySelector(`[data-dfield="${er.field}"]`);
+  if (!field) return false;
+  if (field.classList.contains('err')) return true;
+  field.classList.add('err');
+  field.insertAdjacentHTML('beforeend', `<div class="field-err">${esc(er.message)}</div>`);
+  field.querySelector('input')?.focus();
+  return true;
 }
 
 let TPL_PROVIDER = 'ima'; // the dialog's provider pick, written by the house select
@@ -525,7 +535,7 @@ async function tplToggle(id) {
 
 // Delete leaves the dialog first, then asks — one confirm, never two dialogs deep.
 function tplDeleteFromDialog(id) {
-  document.getElementById('dialog-root').innerHTML = '';
+  closeDialog();
   tplDelete(id);
 }
 

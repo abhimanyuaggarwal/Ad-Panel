@@ -4,7 +4,7 @@
 import { DRIVE_FIELDS, askWord, driveAsk, driveWalkRungs, effectiveBehaviour, normalizeCuepoints, slotGroupDefs } from './ladders.js';
 import { isPublished } from './publish.js';
 import { duplicateSetup, setupSection } from './setups.js';
-import { ANALYTICS_LEVELS, AUTOPLAY, CONTROLS_MODES, DOCK_POSITIONS, END_SCREENS, FIELD_WORDS, HEADER_BIDDING, MAX_RUNGS, MAX_SECTIONS, MIDROLL_MODES, PLATFORMS, PLAYBACK_RATES, PLAYER_CONTROLS, PLAYER_FIELDS, PLAYBACK_KINDS, PLAYBACK_MODES, PREROLL_TIMING, PROPERTIES, PROVIDER_WORD, Refusal, SLOT_TYPES, SLOT_WORD, TAG_PROVIDERS, WEB_PLATFORMS, WORST_CASE_WARN_MS, fieldWord, keyString, state } from './state.js';
+import { ANALYTICS_LEVELS, AUTOPLAY, CONTROLS_MODES, DOCK_POSITIONS, END_SCREENS, FIELD_WORDS, HEADER_BIDDING, MAX_RUNGS, MAX_SECTIONS, MIDROLL_MODES, PLATFORMS, PLAYBACK_RATES, PLAYER_CONTROLS, PLAYER_FIELDS, PLAYBACK_KINDS, PLAYBACK_MODES, PREROLL_TIMING, PROPERTIES, PROVIDER_WORD, Refusal, SLOT_TYPES, SLOT_WORD, TAG_PROVIDERS, WEB_PLATFORMS, WORST_CASE_WARN_MS, fieldWord, keyString, state, updateStamp } from './state.js';
 import { DOMAIN_RE, PACKAGE_RE, bool, diff, fmtSecs, hexColor, httpUrl, intIn, mustGet, oneOf, str, uniqueName } from './validate.js';
 
 
@@ -335,6 +335,63 @@ export function normalizeDrive(input, errors) {
 // Refusals speak the UI's words, not the enum's (7 Sep, UAT).
 const PLATFORM_WORD = { mweb: 'Mweb', desktop: 'Desktop', android: 'Android', ios: 'iOS' };
 
+// ---------- THE SEAM, PRODUCT SIDE ----------
+// A switched-on break must have somewhere to ask. These three read one placement, one
+// break and one pod in turn, collecting refusals by name rather than throwing, because
+// normalizeKey refuses once with every problem said. `ctx` carries what the words are
+// built from: { setup, drive, errors, fellBack }.
+
+/** One placement's switched-on breaks, checked against the attached setup. */
+function checkPlacementSeam(section, ctx) {
+  const secDef = ctx.setup ? setupSection(ctx.setup, section.name) : null;
+  for (const t of SLOT_TYPES) {
+    if (!section.slots[t].on) continue;
+    if (checkSwitchedOnBreak(section, t, secDef, ctx)) break;
+  }
+}
+
+/**
+ * One switched-on break, checked.
+ * @returns {boolean} true when the whole PLACEMENT is missing from the setup — the caller
+ *   stops there, because that one refusal already covers every break under it.
+ */
+function checkSwitchedOnBreak(section, t, secDef, ctx) {
+  const { setup, errors } = ctx;
+  const breakWord = `“${section.name}” ${SLOT_WORD[t].toLowerCase()}`;
+  if (!setup) {
+    errors.push({ field: 'sections', message: `${breakWord} is switched on but no ad setup is attached — nothing could fill it. Ad ops connect one from their room` });
+    return false;
+  }
+  if (!secDef) {
+    errors.push({ field: 'sections', message: `“${section.name}” is not a placement in “${setup.name}” — placements live in the ad setup now; ad ops add them there` });
+    return true;
+  }
+  const pods = slotGroupDefs(secDef.slots[t]);
+  if (pods.every(g => !g.rungs.length)) {
+    errors.push({ field: 'sections', message: `${breakWord} is switched on but “${setup.name}” carries no ${SLOT_WORD[t].toLowerCase()} demand there — ask ad ops, or switch it off` });
+    return false;
+  }
+  checkPodsAnswer(section, t, pods, ctx);
+  return false;
+}
+
+// Every break group answers for itself — one dark group is one dark break. A decision the
+// pod cannot honour falls back to the setup's own arrangement, noted for the warning the
+// caller words later.
+function checkPodsAnswer(section, t, pods, ctx) {
+  const { drive, errors, fellBack } = ctx;
+  const isMulti = pods.length > 1;
+  pods.forEach((g, gi) => {
+    const r = driveWalkRungs(g.rungs, g.behaviour, drive?.[t], t);
+    const gWord = isMulti ? ` pod ${gi + 1}` : '';
+    if ((r.fellBack || r.vacuous) && gi === 0) (fellBack[t] = fellBack[t] || []).push(section.name);
+    if (r.walk.length) return;
+    errors.push({ field: 'sections', message: !g.rungs.length
+      ? `“${section.name}” ${SLOT_WORD[t].toLowerCase()}${gWord} is switched on but carries no demand — ask ad ops, or remove the pod`
+      : `“${section.name}” ${SLOT_WORD[t].toLowerCase()}${gWord} is switched on but every ad source is off by ad ops — switch one on in the ad setup, or switch the unit off` });
+  });
+}
+
 export function normalizeKey(input, exceptId, { driveTouched = true } = {}) {
   const errors = [];
   const warnings = [];
@@ -413,34 +470,8 @@ export function normalizeKey(input, exceptId, { driveTouched = true } = {}) {
   // wrong thing. A decision some sections cannot honour falls back there, warned by
   // name (26 Aug, user call: dark until noticed is the harmful option).
   const fellBack = {}; // slot type -> sections that fall back to the setup's arrangement
-  for (const s of k.sections) {
-    const secDef = setup ? setupSection(setup, s.name) : null;
-    for (const t of SLOT_TYPES) {
-      if (!s.slots[t].on) continue;
-      if (!setup) {
-        errors.push({ field: 'sections', message: `“${s.name}” ${SLOT_WORD[t].toLowerCase()} is switched on but no ad setup is attached — nothing could fill it. Ad ops connect one from their room` });
-      } else if (!secDef) {
-        errors.push({ field: 'sections', message: `“${s.name}” is not a placement in “${setup.name}” — placements live in the ad setup now; ad ops add them there` });
-        break;
-      } else if (slotGroupDefs(secDef.slots[t]).every(g => !g.rungs.length)) {
-        errors.push({ field: 'sections', message: `“${s.name}” ${SLOT_WORD[t].toLowerCase()} is switched on but “${setup.name}” carries no ${SLOT_WORD[t].toLowerCase()} demand there — ask ad ops, or switch it off` });
-      } else {
-        // Every break group answers for itself — one dark group is one dark break.
-        const gdefs = slotGroupDefs(secDef.slots[t]);
-        const multi = gdefs.length > 1;
-        gdefs.forEach((g, gi) => {
-          const r = driveWalkRungs(g.rungs, g.behaviour, k.drive?.[t], t);
-          const gWord = multi ? ` pod ${gi + 1}` : '';
-          if ((r.fellBack || r.vacuous) && gi === 0) (fellBack[t] = fellBack[t] || []).push(s.name);
-          if (r.walk.length === 0) {
-            errors.push({ field: 'sections', message: !g.rungs.length
-              ? `“${s.name}” ${SLOT_WORD[t].toLowerCase()}${gWord} is switched on but carries no demand — ask ad ops, or remove the pod`
-              : `“${s.name}” ${SLOT_WORD[t].toLowerCase()}${gWord} is switched on but every ad source is off by ad ops — switch one on in the ad setup, or switch the unit off` });
-          }
-        });
-      }
-    }
-  }
+  const seamCtx = { setup, drive: k.drive, errors, fellBack };
+  for (const s of k.sections) checkPlacementSeam(s, seamCtx);
   // SEVERAL CADENCES ARE AN ARRANGEMENT (3 Sep). One cuepoint answer cannot stand for a
   // mid-roll that runs two or three break groups, each with its own — so rather than
   // flatten ad ops' work silently, the decision is refused by name, pointing at the room
@@ -538,8 +569,7 @@ export function createKey(input) {
     key: keyString(k.property, k.platform),
     ...k,
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    updatedBy: 'You',
+    ...updateStamp(),
   };
   state.keys.set(id, obj);
   return { obj, warnings: [...warnings, ...keyWarnings(obj)] };
@@ -550,7 +580,7 @@ export function updateKey(id, input) {
   const { k, warnings } = normalizeKey({ ...existing, ...input }, id,
     { driveTouched: input.drive !== undefined });
   const changes = diff(existing, k);
-  Object.assign(existing, k, { updatedAt: new Date().toISOString(), updatedBy: 'You' });
+  Object.assign(existing, k, { ...updateStamp() });
   return { obj: existing, changes, warnings: [...warnings, ...keyWarnings(existing)] };
 }
 
@@ -567,7 +597,7 @@ export function updateKeyPlayer(keyId, input) {
   if (errors.length) throw new Refusal(400, 'invalid_player', 'Player fields were refused', { errors });
   const changes = diff(k.player, player);
   k.player = player;
-  if (changes.length) Object.assign(k, { updatedAt: new Date().toISOString(), updatedBy: 'You' });
+  if (changes.length) Object.assign(k, { ...updateStamp() });
   return { obj: k, changes };
 }
 

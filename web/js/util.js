@@ -10,6 +10,14 @@ function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+/**
+ * A deep copy of plain data — the editors hold their own copy of what the server sent, so
+ * typing never mutates the answer a screen is still counting against. JSON round-trip:
+ * fine for the model, which is objects, arrays, strings and numbers and nothing else.
+ * @template T @param {T} v @returns {T}
+ */
+function deepCopy(v) { return JSON.parse(JSON.stringify(v)); }
+
 // THE GLOBAL WATERFALL — the setup's own shared ladder, named once (8 Sep, user call:
 // *"rename the top waterfall as global waterfall or suggest any better name for it"*).
 // It was `Shared waterfall` until 7 Sep and then bare `Waterfall`, which collided with
@@ -22,11 +30,30 @@ const WF_WORD = 'Global waterfall';
 // asked. The setup answers once at its head; every slot borrows that answer (`Auto`) or
 // gives its own. Named once here, both for the section's head and for every slot's row.
 const HB_WORD = 'Header bidding';
-// The answers, spelled here as well as in meta (`meta.headerBidding` / `meta.slotHeaderBidding`),
-// so a control never paints EMPTY against an API that predates them — the `pauseModes`
-// fallback rule. Meta wins when it answers; this is what the page draws when it does not.
+// The answers, spelled here as well as in meta (`meta.headerBidding`), so a control never
+// paints EMPTY against an API that predates them — the `pauseModes` fallback rule. Meta
+// wins when it answers; this is what the page draws when it does not.
 const HB_ANSWERS = ['off', 'amazon_prebid', 'amazon', 'prebid'];
-const HB_SLOT_ANSWERS = ['auto', ...HB_ANSWERS];
+
+/**
+ * THE HEADER-BIDDING ANSWERS THE PAGE DRAWS — meta's list, or the spelling above while the
+ * API predates it. Five controls asked this in their own words before: the seg on a slot,
+ * on a unit, on a surface, in the bulk sheet, and the global's own row.
+ * @returns {string[]}
+ */
+function hbAnswers() {
+  const fromMeta = KL_META && KL_META.headerBidding;
+  return (fromMeta && fromMeta.length) ? fromMeta : HB_ANSWERS;
+}
+
+/**
+ * The same answers without Off, for the controls that carry Off in their own mode seg and
+ * show only the partners beside it.
+ * @returns {string[]}
+ */
+function hbPartners() {
+  return hbAnswers().filter(x => x !== 'off');
+}
 
 const LABELS = {
   property: { TOI: 'TOI', ET: 'ET', NBT: 'NBT' },
@@ -348,6 +375,29 @@ function toast(msg, kind) {
   toast._t = setTimeout(() => { el.remove(); }, kind === 'bad' ? 6000 : kind === 'warn' ? 5000 : 2200);
 }
 
+// THE DIALOG ROOT, AND THE ONE WAY OUT. Cancel and a click on the veil close the dialog and
+// answer `bail` — identical in all three dialogs below (and in `askForm`, one room over), so
+// it is written once. The day Escape closes a dialog too, it becomes true of all of them at
+// once, which is the whole point of one control per concept.
+const dialogRoot = () => document.getElementById('dialog-root');
+
+/** Close whatever dialog is open. The only way any of them clears the root. */
+function closeDialog() { dialogRoot().innerHTML = ''; }
+
+/**
+ * Wire Cancel and the veil to the one way out.
+ * @param {Element} root     the dialog root, already painted
+ * @param {() => void} bail  what the dialog answers when it is dismissed
+ */
+function wireDialogExit(root, bail) {
+  // A dialog with nothing to decide (a fact, said in a box) gets one button and no Cancel.
+  const no = root.querySelector('[data-act=no]');
+  if (no) no.onclick = () => { closeDialog(); bail(); };
+  root.querySelector('.dlg-veil').onclick = e => {
+    if (e.target.classList.contains('dlg-veil')) { closeDialog(); bail(); }
+  };
+}
+
 // ask({title, body, okLabel, danger}) -> Promise<boolean>. Our own dialog, never confirm().
 /**
  * The house confirm dialog (never window.confirm).
@@ -357,7 +407,7 @@ function toast(msg, kind) {
  */
 function ask(opts) {
   return new Promise(resolve => {
-    const root = document.getElementById('dialog-root');
+    const root = dialogRoot();
     root.innerHTML = `
       <div class="dlg-veil">
         <div class="dlg">
@@ -369,13 +419,8 @@ function ask(opts) {
           </div>
         </div>
       </div>`;
-    // A dialog with nothing to decide (a fact, said in a box) gets one button.
-    const no = root.querySelector('[data-act=no]');
-    if (no) no.onclick = () => { root.innerHTML = ''; resolve(false); };
-    root.querySelector('[data-act=yes]').onclick = () => { root.innerHTML = ''; resolve(true); };
-    root.querySelector('.dlg-veil').onclick = e => {
-      if (e.target.classList.contains('dlg-veil')) { root.innerHTML = ''; resolve(false); }
-    };
+    wireDialogExit(root, () => resolve(false));
+    root.querySelector('[data-act=yes]').onclick = () => { closeDialog(); resolve(true); };
   });
 }
 
@@ -383,7 +428,7 @@ function ask(opts) {
 // pickDialog(title, [{v, label, sub}]) -> Promise<value | null>. Our own picker.
 function pickDialog(title, options) {
   return new Promise(resolve => {
-    const root = document.getElementById('dialog-root');
+    const root = dialogRoot();
     root.innerHTML = `
       <div class="dlg-veil">
         <div class="dlg">
@@ -397,12 +442,9 @@ function pickDialog(title, options) {
         </div>
       </div>`;
     root.querySelectorAll('.sel-opt').forEach(el => {
-      el.onclick = () => { root.innerHTML = ''; resolve(el.dataset.v); };
+      el.onclick = () => { closeDialog(); resolve(el.dataset.v); };
     });
-    root.querySelector('[data-act=no]').onclick = () => { root.innerHTML = ''; resolve(null); };
-    root.querySelector('.dlg-veil').onclick = e => {
-      if (e.target.classList.contains('dlg-veil')) { root.innerHTML = ''; resolve(null); }
-    };
+    wireDialogExit(root, () => resolve(null));
   });
 }
 

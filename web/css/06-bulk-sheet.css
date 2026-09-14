@@ -40,8 +40,12 @@
 .dlg.bulk.steady { min-height: min(var(--frame), calc(100vh - 80px)); }
 /* The ad sheet: 220px of levers (pre-roll and mid-roll, every lever open) + its chrome. */
 .dlg.bulk.steady { --frame: 409px; }
-/* The player sheet is master-detail — its own content genuinely fills 388px. */
-.dlg.bulk.pb.steady { --frame: 529px; }
+/* The player sheet: five levers beside the same queue card — measured 341px at rest, 355
+   with every lever open, and 369 for the review that follows, which is the number both
+   steps take. Four or five queued changes grow the card past it and the sheet grows with
+   them: a floor is worth 28px of air at rest, not the 114 that matching the tallest
+   possible state would cost — the same arithmetic this file's 8 Sep note settled. */
+.dlg.bulk.pbx.steady { --frame: 369px; }
 .dlg.bulk .dlg-foot { margin-top: 12px; }
 /* Tighter rhythm than the key editor: this dialog holds a whole slot on one screen, so
    every row gives back a few pixels and the tallest tab (mid-roll) fits without a scroll. */

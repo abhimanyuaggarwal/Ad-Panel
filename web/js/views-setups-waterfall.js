@@ -52,7 +52,7 @@
 // The form's waterfall, always in one shape — used by the load mapping too.
 function suWfClean(w) {
   return {
-    rungs: JSON.parse(JSON.stringify(w?.rungs || [])),
+    rungs: deepCopy(w?.rungs || []),
     depth: w?.depth ?? null,
     pauseAll: w?.pauseAll ?? null,
   };
@@ -101,13 +101,6 @@ function suSrcServed(g) {
   const src = suSrcOf(g);
   if (src === 'own') return ((g && g.rungs) || []).filter(r => r.tagId).length;
   return (suSrcPrimary(g) ? 1 : 0) + (src === 'setup' ? suWfServed().length : 0);
-}
-
-// The units the break holds that are NOT serving — its own fall while something else
-// serves that fall. Counted, and never deleted: this is what the way back returns.
-function suSrcParked(g) {
-  if (suSrcOf(g) === 'own') return 0;
-  return ((g && g.rungs) || []).slice(1).filter(r => r.tagId).length;
 }
 
 // A break's OWN units, whichever source is live — the parked custom waterfall while
@@ -419,7 +412,7 @@ function suWfApplyCell(si, col) {
 // The foot counts the DELTA both ways, so the act always names exactly what it will do
 // — and stays unavailable, with its reason, while there is nothing to change.
 function suWfApplyTick() {
-  const root = document.getElementById('dialog-root');
+  const root = dialogRoot();
   const boxes = [...root.querySelectorAll('.wfa-cell input')];
   let add = 0, off = 0;
   for (const b of boxes) {
@@ -441,7 +434,7 @@ function suWfApplyTick() {
 // answer. Painted imperatively (one class on the cells, not a CSS `:has()` chain per
 // column) — the grid is built once and only this class moves.
 function suWfApplyHi(kind, key, on) {
-  const root = document.getElementById('dialog-root');
+  const root = dialogRoot();
   for (const c of root.querySelectorAll('.wfa-cell')) {
     if (c.dataset[kind] === String(key)) c.classList.toggle('reach', !!on);
   }
@@ -451,7 +444,7 @@ function suWfApplyHi(kind, key, on) {
 // no extra control: click a column to answer it for every placement, a row to answer
 // every break of one placement. A cell with no break sits it out.
 function suWfApplyBulk(kind, key) {
-  const root = document.getElementById('dialog-root');
+  const root = dialogRoot();
   const boxes = [...root.querySelectorAll(`.wfa-cell input[data-${kind}="${key}"]`)];
   if (!boxes.length) return;
   const target = !boxes.every(b => b.checked);
@@ -795,7 +788,7 @@ function suWfOrderChipsHtml() {
 // the fall wear — naming them once, counted where the band already counts the followers.
 // An empty waterfall draws nothing here: there is no order, depth or pause to set over
 // nothing, and the controls above have already said the fall is switched off.
-function suWfMirrorHtml(t) {
+function suWfMirrorHtml() {
   const wf = suWf();
   const all = (wf.rungs || []).filter(r => r.tagId);
   if (!all.length) return '';

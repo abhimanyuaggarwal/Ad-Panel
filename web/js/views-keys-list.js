@@ -80,8 +80,7 @@ async function viewKeysList() {
       <span style="flex:1"></span>
       <span class="bulk-verb">Change</span>
       <button class="btn small" onclick="bulkEditJourney()">Ad behaviour</button>
-      <button class="btn small" onclick="defaultConfigJourney()">Default player behaviour</button>
-      <button class="btn small" onclick="playerBehaviourJourney()">Custom player behaviour</button>
+      <button class="btn small" onclick="playerBehaviourJourney()">Player behaviour</button>
       <button class="btn ghost small" onclick="clearKeySelection()">Clear</button>
     </div>
     <div class="card">

@@ -7,7 +7,7 @@
 // What is not pinned is any check on whether the person owns the address, because there is
 // none: see api/store/session.js.
 
-export default async function run({ test, req, eq, assert }) {
+export default async function run({ test, req, eq, assert, BASE }) {
   await test('a reset opens on a world somebody is standing in — the console has always painted the rooms', async () => {
     const s = await req('GET', '/panel/session');
     eq(s.status, 200, 'GET /panel/session');
@@ -116,7 +116,7 @@ export default async function run({ test, req, eq, assert }) {
   });
 
   await test('the door itself is served, and it is the console’s own page', async () => {
-    const res = await fetch('http://localhost:4299/login.html');
+    const res = await fetch(`${BASE}/login.html`);
     eq(res.status, 200, 'GET /login.html');
     const html = await res.text();
     assert(html.includes('css/11-login.css'), 'wearing its own plate');

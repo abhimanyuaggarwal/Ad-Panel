@@ -416,7 +416,7 @@ function suRungHbRowHtml(t, n, r, tag, row) {
   const why = suRungHbWhy(tag);
   const cur = r.headerBidding || 'auto';
   const mode = cur === 'auto' ? 'auto' : cur === 'off' ? 'off' : 'custom';
-  const partners = ((KL_META.headerBidding && KL_META.headerBidding.length) ? KL_META.headerBidding : HB_ANSWERS).filter(x => x !== 'off');
+  const partners = hbPartners();
   const borrowed = suRungHbBorrowed(t);
   // Choosing Custom starts from what the unit runs today, so "make it mine" is one click.
   const start = partners.includes(borrowed) ? borrowed : partners[0];
@@ -679,7 +679,7 @@ function suBreakLadderHtml(t, ctx, meta) {
               onclick="suAddRung('${t}')">+ Add waterfall tag</button>`}
       </div>`;
   } else if (src === 'wf') {
-    fallBody = suWfMirrorHtml(t);
+    fallBody = suWfMirrorHtml();
   }
 
   // The waterfall's control row: the section's THREE answers in one seg, on the section's own

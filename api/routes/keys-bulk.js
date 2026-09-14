@@ -26,23 +26,38 @@ const BULK_SLOT_ACTIONS = ['slotOn', 'slotOff'];
 // replacement: how ads behave lives in the ad setup, where ONE edit already reaches
 // every attached integration. Bulk-writing it per integration would be undoing the
 // thing that made the ops room worth having.
-export const BULK_PLAYER_FIELDS = ['autoplay', 'passiveVolume', 'playbackMode', 'fallbackMediaId',
+export const BULK_PLAYER_FIELDS = ['autoplay', 'passiveVolume',
   // The mini player call (31 Aug) — the one playback fact that is the player's.
   'expandInMini',
-  // The DEFAULT playback mode (2 Sep) — custom configs are edited per surface through
+  // The DEFAULT playback mode (2 Sep) — a custom config is edited per surface through
   // the Player behaviour sheet, never blanket-written by a cohort action.
   'playback',
   // THE WHOLE PLAYER BEHAVIOUR CARD (11 Sep). Everything the card holds can be set
   // across a cohort, because every one of these is a decision a whole estate makes at
-  // once: a brand refresh, a measurement id, a controls policy. The SHEET still offers
-  // only the six a fork may also carry — a cohort act is a blunt instrument and the
-  // narrow sheet is the deliberate choice — but the capability is a row away rather
-  // than a release away, which is exactly the trade the 7 Sep volume note recorded.
-  'quality', 'muted', 'rememberVolume', 'rememberAudioLang', 'rememberCaptions',
+  // once: a brand refresh, a measurement id, a controls policy.
+  'muted', 'rememberVolume', 'rememberAudioLang', 'rememberCaptions',
   'controlsMode', 'hiddenControls', 'playbackRates', 'controlsAutoHideMs',
   'dock', 'autoPausePct', 'loop', 'endScreen',
   'brandColor', 'textColor', 'logoUrl',
   'analyticsLevel', 'viewAfterMs', 'heartbeatMs', 'comscoreId', 'nielsenId', 'gaId'];
+
+// WHAT A COHORT MAY NOT ANSWER (14 Sep, user call — *"define which fields are relevant for
+// the bulk changes the team may want to do across integrations"*). Three of these were on
+// the list from 25 Aug and one was never on it, and all four fail the same question: would
+// a team ever want ONE answer on forty surfaces? Each is a value a single surface owns, so
+// a blanket write is not a blunt instrument but a wrong one — and the shortlist the sheet
+// draws is backed here, by name, rather than left as a courtesy of the UI.
+// `playbackMode` is the sharpest of them: one type for the whole cohort strands each
+// surface's own redirect, which `normalizePlayer` then blanks.
+// The reasons are UI-ready sentences and travel on `/panel/meta`, because the sheet draws
+// these rows greyed IN PLACE with the reason beside them: a shortlist the server and the
+// screen spell differently is the drift this whole change is about.
+export const BULK_NEVER_FIELDS = {
+  playbackMode: 'One type for all of them would strand each surface’s own redirect',
+  redirectUrl: 'A redirect target belongs to one surface',
+  quality: 'A label the stream itself carries',
+  fallbackMediaId: 'A media id belongs to one surface',
+};
 
 function bulkSlotType(value) {
   const t = typeof value === 'string' ? value : value?.slot;
@@ -66,10 +81,17 @@ r.post('/panel/keys/bulk', handle((req, res) => {
     slotType = bulkSlotType(value);
   } else if (action === 'playerFields') {
     const fields = (value && value.fields) || {};
+    // Refused BY NAME, next to the reason — never dropped quietly, or a cohort write would
+    // report "changed" for an answer it never wrote.
+    const owned = Object.keys(fields).filter(k => BULK_NEVER_FIELDS[k]);
+    if (owned.length) {
+      throw new store.Refusal(400, 'bad_bulk',
+        owned.map(k => `“${store.fieldWord(k)}” is each integration’s own. ${BULK_NEVER_FIELDS[k]}`).join(' '));
+    }
     const allowed = Object.keys(fields).filter(k => BULK_PLAYER_FIELDS.includes(k));
     if (!allowed.length) {
       throw new store.Refusal(400, 'bad_bulk',
-        `nothing to change — this act sets ${BULK_PLAYER_FIELDS.slice(0, 8).join(', ')}, …`);
+        `nothing to change — this act sets ${BULK_PLAYER_FIELDS.slice(0, 8).map(store.fieldWord).join(', ')}, …`);
     }
   } else if (action === 'driveFields') {
     // THE QUICK DECISION, ACROSS A COHORT (26 Aug, DRIVING-SCOPE): who fills it, how

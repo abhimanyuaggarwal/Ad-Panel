@@ -14,7 +14,7 @@ const r = express.Router();
 // actually live — see `publishObject`.
 for (const [kind, seg] of [['key', 'keys'], ['setup', 'setups']]) {
   r.post(`/panel/${seg}/:id/publish`, handle((req, res) => {
-    const { version, warnings } = store.publishObject(kind, req.params.id, 'You', req.body?.note);
+    const { version, warnings } = store.publishObject(kind, req.params.id, store.ACTOR, req.body?.note);
     res.json({ version: publicVersion(version), live: true, warnings });
   }));
 
@@ -29,7 +29,7 @@ for (const [kind, seg] of [['key', 'keys'], ['setup', 'setups']]) {
   }));
 
   r.post(`/panel/${seg}/:id/versions/:v/restore`, handle((req, res) => {
-    const { version, restoredFrom } = store.restoreVersion(kind, req.params.id, req.params.v, 'You', req.body?.note);
+    const { version, restoredFrom } = store.restoreVersion(kind, req.params.id, req.params.v, store.ACTOR, req.body?.note);
     res.json({ version: publicVersion(version), restoredFrom });
   }));
 

@@ -6,9 +6,10 @@ behind decisions are in `PRODUCT-LOG.md` (the running log) and `docs/DECISION-RE
 dated scope documents); `docs/PRODUCT-SCOPE.md` describes the product for any reader. This
 file stays current and short.
 
-> Last verified: 8 Sep 2026 against branch `Ui/UX_Changes` @ `2b6f8b6` (with a large
-> uncommitted working tree — HEAD predates the routes/store split). Verified by reading
-> the code, plus `npm test` (145 passed) and `npm run check` (syntax ok).
+> Last verified: 14 Sep 2026 against branch `Ui/UX_Changes` @ `cdaa366`, working tree clean.
+> The 8 Sep entry's "large uncommitted working tree" is now committed: the routes/store
+> split, the front door, header bidding and the player levers all landed in `cdaa366`.
+> Verified by reading the code, plus `npm test` (171 passed) and `npm run check` (syntax ok).
 
 ## At a glance
 
@@ -20,7 +21,7 @@ file stays current and short.
 - **Start reading** — `api/server.js` (assembly) → `api/store/state.js` (the model and every
   enum) → `api/store/publish.js` (the two planes) → `web/js/main.js` (the router).
 - **The map is §2; the model is §3; the request path is §4; the screens are §5.**
-- **Before you change anything** — `npm test` (145 HTTP cases, ~1 s) and, for UI work,
+- **Before you change anything** — `npm test` (171 HTTP cases, ~1 s) and, for UI work,
   `npm run ui:snapshot before` / `… after` / `… diff before after` (§10).
 
 ## 1. What it is
@@ -35,13 +36,13 @@ The Player Console lets two teams configure how a publisher's video player asks 
 Nothing reaches a real player until it is **published**. The player reads one JSON
 document per integration key from `GET /panel/live/:apiKey`.
 
-Two processes, no build step:
+One process serves the API *and* the web app; the suite hosts its own. No build step:
 
 | Part | Where | Run |
 | --- | --- | --- |
 | API (Express, in-memory) | `api/` | `npm start` → http://localhost:4200 |
-| Web app (vanilla JS, served by the API) | `web/` | open http://localhost:4200 |
-| Rule suite (HTTP, self-hosting on :4299) | `test/` | `npm test` (~1 s, 145 cases) |
+| Web app (vanilla JS, served by the same process) | `web/` | open http://localhost:4200 |
+| Rule suite (HTTP, self-hosting on :4299) | `test/` | `npm test` (~1 s, 171 cases) |
 
 Everything is in memory. `POST /panel/mock/reset` rebuilds the demo world with the same ids
 every time, so a polluted state is a one-line fix (`npm run demo`, `npm run scale`).
@@ -52,6 +53,7 @@ every time, so a polluted state is a one-line fix (`npm run demo`, `npm run scal
 panel/
 ├── api/
 │   ├── server.js          assembles the app: middleware, static web/, one router per subject
+│   ├── config.js          the knobs an operator turns: ports, NODE_ENV, the mock GAM delay (§9)
 │   ├── error-handler.js   handle(): turns a thrown Refusal into { error, message, ...details }
 │   ├── response-shapes.js what the API answers with: keyView, setupView, tagView, …
 │   ├── routes/            one router per subject; a handler parses, calls the store, shapes
@@ -95,6 +97,7 @@ panel/
 │   ├── DECISION-RECORDS.md  every dated scope document, merged, oldest first
 │   ├── FAQ.md / .docx     the engineering hand-off FAQ
 │   ├── PLAYER-CONFIG-FIELDS.xlsx  the field inventory the scope work was built from
+│   ├── PLAYER-LEVERS.xlsx the player levers, as handed to the player team
 │   └── img/               the screenshots PRODUCT-SCOPE.md uses
 ├── .editorconfig          the only checked-in style tooling (utf-8, lf, 2-space)
 ├── README.md              the landing page: what it is, how to run it, where to read next
@@ -139,12 +142,13 @@ Vocabulary, so the code reads the same as the UI:
 | **ladder / waterfall** | rung 1 is the primary — the break's own first ask, asked before anything else and never replaced by a source answer; rungs 2…10 are the fall, tried in order |
 | **pod / break group** | a mid-roll may run up to three pods, each with its own cadence, ladder and direct deal |
 | **direct** | the one sold deal a break tries before its primary |
-| **global waterfall** | one ladder at the setup's head that any break may connect to instead of serving its own units; a break's own ladder is its **custom** waterfall. Named `Global waterfall` since 8 Sep (`WF_WORD` in `web/js/util.js`, spelled once) — the word the breaks and every message use; on the page it is the `Waterfall` zone of the folded **Global settings** head (11 Sep), beside header bidding. The wire key stays `waterfallSource: 'setup'` |
+| **global waterfall** | one ladder at the setup's head that any break may connect to instead of serving its own units; a break's own ladder is its **custom** waterfall. Named `Global waterfall` since 8 Sep — the word the breaks and every message use. `WF_WORD` holds it once **per side of HTTP**: `api/store/state.js` (`'global waterfall'`, lower-case, so it reads mid-sentence in a refusal) and `web/js/util.js` (`'Global waterfall'`, the screen's own capital). Change both or the two halves disagree. On the page it is the `Waterfall` zone of the folded **Global settings** head (11 Sep), beside header bidding. The wire key stays `waterfallSource: 'setup'` |
 | **the two sections** | every ladder break's Ad sources zone is `PRIMARY` then `WATERFALL`, both always drawn (11 Sep) — so the anatomy reads on an empty break as it does on a full one. Each section is a HEADER (11px/700/`--ink-soft` on the section's own left edge, hairline right) and, for the waterfall, ONE control under it — a three-answer seg `[ Off │ Custom │ Global ]` on the same left edge as the header and the blocks, with no byline (what an answer serves is drawn under it); switched off, it keeps `N units kept`, the only trace of parked units. A refused answer greys where it sits with its own reason; every change confirms first in a small 440 whose body IS the move — `Custom waterfall → Global waterfall`, the break named above it, `Cancel` / `Yes, switch` (11 Sep). They decide the FALL only (rung 2 onward); the primary always serves. Off parks the fall (`waterfallSource: 'none'`) and the rule counts what is kept |
 | **`waterfallSource`** | where a ladder break's **fall** comes from: `own` (rungs 2…N of its own), `setup` (the global waterfall's served units), `none` (no fall). **The primary — rung 1 — is the break's own in every answer and always serves**, so served `rungs` are `own`, `[primary, …global]`, or `[primary]`. All three keep every own unit in `ownRungs`, so every answer is reversible. `own` is the answer said by absence, so payloads and snapshots written before each answer existed still read as they always did |
 | **header bidding** | who else bids for a slot before the ad server is asked: `off` · `amazon_prebid` · `amazon` · `prebid`, answered ONCE at the setup's head (`headerBidding`). Not a ladder — no order, no depth, no rung — so it is the setup's own field beside the waterfall, not a lever inside it (10 Sep) |
 | **`behaviour.headerBidding`** | one slot's answer, on every slot including the out-stream: `auto` (the answer said by absence — borrow the setup's, so moving the global moves the slot) or one of the four above, `off` included. A LINK, never a copy: `auto` is stored, never resolved into the slot. `servedHeaderBidding(slot, global)` (store/setups.js, mirrored as `suHbServed` web-side) resolves it at the live boundary, so the player is never handed `auto`. `auto` is refused AT the global — the thing being borrowed cannot borrow |
 | **drive** | the integration's per-break quick decisions, stored sparse as intent and resolved against the setup at read time. Since 11 Sep it carries `headerBidding` too (`As set up` = absence; the out-stream's only drive field), and `setup` as a value CLEARS any lever back to the ad setup |
+| **player config** | a named fork of an integration's player settings (`playerConfigs[]`). The model is **default + sparse overrides**: a config stores ONLY the fields it changes and inherits the rest live, so moving the default moves every config that did not dissent. Since 13 Sep **any** player field may be overridden — `CONFIG_FORKABLE = PLAYER_FIELDS` in `store/state.js`, reversing the 11 Sep six-field rule — so what a fork may not do is no longer a refusal list but a visible one: every override is named on the row, in the editor and in the change review |
 | **the seam** | the check, in both rooms, that never lets a switched-on break end up with nothing to ask |
 | **Refusal** | a rule violation: HTTP 4xx with `{ error, message, errors:[{field, message}] }` that names the number found and the number required |
 
@@ -193,7 +197,7 @@ routes overlap.
 | `routes/meta.js` | `GET /panel/meta` — every enum, cap, preset and per-slot field list the web app draws from, plus `me` (a fixture, see §11) |
 | `routes/session.js` | `GET /panel/session` — who is signed in, the accounts the console remembers, the example domain, who grants access · `POST /panel/session` — sign an address in; **any address shaped like one enters** (8 Sep), and the only refusal is `bad_address` for something that is not an address · `DELETE /panel/session` — sign out. Nothing authenticates the address (§11) |
 | `routes/keys.js` | `GET/POST /panel/keys` · `GET/PATCH/DELETE /panel/keys/:id` · `PATCH /panel/keys/:id/player` · `POST /panel/keys/:id/duplicate` |
-| `routes/keys-bulk.js` | `POST /panel/keys/bulk` — every target validated before any is touched; the answer counts changed / already-so / refused / skipped, per name |
+| `routes/keys-bulk.js` | `POST /panel/keys/bulk` — every target validated before any is touched; the answer counts changed / already-so / refused / skipped, per name. `BULK_PLAYER_FIELDS` is what a cohort may set; `BULK_NEVER_FIELDS` is the four a single surface owns (Player type, Redirect URL, Quality, Fallback media), refused by name and carried to the sheet on `/panel/meta` |
 | `routes/setups.js` | `GET/POST /panel/setups` · `GET/PATCH/DELETE /panel/setups/:id` · `PATCH /panel/setups/:id/sections/:index/behaviour` · `POST /panel/setups/:id/duplicate` |
 | `routes/tags.js` | `GET/POST /panel/tags` · `GET/PATCH/DELETE /panel/tags/:id` · `GET/POST /panel/templates` · `PATCH/DELETE /panel/templates/:id` |
 | `routes/publish.js` | for `keys` and `setups` alike: `POST …/:id/publish` · `POST …/:id/unpublish` · `GET …/:id/versions` · `GET …/:id/versions/:v/preview` · `POST …/:id/versions/:v/restore` — and `GET /panel/live/:apiKey`, the only door the player reads |
@@ -215,9 +219,9 @@ cross-file call happens later, at runtime, after all scripts have loaded.
 
 | File | Owns |
 | --- | --- |
-| `util.js` | `esc`, `LABELS` (every UI word for a stored value), `FIELD_NAMES`, toasts, the house dialogs `ask`/`pickDialog`, formatting, the prefix search |
+| `util.js` | `esc`, `deepCopy`, `LABELS` (every UI word for a stored value), `FIELD_NAMES`, `hbAnswers`/`hbPartners` (the header-bidding answers a control draws), toasts, the house dialogs `ask`/`pickDialog` and the plumbing every dialog shares (`dialogRoot`, `closeDialog`, `wireDialogExit`), formatting, the prefix search |
 | `api.js` | `API.*` — one named function per HTTP operation; also fills the tag lookups (`TAG_TYPE`, `TAG_PROVIDER`, …) |
-| `controls.js` | the form session (`FORM`, `startForm`, `clearErr`, `applyServerErrors`), the house select, lookup typeahead, drag-to-reorder, row menus, `accSeg`/`accRow`, `behaviourRowsHtml`, `slotChipRowHtml` |
+| `controls.js` | the form session (`FORM`, `startForm`, `clearErr`, `applyServerErrors`), the house select, lookup typeahead, drag-to-reorder, row menus, `accSeg`/`accRow`, `behaviourRowsHtml`, `slotChipRowHtml`, `changesCardHtml` (the CHANGES TO APPLY card both bulk sheets draw) |
 | `publish.js` | the version rail, publish / restore flows (`PUB`) |
 | `review.js` | THE CHANGE REVIEW — the one dialog every write (save, publish, bulk, restore) confirms on |
 | `views-tag-lookup.js` | the ad-tag lookup control and its search |
@@ -228,8 +232,8 @@ cross-file call happens later, at runtime, after all scripts have loaded.
 | `views-setups-placements.js` | placement tabs, mid-roll pods, Clear, the closed row's glimpse |
 | `views-setups-editor.js` | the ad setup editor itself: load, the head sections' fold and the **Global settings** head (`suGlobalsHtml`), slot addressing, delivery settings, the slot row, save |
 | `views-keys-list.js` | Integrations list, filters, paging, selection, bulk bar |
-| `views-keys-bulk-ads.js` | the bulk AD BEHAVIOUR sheet: levers per break, the queue, apply |
-| `views-keys-bulk-player.js` | the two bulk player sheets: custom configs, default player |
+| `views-keys-bulk-ads.js` | the bulk AD BEHAVIOUR sheet: levers per break on the left, CHANGES TO APPLY on the right, review, apply. A row at rest prints a value only when the cohort has one — "as set up" is the absence of an answer, so it prints nothing |
+| `views-keys-bulk-player.js` | **Player behaviour** — the one cohort player act: `BULK_ROWS`, five playback facts a team decides for a whole estate at once, flat, drawn with the page's own `cfgCtlHtml()` and this sheet's receiver. A custom config belongs to the surface that owns it and is edited on the integration page (see COHORT-SHORTLIST, 14 Sep) |
 | `views-keys-editor-load.js` | the integration page: load, save-state, which ad setup fills it |
 | `views-keys-editor-ad-behaviour.js` | its Ad behaviour card: the walk mirror, the drive, break tabs |
 | `views-keys-editor-player.js` | its player fields and the custom config table |
@@ -251,6 +255,9 @@ cross-file call happens later, at runtime, after all scripts have loaded.
 - **One control per concept.** Our own select (`selectHtml`), dialogs (`ask`,
   `reviewChanges`), segmented control (`accSeg`), typeahead (`lookupHtml`), drag
   (`registerDrag` + `dragAttrs`). Never a native `<select>`, `confirm` or `prompt`.
+  **One way out, too**: `dialogRoot()` is the only place the element is named,
+  `closeDialog()` the only thing that clears it, and `wireDialogExit()` wires Cancel and
+  the veil — so the day Escape closes a dialog, it closes all of them.
 - **Inline handlers are strings.** Markup is built with template literals and
   `onclick="fn(args)"`; a handler must be a global, and any user text inside must go
   through `esc`. Callbacks that cannot be a string are held in a registry keyed by a
@@ -289,6 +296,17 @@ once published, an immutable **snapshot** on air. Only snapshots reach the playe
   append-only.
 - `liveConfig(apiKey)` joins the live integration with its live setup, resolves the drive
   over the ladders and returns the walk the player should make. Templates resolve live.
+  Header bidding is handed over **resolved** — per break and per unit — so the player is
+  never given `auto` to work out for itself. A break whose demand is not published is
+  simply absent from the answer.
+- `playerBlock(P)` is **the wire boundary** — the one place the panel's vocabulary becomes
+  the player's. It emits five namespaces (`pref`, `playback`, `theme`, `controls`,
+  `analytics`) and holds every legacy encoding the player team owns rather than arguing
+  with it: `autoplay` on/off/auto becomes `always`/`off`/`mutedOnScroll`, a sentinel `0`
+  means off for every timing, `pip` is the empty string when docking is off, and timings
+  go out in milliseconds though the panel says seconds on screen (§3, *Time*). Renaming a
+  field on screen must not touch this function; changing what it emits is the player
+  team's call.
 - `versionChanges(kind, before, after)` in `store/version-changes.js` produces the rail's rows.
 
 Integrations and setups publish separately; the gap is closed by the checks above, not by
@@ -339,31 +357,52 @@ that subject; the harness resets the world before every case.
 ## 9. Startup, ports and configuration
 
 `api/server.js` is the only entry point. It runs, in order: `cors()` → `express.json()` →
-`express.static('../web')` → the eight routers → `resetWorld()` (so the process is never up
+`express.static('../web')` → the nine routers → `resetWorld()` (so the process is never up
 with an empty world) → `app.listen`. The listen is skipped when `NODE_ENV === 'test'`,
 which is how `test/run.js` imports the same app and hosts it itself.
 
-There is no config file and no `.env`. Four environment variables are read anywhere in the
-repo, all with defaults:
+**`api/config.js` is the knobs an operator turns**, and the only place the repo reads
+`process.env`. There is still no `.env` and no config *format* — it is a plain module with
+committed defaults that environment variables override, in that order (the precedence is
+documented at the top of the file). Nothing else reads `process.env`; ports are not spelled
+anywhere else either.
 
-| Variable | Read in | Default | Controls |
+| Name | Source | Default | Controls |
 | --- | --- | --- | --- |
-| `PANEL_PORT` | `api/server.js`, `test/run.js` | `4200` | the port the API and web app serve on |
-| `NODE_ENV` | `api/server.js`, `routes/gam.js` | unset | `test` suppresses `app.listen` and drops the mock GAM sync's 1.8 s delay to 0 |
-| `CHROME` | `test/ui-snapshot.mjs` | the macOS Google Chrome path | which browser the screen capture drives |
-| `PUPPETEER` | `test/ui-snapshot.mjs` | `../node_modules/puppeteer-core/…` | where `puppeteer-core` is resolved from (see §11) |
+| `PORTS.app` | `PANEL_PORT` env, else the default | `4200` | the port the API and web app serve on |
+| `PORTS.test` | fixed | `4299` | where `npm test` hosts its own server (`TEST_BASE` is its URL) |
+| `PORTS.snapshot` | fixed | `4300` | where `ui:snapshot` hosts its own, never your :4200 |
+| `isTestEnv()` | `NODE_ENV` env | unset | `test` suppresses `app.listen` and drops the mock GAM sync's delay to 0 |
+| `GAM_SYNC_DELAY_MS` | fixed | `1800` | how long the mocked GAM sync pretends to take |
+| `CHROME` | env, read in `test/ui-snapshot.mjs` | the macOS Google Chrome path | which browser the screen capture drives |
+| `PUPPETEER` | env, read in `test/ui-snapshot.mjs` | `../node_modules/puppeteer-core/…` | where `puppeteer-core` is resolved from (see §11) |
+
+`PANEL_PORT` is **validated at boot**: a value that is not a whole number from 1 to 65535
+throws before the server starts. It used to fall through to `app.listen('notaport')`, which
+happily bound a unix socket of that name and logged a success line no browser could reach.
+
+The env-derived values are functions (`appPort()`, `isTestEnv()`), not constants, because
+`test/run.js` sets `NODE_ENV`/`PANEL_PORT` in its module body — which runs *after* its
+static imports. Reading them at call time is what keeps that working; that is also why
+`run.js` imports the server dynamically. Don't turn them into top-level constants.
+
+**Secrets are not configuration** and have no place in that file or its precedence chain.
+There are none today (§11); when the identity exchange lands, its credentials come from a
+secrets manager or deploy-time injection, and `config.js` may name a secret but never hold
+one.
 
 Everything else that could look like configuration — enums, caps, defaults, the seller-facing
 words — is code in `store/state.js` and `store/ladders.js` on purpose, because each one is a
-rule the suite pins rather than a knob an operator turns.
+rule the suite pins rather than a knob an operator turns. A new cap belongs there, not in
+`config.js`.
 
 ## 10. Verifying a change
 
 | Command | What it proves |
 | --- | --- |
 | `npm run check` | every JS file parses |
-| `npm test` | the 145 HTTP cases (rules, refusals, the publish plane, the player's JSON, the front door) |
-| `npm run ui:snapshot <label>` | the screens: walks 65 states in headless Chrome at 1440×900 (the console's, then the front door's), writes their markup and a PNG each, and fails on any console error |
+| `npm test` | the 171 HTTP cases (rules, refusals, the publish plane, the player's JSON, the front door) |
+| `npm run ui:snapshot <label>` | the screens: walks 73 states in headless Chrome at 1440×900 (69 in the console, then the front door's 4), writes their markup and a PNG each, and fails on any console error |
 | `npm run ui:snapshot diff a b` | that two captures are identical |
 
 `ui:snapshot` boots its own server on **:4300**, never your :4200, so a capture cannot be
@@ -393,10 +432,13 @@ These are deliberate for the prototype and must be closed before real traffic:
   real exchange answers at `signIn` with refusals of its own. Nothing authenticates any REQUEST
   either: `/panel/keys` answers a signed-out client, and the suite pins that too, so the day
   those become 401s is a deliberate change.
-  Authorship is the same story: `updatedBy` is the literal `'You'` in `store/keys.js`,
-  `store/setups.js` and `store/tags.js`, and the publish actor is that literal passed from
-  `routes/publish.js`. Needs the real exchange behind `signIn`, request-level checks, roles
-  (product vs ad ops), and an audit trail.
+  Authorship is the same story, but it is now spelled **once**: `ACTOR` in
+  `store/state.js` is the literal `'You'`, `updateStamp()` beside it is the
+  `{ updatedAt, updatedBy }` every write puts on an object, and `routes/publish.js` passes
+  `store.ACTOR` as the version's actor. Needs the real exchange behind `signIn`,
+  request-level checks, roles (product vs ad ops), and an audit trail — at which point
+  `updateStamp()` starts reading the session and the fifteen call sites this used to be
+  spelled at stay untouched.
 - **CORS is wide open** and there is no rate limiting or request size limit beyond
   Express defaults.
 - **GAM is mocked.** `api/mock/gamunits.js` stands in for the ad unit directory;
@@ -405,7 +447,9 @@ These are deliberate for the prototype and must be closed before real traffic:
   numbers it carries; a schema and a compatibility test with the player team are missing.
 - **Single process.** The publish plane assumes one writer; a multi-instance deploy needs
   the versions and live maps in shared storage with a transaction per publish.
-- **No lint/format tooling** is checked in beyond `.editorconfig` and `npm run check`.
+- **No lint/format tooling** is checked in beyond `.editorconfig` and `npm run check`, and
+  `check` itself has a hole: its glob ends `test/*.js`, so `test/ui-snapshot.mjs` — the one
+  `.mjs` file in the repo — is the only source file never syntax-checked.
 - **`ui:snapshot` is not self-contained.** `package.json` declares only `express` and
   `cors` and has no `devDependencies`, but `test/ui-snapshot.mjs` resolves `puppeteer-core`
   from the *parent* repo's `node_modules` by default. The API, the web app and `npm test`

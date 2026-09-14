@@ -40,39 +40,68 @@ One page, four cards. **Details** at the top is identity alone (platform decides
 asked for — web platforms need at least one domain, app platforms a package name; the
 other field greys out where it stands).
 
-**Player config** is the second card, and it is ONE GRID: rows are the player's settings,
-the first column is the **Default**, and every custom config a page can ask for by key is one
-more column beside it. Three sections fold the rows — **Playback** (how the video plays),
-**Controls & appearance** (what the viewer sees and can touch) and **Analytics &
-measurement** (what is reported) — each one line at rest carrying the default's headline
-values and, in each config's column, how many cells of that section it sets (`3 differ` /
-`same`). Inside a fold, eight quiet row groups (Start, Source, Out of view, Completion │
-Controls, Appearance │ Reporting, Vendors) chunk the rows. The header row sticks under the
-page's fixed header while the card is in view, so deep in a fold the columns are still named.
+**Player config** is the second card, and it is a row of CARDS — the default first, then one
+per custom config, then the one that makes another. A card is a thing you PICK, so it carries
+only what a list is scanned for: the name, whether it is served, and one SENTENCE saying what
+kind of thing it is — `Changes playback and controls`, or `Follows the default`, with the exact
+fields on hover; the default's reads `Used unless a config overrides it`. No numbers: a count
+like `Playback 2` has an invisible denominator, so it reads as a score, and a score invites
+comparing cards that are not in competition. A config that is not serving says `OFF` in words
+beside its switch. The only control on a card is that switch, plus a ⋯ for its rare acts.
 
-A cell is a VALUE until it is clicked, and then it is its control, in place: a menu for a
-choice, a typeable box for a number or a text, chips for a set, the OS colour wheel with a
-typeable hex for a colour (the text colour previews the pair as `Aa`, with a contrast that
-fails visible where it is chosen). A switch is drawn as a switch because it is its own value.
-Enter commits, Escape reverts, Tab steps to the next cell, arrows move, and typing on a
-focused cell starts editing it. Timings read in seconds and travel in milliseconds; a blank
-timing is off. A value a column cannot apply right now greys where it sits with its reason
-(Controls: None takes the three settings under it with it, in that column only).
+Clicking a card opens its **sheet** — a title, the settings, and nothing between them. The
+three sections are **Playback** (how the video plays), **Controls & appearance** (what the
+viewer sees and can touch) and **Analytics & measurement** (what is reported). Each section's
+name stands on a tinted band in its own register (uppercase, tracked — the page's own section
+voice) and PINS itself to the top of the sheet while you are in that section, so the group you
+are reading names itself the whole time.
 
-A config's column says what a config IS without a sentence: a cell that follows the default
-is faded read-through; a cell the config sets is full weight in the accent's ink, with × to
-let it go (or Backspace on the cell, or `Default` at the top of its menu). Everything a config
-never touched follows the default live. `+ Add config` adds a column with the cursor already
-in its key, held to the same rule the server holds it to: one word, unique, never "default";
-the column head carries the config's switch and its ⋯ (show only this config · follow the
-default for everything · remove).
+**How much of it you see is ONE switch in the head**: `Essentials` — what a surface is actually
+set up with — or `All settings`, the same catalogue in the same order. A row this config has
+answered for itself is never hidden, whichever side the switch is on, because a deliberate
+answer may not sit behind a control somebody has to find first. Timings read in seconds and
+travel in milliseconds; a zero that means "off" is drawn as a switch. A value the section
+cannot apply right now greys where it sits with its reason (Controls: None takes the three
+settings under it with it).
 
-With several configs the grid grows wide, and most work happens in one config at a time, so
-**a column can be focused**: the count on any closed section row (`3 differ`, `same`) shows
-that config beside the default with that section open, and the column's ⋯ says the same in
-words. The default never leaves, because a config IS its differences from the default. The
-header's own leading cell then carries the way back, counted (`‹ All 6 configs`). Escape
-unwinds the narrowest thing first: the open cell, then the open section, then the focus.
+On a custom config's sheet every row says whose answer it is: a row that follows the default
+is receded and comes back to full ink under the pointer, because it is live; a row the config
+has answered for itself wears the amber change bar this app draws wherever something has been
+moved, and nothing else. One button in the act row — `Follow the default for everything` —
+drops them all, counted and asked first, and is dead while there is nothing to undo. The
+default's own sheet has neither grammar, because there is no other answer for a row to be
+following.
+
+**Controls & appearance previews itself.** The section reads as one sentence: how many
+controls at all → what the player looks like → which controls exactly. The nine player
+controls are asked as what the viewer GETS, not as what is taken away, and they are a GRID of
+equal tiles three to a line — one glyph column, one label, one state — so nine controls read
+as nine rows of a checklist rather than as nine pills wrapping raggedly across two. On is a
+filled tick and full ink, off an empty ring and receded ink, counted underneath
+(`7 of 9 controls shown`). The store and the wire still carry the hidden list; the inversion
+happens at one seam. Both this and the preview take the sheet's whole width — a control taller
+than its label is not a value in a column.
+
+Brand colour, text colour and the logo are **one row with a preview** — a frame standing in for
+the video, the logo where it will sit, a play button in the brand colour drawn in the text
+colour (the pair the contrast rule is about, with the ratio under it), and a control bar
+carrying exactly the controls that are served. Hiding one is visible the moment it is hidden,
+and Controls set to None draws no bar at all. The three colour and logo fields sit beside the
+stage and it follows them as they move, including while the colour wheel is being dragged. The sheet's title is its own rename field, held to the same three rules the server
+holds a key to — one word, unique, never "default" — refused in place, and Done will not close
+over a key the server would reject.
+
+**The sheet is a transaction, and its act row is the journey.** It opens a WORKING COPY of
+whatever it is editing, and every row moved since it opened wears the amber change bar. The act
+row then states the position it is in: nothing moved and there is one way out, called **Close**,
+because nothing is being kept; something moved and there are two, the one that lands naming
+what it lands — **Apply 3 changes** — beside a **Cancel** that is now worth having. Escape and a
+click on the veil ask first, and only when there is something to lose. A NEW config always has
+the pair (`Create config`), because nothing exists until it is named and valid. It matters most
+on the DEFAULT, where no row can ever be an "override": without this, a sheet that was in fact
+writing every keystroke had nothing on screen to say so, and read as a sheet that could not be
+written to at all. Save and Publish are still the only gates to the wire; this changes
+neither.
 
 Ad behaviour fills the rest: which setup this surface fills from (a chip that opens the
 setup's own editor and brings you back with unsaved edits intact), four break tabs, and
@@ -119,8 +148,12 @@ New integrations and new setups start from one chooser: blank, or a photocopy of
 existing one. An integration copy carries the player, its named configs, the switches and
 quick decisions, and the setup mapping — a setup someone else holds becomes the copy's
 own at the moment of Create, so cancelling leaves nothing behind. A setup copy brings
-everything, ad units included. Creation always lands in the real editor, and the one
-write is reviewed field by field on the same change-review screen every write ends on.
+everything, ad units included. A blank integration's default player starts from a preset
+(MiniTV · ArticleShow · VideoShow) picked in the Player config card's head; the Default card
+names the preset and counts what has been changed off it, re-picking asks first when it
+would discard those changes, and the create review states the preset once and lists only
+the settings that moved. Creation always lands in the real editor, and the one write is
+reviewed field by field on the same change-review screen every write ends on.
 
 ![The new-integration chooser](img/new-integration-chooser.png)
 

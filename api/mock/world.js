@@ -517,6 +517,15 @@ export function resetWorld(opts = {}) {
   stamp(getSetup('as_5'), 52, 'Meera (platform)');
   stamp(getSetup('as_6'), 210, 'Arjun (ad ops)');
   stamp(getSetup('as_7'), 8, 'Rohit (monetization)');
+  // DETERMINISTIC MOCK (§7), the last three: as_8…as_10 carry no backdated stamp, so all
+  // three were written in the same instant and the chooser's newest-first sort had a
+  // three-way tie. Its order then came down to which millisecond each was built in, and
+  // the screen capture flapped between runs on exactly that. Seconds apart, in id order:
+  // the order a tie already produced, now guaranteed — and still "just now" on screen.
+  // Only the stamp moves; who wrote them is left as created.
+  for (const [id, secondsAgo] of [['as_8', 3], ['as_9', 6], ['as_10', 9]]) {
+    getSetup(id).updatedAt = new Date(Date.now() - secondsAgo * 1000).toISOString();
+  }
 
   // --- ON AIR (27 Aug). `status` is gone: a surface serves because it was PUBLISHED.
   // Setups go up first — an integration cannot publish a break with no published demand

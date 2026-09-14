@@ -65,12 +65,50 @@ function suGlobalsHtml(meta) {
   return `
     <div class="gs-sec">
       ${head}
-      ${suHeaderBiddingZoneHtml(meta)}
+      ${suHeaderBiddingZoneHtml()}
       ${suWaterfallZoneHtml(meta)}
     </div>`;
 }
 
 // ---------- editor ----------
+
+// ---------- THE EDITOR'S OWN COPY OF A SAVED SETUP ----------
+// Deep-copied, so typing never mutates the answer a screen is still counting against, and
+// reshaped into what the form holds rather than what the wire sends.
+
+// `_orig` ties a form section back to its saved self for the counted chips (divergence,
+// muted-on, live counts) — renames keep it, new placements lack it.
+function suFormSections(setup, slotTypes) {
+  return setup.sections.map((sec, i) => ({
+    name: sec.name, isDefault: sec.isDefault, _orig: i,
+    slots: Object.fromEntries(slotTypes.map(t => [t, suFormSlot(sec.slots[t], t)])),
+  }));
+}
+
+// One break as the form holds it. A mid-roll is PODS (31 Aug; renamed 3 Sep) — pod 1
+// doubles as the slot itself, and each pod carries its own direct deal.
+function suFormSlot(slot, t) {
+  // Each ladder slot carries its own DIRECT deal (1 Sep) — one, uncapped.
+  const direct = slot.direct ? { rungs: deepCopy(slot.direct.rungs) } : null;
+  if (t !== 'midroll') {
+    return { ...suFormOwnUnits(slot), behaviour: deepCopy(slot.behaviour), direct };
+  }
+  const pods = slot.groups || [{ ...slot, direct: slot.direct }];
+  return {
+    direct,
+    groups: pods.map(g => ({
+      ...suFormOwnUnits(g),
+      behaviour: deepCopy(g.behaviour),
+      direct: { rungs: deepCopy(g.direct?.rungs || []) },
+    })),
+  };
+}
+
+// The editor holds a break's OWN units, whichever source serves: a linked break's serving
+// rungs are the waterfall's, mirrored read-only where the ladder would draw.
+function suFormOwnUnits(g) {
+  return { rungs: deepCopy(g.ownRungs ?? g.rungs), waterfallSource: g.waterfallSource || 'own' };
+}
 
 async function viewSetupForm(id) {
   // A return ticket for a DIFFERENT destination is stale — navigating here any other
@@ -98,37 +136,7 @@ async function viewSetupForm(id) {
       waterfall: suWfClean(setup.waterfall),
       // HEADER BIDDING (10 Sep): the setup's one answer, borrowed by every slot on Auto.
       headerBidding: setup.headerBidding || 'off',
-      // _orig ties a form section back to its saved self for the counted chips
-      // (divergence, muted-on, live counts) — renames keep it, new placements lack it.
-      sections: setup.sections.map((sec, i) => ({
-        name: sec.name, isDefault: sec.isDefault, _orig: i,
-        slots: Object.fromEntries(meta.slotTypes.map(t => {
-          // Each ladder slot carries its own DIRECT deal (1 Sep) — one, uncapped.
-          const direct = sec.slots[t].direct
-            ? { rungs: JSON.parse(JSON.stringify(sec.slots[t].direct.rungs)) }
-            : null;
-          // The editor holds a break's OWN units; a linked break's serving rungs are
-          // the waterfall's, mirrored read-only where the ladder would draw.
-          const indirect = g => ({
-            rungs: JSON.parse(JSON.stringify(g.ownRungs ?? g.rungs)),
-            waterfallSource: g.waterfallSource || 'own',
-          });
-          return [t, t === 'midroll'
-            // A mid-roll is PODS (31 Aug; renamed 3 Sep) — pod 1 doubles as the slot
-            // itself, and each pod carries its own direct deal.
-            ? { direct, groups: (sec.slots[t].groups || [{ ...sec.slots[t], direct: sec.slots[t].direct }])
-                .map(g => ({
-                  ...indirect(g),
-                  behaviour: JSON.parse(JSON.stringify(g.behaviour)),
-                  direct: { rungs: JSON.parse(JSON.stringify(g.direct?.rungs || [])) },
-                })) }
-            : {
-              ...indirect(sec.slots[t]),
-              behaviour: JSON.parse(JSON.stringify(sec.slots[t].behaviour)),
-              direct,
-            }];
-        })),
-      })),
+      sections: suFormSections(setup, meta.slotTypes),
     };
   } else {
     SETUP_ORIGINAL = null;
@@ -171,7 +179,7 @@ async function viewSetupForm(id) {
   SU_ADD_HINT = null;
   startForm(data, () => renderSetupForm(meta));
   SU_SAVED_SIG = id ? JSON.stringify(setupPayload(data)) : null;
-  FORM.saved = id ? JSON.parse(JSON.stringify(data)) : null;
+  FORM.saved = id ? deepCopy(data) : null;
   suTakePending(id, data, meta);
   renderSetupForm(meta);
   if (SU_ADD_HINT) {
@@ -284,7 +292,7 @@ function suBlankSection(name, meta, preset) {
   return {
     name, isDefault: name === 'Default', _orig: -1,
     slots: Object.fromEntries(meta.slotTypes.map(t => {
-      const bhv = () => JSON.parse(JSON.stringify(preset.slots[t] || {}));
+      const bhv = () => deepCopy(preset.slots[t] || {});
       const direct = slotKind(t) === 'ladder' ? { rungs: [] } : null;
       return [t, t === 'midroll'
         ? { direct, groups: [{ rungs: [], behaviour: bhv(), direct: { rungs: [] } }] }
@@ -753,7 +761,7 @@ async function saveSetupClicked(opts = {}) {
       warnings = res.warnings || [];
       SETUP_ORIGINAL = res.setup;
       SU_SAVED_SIG = JSON.stringify(d);
-      FORM.saved = JSON.parse(JSON.stringify(FORM.data));
+      FORM.saved = deepCopy(FORM.data);
       await pubReload();
       PUB.name = SETUP_ORIGINAL.name;
       // The pill says the act; the header chip counts what waits to publish. The API's

@@ -1,5 +1,242 @@
 # Player Console — the Integrations Panel (StreamAds repo) — v1
 
+**A NEW INTEGRATION'S DEFAULT PLAYER SAYS WHERE IT STARTED (14 Sep, user call).** *"Accommodate
+this default player config when user creates a new integration in a clean and intuitive and
+mature way."* A blank integration's default player has always been a photocopy of one of three
+starting shapes (MiniTV · ArticleShow · VideoShow), but the page hid the fact four ways: the
+select that picked the shape sat in DETAILS between Platform and Domains — an identity row
+deciding a player fact, two cards away from the card it decided; the Default card said the same
+sentence on a fresh surface as on a live one, and an edit landed from its sheet left no trace on
+it; picking another preset silently threw that edit away; and the create review copied the preset
+out as twenty-eight rows, under which the one setting somebody had actually decided was
+indistinguishable from the twenty-seven nobody typed.
+
+- **The preset rides the card it seeds.** It is the Player config card's title-row strip now —
+  `PRESET · [VideoShow ▾]` — the grammar the Ad behaviour card below already uses for its ad
+  setup (eyebrow, then the decision as a control), so the two cards' heads read alike. It exists
+  only while creating BLANK: a copy is seeded by its source, and an existing surface has no
+  preset left to pick — a preset stamps, it never links (unchanged). Details is identity again.
+- **The Default card names its seed and counts what moved.** `VideoShow preset` on a blank
+  surface, `Copy of “TOI Mweb VideoShow”` on a photocopy; once the sheet has landed a change,
+  `· 2 changed` in the change amber with every field named on hover, and the card wears the
+  panel's change bar — the same mark the sheet head uses, measured against the only baseline a
+  surface that does not exist yet has. Lists compare as sets (the controls grid toggles
+  membership; a different order is not a different answer). On an existing surface the card is
+  untouched: its baseline is the last save.
+- **Re-picking a preset asks first when it would discard work** — `Start from MiniTV instead?`
+  / `Your 2 changes to the default are replaced by MiniTV's settings.` / `Start from MiniTV`.
+  A No paints the shape still standing back into the select; an untouched default restamps
+  quietly; the same preset over no changes does nothing. The seed moves with the stamp.
+- **The create review reads the seed, then only what moved.** One `PLAYER` section:
+  `Default config — → MiniTV preset`, then each moved setting as WAS → NOW against the seed
+  (`Autoplay · Auto → On`) under the card's own section words and in the sheet's own labels.
+  A copy's seed is already its `Copied from` line, so only its moves are listed. This
+  supersedes the 11 Sep "player, section by section" birth certificate: that list was chosen
+  when the review could not name the preset; naming it makes the twenty-five copied rows noise.
+- **Model unchanged.** `playerSeed` and `presetName` are page facts, never payload fields;
+  nothing on the wire or in the store moved. `npm test` 174 passed.
+
+**THE TWO COHORT SHEETS ARE ONE SCREEN, LEARNT ONCE (14 Sep, third cut, user call).** *"Can we
+have them the same way as the change ad behaviour pending changes on the right side section — I
+think the pending changes can be renamed to something clear and communicative, easy to
+understand. Also don't show the values as set up … that are not needed."*
+
+- **Player behaviour takes the ad sheet's anatomy**: levers on the left, the queue card on the
+  right, the same 860 frame, the same three-state row (closed → open → queued). Two cohort acts
+  that looked like two different products are now one screen with two contents.
+- **`Pending changes` → `CHANGES TO APPLY`** (user's pick), and the card is a shared component —
+  `changesCardHtml(rows, opts)` in `controls.js` — rather than the same markup written twice. The
+  ad sheet's version became six lines of mapping.
+- **A ROW AT REST PRINTS A VALUE ONLY WHEN THERE IS ONE.** "as set up" is the ABSENCE of an
+  answer on this surface, not an answer, and four rows of it down one column is a phrase
+  repeating "nothing here" — so the row prints nothing and the eye goes to `Special · on`, which
+  is real. A mixed spread still names it, because there some surfaces have dissented and some
+  have not. The queue card is untouched: there "as set up" is the from-side of a change, and the
+  answer to *what is this replacing*.
+- **A queued row stops saying it twice.** Its from → to is on the card a hand's width away; the
+  row's own "was …" tail said the same thing in a second vocabulary. Gone. An UNSET open row
+  keeps today's value, because there is nothing on the card yet for it to repeat.
+- **One measured frame per journey, as the 8 Sep rule asks.** Player behaviour: 341px at rest,
+  355 with every lever open, 369 for its review — `--frame: 369px` on both steps. Four or five
+  queued changes grow the card past it and the sheet grows with them: a floor is worth 28px of
+  air, not the 114 that matching the tallest possible state would cost.
+
+**ONE SWITCH INSTEAD OF THREE DOORS · THE ACT ROW BECOMES THE JOURNEY · THE CARDS LOSE THEIR
+COUNTS (14 Sep, third cut, user call).** *"The more-settings UX/UI is totally non-intuitive,
+think of something else. The cards are sounding a bit odd now — can we mature it, and what is
+this count in them? That's totally not needed and is making the user confused. Also when a user
+changes anything there is no clear journey; currently there is only a Done button
+irrespective."*
+
+- **`7 more playback settings` is gone, and so are its two siblings.** Three counted links were
+  wrong three ways at once: they looked like FOOTNOTES at the bottom of a list rather than
+  containers holding a third of the form; they made you carry a per-section open/shut state
+  across a scroll; and they asked you to care about a split that is ours, not yours — nobody
+  arrives wanting "the other seven playback settings", they arrive wanting one named setting,
+  and a door that counts what it hides cannot tell you whether yours is behind it. The question
+  under all three is ONE question — *am I setting this surface up, or looking for something
+  specific?* — so it is now one `Essentials │ All settings` seg in the sheet's head, where
+  sheet-wide controls belong. No per-section state, no counts to decode, and the sticky section
+  bands are the body's only structure. **A row this config has answered is never hidden on
+  either side of the switch** — a deliberate answer may not sit behind a control somebody has
+  to find first.
+- **The act row states its position.** One button that reads the same whether you have moved
+  nothing or nine things is a lid, not a decision — and a Cancel standing beside it on an
+  untouched sheet is an offer to undo nothing. Now: nothing moved → one way out, **`Close`**;
+  something moved → **`Cancel`** + **`Apply 2 changes`**, the count on the button that lands
+  it; a new config → always the pair, `Create config`. The `2 changed` pill that briefly sat in
+  the head is gone with it — the foot is always in view, so the count is told once.
+- **The cards' counts are gone.** `Playback 2 · Controls 1` is a number with an invisible
+  denominator — two out of what? — so it reads as a score, and a score invites comparing cards
+  that are not in competition. A card is picked, not measured: it says what KIND of thing it is
+  in words (`Changes playback and controls`, `Follows the default`, and on the default `Used
+  unless a config overrides it`), with the exact fields still on hover. `OFF` stays, because
+  "is this one live" is the first thing a list of configs is scanned for.
+
+Verified: `npm test` 174 passed / 0 failed · `npm run ui:snapshot` 74 screens, no console
+errors · field audit 29/29 reachable, 28 rendering (Redirect URL conditional by design) ·
+headless drives — Essentials shows 12 rows and All settings 24; a config's override that lives
+in `more` (Expand MiniTV for ads) shows in Essentials as designed; the act row walks
+`Close` → `Cancel` + `Apply 1 change` → `Apply 2 changes`, and Cancel leaves `FORM.data.player`
+untouched.
+
+**THE PLAYER SHEET BECOMES A TRANSACTION, AND THE DEFAULT ANSWERS BACK (14 Sep, user call).**
+*"The modal has no cancel button, only Done — what if I change something? Plus I'm unable to
+change anything in the default config. Please relook at the complete UX journey and fill in
+the gaps from the lens of a senior product designer."* Those are one fault seen from two
+sides. The sheet wrote every answer straight into the page's draft, so there was no way back
+short of undoing each move by hand — and on the DEFAULT, where no row can ever be an
+"override", nothing on screen acknowledged an answer at all: no bar, no count, no way back,
+one button. A sheet that was in fact writing every keystroke read as one that could not be
+written to.
+
+- **A working copy, Done and Cancel.** Opening a card clones what it edits. Done lands it on
+  the page's draft, Cancel drops it, and Escape or the veil ask first — and only when there is
+  something to lose. Save and Publish are still the only gates to the wire.
+- **Every moved row wears the amber bar, in every mode**, and the head counts them
+  (`2 changed`). On a config the bar still means "an override"; on the default it means "you
+  moved this and have not landed it" — one mark, one colour, measured against the only
+  baseline each mode has.
+- **Section headers are a different register, and they stick.** A 13px bold `h4` two pixels
+  above a 12.5px row label is not a header, it is a heavier row. Uppercase and tracked on a
+  tinted full-bleed band now — the page's own PLACEMENTS voice — pinned to the top of the
+  scrolling body, so the group you are in names itself the whole time you are in it. Opening a
+  counted door scrolls its first row CLEAR of the band (`scroll-margin-top`) and hands it the
+  cursor.
+- **`Every player on this surface, unless it asks for a config by key` is gone**, as asked.
+  The card said it, the title said it, and then a sentence said it again before a single
+  setting appeared. Only the two lines that carry FACTS remain (how much of a config is its
+  own; the rule a new key must pass).
+
+**CONTROLS & APPEARANCE, THIRD CUT — A CHECKED GRID (14 Sep, same call).** *"The controls and
+appearance still won't look mature and clean and sleek and intuitive."* The cut before this
+got the POLARITY right (a lit chip means the viewer GETS the control) and the form wrong: nine
+pills of nine different widths wrapping raggedly across two lines, the off ones dashed and
+struck through. Ragged is why it read as dry — there is no column to scan, the eye re-measures
+every item, and strike-through is a proofreading mark, not a state.
+
+- **A grid of equal tiles, three to a line** — one glyph column, one label, one state — so
+  nine controls read as nine ROWS of a checklist. On is a filled tick and full ink; off is an
+  empty ring and receded ink. The 210px column floor is measured, not guessed: at the sheet's
+  806px it resolves to exactly three columns, so nine controls land as a 3×3 block instead of
+  4/4/1 with a lone orphan.
+- **The preview and the grid take the whole width.** A control taller than its label is not a
+  value in a column — squeezed into the 200px-indented value column both wrapped into rags.
+  The preview is 300×169 now, big enough that the control bar inside it is legible while it is
+  being changed.
+- **The section reads as one sentence**: how many controls at all → what the player looks like
+  → which controls exactly, with the preview between the two so every answer under it is
+  visible the moment it is given.
+
+**THE CARDS LOSE THE FACT DUMP (14 Sep, same call).** *"I don't find any value in showing those
+4 rows, autoplay, passive volume etc — remove them, make the cards more clean and sleek, and
+add some other meta which could be relevant for the user to see at first glance."* Four raw
+lever values were a card answering a question nobody asks a LIST: nobody picks between configs
+by comparing their passive volume, and four identical labels repeated down a row of cards read
+as a table that had lost its header.
+
+- **One meta line, the only thing that card can say.** A custom config shows WHERE its
+  overrides land — `Playback 2 · Controls 1`, counted pips, every field named on hover. The
+  default shows how many configs build on it, which is the blast radius of opening the thing
+  every player falls back to.
+- **`OFF` in words** beside a switched-off config's switch: a dimmed toggle is easy to miss
+  across six cards, and "is this one live" is the first thing a list of them is scanned for.
+
+Verified: `npm test` 174 passed / 0 failed · `npm run ui:snapshot` 74 screens, no console
+errors · field audit 29/29 reachable, 28 rendering (Redirect URL conditional by design), all
+25 wire keys present · headless drives on the transaction (change → `1 changed` + bar, live
+data untouched; Cancel restores; Done lands; Escape-with-changes asks and a No returns the
+sheet intact), on the control grid (9 lit → hiding two gives 7 lit, `7 of 9 controls shown`,
+two icons fewer in the preview bar, stored `["share","quality"]`), on Controls: None (no bar
+drawn, nine tiles disabled) and on both counted doors landing clear of the sticky band.
+
+**ONE PLAYER ACT ON THE BULK BAR — FIVE ROWS, FLAT (14 Sep, second cut, user call).**
+*"Let's drop Change default player behaviour, Custom player behaviour, and have a Player
+behaviour which will have options to control a few fields that are Autoplay, Passive Volume,
+Playback Mode, Loop, Expand MiniTV for ads."* The morning's cut sorted all twenty-nine player
+settings into a front row, a counted door and a refusal list. The answer is simpler than the
+sort: a cohort act is for the handful of things a team really does decide for a whole estate
+at once, and everything else belongs to the surface that owns it — where the integration page
+already draws the whole catalogue, default and custom configs alike, with a working copy,
+Cancel and Done.
+
+- **Two acts on the bar, not three** — `Ad behaviour` and `Player behaviour`.
+- **Five rows, flat.** Autoplay · Passive volume · Playback mode · Loop · Expand MiniTV for
+  ads. No fold to open, and no section headings: they are all Playback facts, and one list of
+  five is not three groups of two.
+- **The master-detail sheet is deleted** — the rail, the per-config folds, the 529px frame
+  and ~110 lines of CSS with it. Walking every custom config of every selected surface from a
+  cohort bar was capability nobody asked for, standing where the one simple act should be.
+- **The seam stays wider than the sheet, on purpose.** `BULK_PLAYER_FIELDS` still accepts the
+  whole player behaviour card, and the four a single surface owns are still refused BY NAME
+  (`BULK_NEVER_FIELDS`, carried on `/panel/meta`, pinned by a test). A sixth row is a line of
+  code rather than a release, and a wrong blanket write is refused whatever draws it.
+- **What the sheet keeps:** opening a row never queues it (a number seeds from the selection
+  when it agrees, from the field's default when it does not — counted, never a suggestion),
+  the row says what it is replacing, × leaves the field alone, and Apply still ends on THE
+  CHANGE REVIEW.
+
+**A COHORT SHORTLIST — WHAT A BULK CHANGE MAY ANSWER, AND WHAT ONE SURFACE OWNS (14 Sep,
+user call).** *"Can we define which fields are relevant for the bulk changes that the team may
+want to do across integrations and only give those options upfront."* The curation already
+existed and was the wrong one: the Default-player sheet offered **six** fields, the seam
+accepted **twenty-seven**, and the six were never chosen for a cohort at all — they were the
+six a fork could carry under the 11 Sep rule, which was reversed on 13 Sep while the cap
+stayed behind.
+
+- **Two questions decide a field's tier, in order.** *Would a team ever answer this the same
+  way for many surfaces?* No → one surface owns it, and a blanket write is not blunt but
+  wrong. *Would a wrong blanket answer show itself?* Yes → the front row; no → behind the
+  counted door. The second question does the work and was already the panel's rule:
+  measurement is "the one group where a wrong answer is otherwise invisible".
+- **The front row is seven rows** — Autoplay, Passive volume, Starts muted, End screen,
+  Controls, Appearance (the three look fields on their one preview stage) and Events
+  reported. These are the occasions a player-ops room has: a brand refresh, a sound policy,
+  a controls lockdown, a reporting level, every one of them visible at the next page load.
+- **Fourteen rows behind the door**, named after their own section as everywhere else. The
+  three vendor ids and the two timings live there — not because stamping a Nielsen id across
+  an estate is rare, but because a mistake costs a month before anyone sees it, and the fold
+  says so in a line above them.
+- **Four are never offered** — Player type, Redirect URL, Quality, Fallback media — refused
+  BY NAME at the seam (and the seam's list, with the sentence the row prints, now travels on
+  `/panel/meta` so the screen cannot spell it differently) and drawn greyed IN PLACE, so
+  "why can't I set the fallback video for all of them?" is answered where it is asked.
+- **The other sheet went the opposite way.** Custom player behaviour edits one surface at a
+  time, so it has no cohort argument to make: it now draws the integration page's own form —
+  every field, its sections, its counted doors, its follow-the-default grammar — and the
+  six-field cap is gone. A fork could carry a logo that sheet could not show it.
+- **One control renderer, three receivers.** `shCtl` became `cfgCtlHtml(r, def, eff, na, h)`,
+  `h` being the receiver: one verb per way a control is written to. The page's sheet passes
+  `SH_H` and did not move a byte; the two bulk sheets pass their own, which is how they can
+  draw colours, chips, timings and text at all, having only ever drawn segments.
+- **Opening a row never queues one.** A segment can say "nothing chosen"; a number, a timing
+  and a colour cannot, so those are seeded — from what the cohort holds when it agrees, from
+  the field's own default when it does not. Counted, never a suggestion.
+- **A kicker that had stopped being true.** "Custom configs keep their own values" predates
+  sparse forks: a config stores only its dissent and resolves the rest live, so a blanket
+  write DOES move every fork that never spoke about that field. It now says "custom configs
+  follow unless they overrode it".
+
 **THE PLAYER CONFIG GRID — VALUES AT REST, A COLUMN PER CONFIG (13 Sep, third cut, user
 call).** *"Improve the UI/UX of the default config, make it less cluttered and more intuitive —
 think from first principles of design, how does a user think, show user empathy … can we make the
@@ -50,6 +287,175 @@ one answer.
   the header's own leading cell, the row that names the columns being where "which columns"
   belongs; nothing narrates that one config is showing, because the header already shows it.
   Escape unwinds the narrowest thing first — open cell, open section, focused column.
+- **THE CONTROLS ARE ASKED THE RIGHT WAY UP, AND DRAWN (14 Sep, user call — *"controls and
+appearance can be treated in a more clean, intuitive and sleek way; the hide controls options
+look too dry and it is not intuitive"*).**
+
+- **A lit chip meant the control was GONE.** The field is `hideControls`, so the row inherited
+  the wire's polarity and a person had to invert it in their head on every glance. It is asked
+  as `Player controls` now, lit when the viewer GETS it, struck through and dashed when it does
+  not, with `7 of 9 shown` counted underneath. The store and the wire are untouched: the
+  inversion lives at one seam, and since toggling a member is the same operation either way up,
+  it rides the existing `chip` verb and works in all three sheets.
+- **Nine identical word-chips were the dry part.** A player's controls are things a viewer SEES,
+  so each one now carries its own line glyph — play, progress, volume, fullscreen, HD, captions,
+  speed, picture-in-picture, share — drawn once and used in both places they appear.
+- **The preview became the section's answer.** The stage already held the logo and the colour
+  pair; it now also draws the CONTROL BAR that will actually be served, so hiding a control is
+  visible the instant it is hidden. The brand colour moved to the centre play button with the
+  text colour on it — the exact pair the contrast line measures — and `Controls: None` draws no
+  bar at all, which is the honest preview of that answer.
+- **The disclosure was lying about what it held.** With the controls promoted into the section's
+  lead, the two rows left behind it are Speeds and Hide-controls-after — control settings, not
+  appearance ones — so the door says `2 more control settings`.
+- **Merged cleanly with a peer session's refactor found mid-pass:** `shCtl` had been generalised
+  into `cfgCtlHtml(r, def, eff, na, h)` with a per-sheet receiver, so the two new kinds were
+  rewired to the shared verbs rather than left pointing at this page's own draft.
+
+**ONE RESET, THE APP'S OWN CHANGE BAR, AND A DISCLOSURE THAT TAKES YOU THERE (14 Sep, user
+call).** *"We don't need follow default at each line, we can have one global reset button. Also
+the change state is different from how we do on the ad setup — the brown subtle bar, use that
+only. And clicking on more settings should take the scroll and cursor to the required
+destination; currently it scrolls to the top, which is too confusing."* Plus, mid-pass:
+*"brand colour, text colour and logo can be shown as a preview in a single view."*
+
+- **The per-row way back is one button.** `Follow default` stood in a third column on
+  twenty-nine rows to serve the few that ever needed it. It is now `Follow the default for
+  everything` in the act row, counted, asked first, and dead while there is nothing to undo —
+  and every row is two columns. The confirm takes the dialog root for a moment (every dialog
+  here shares one), so the sheet is drawn again on the way out whichever way it was answered,
+  and Escape is guarded to belong to whichever dialog is actually on screen.
+- **An override wears the app's own change bar.** 2px of amber, out of flow, exactly as this
+  panel marks anything that has been moved — replacing a blue rule AND a blue bold label, two
+  more signals for one state. The scrolling box now reaches 10px further left than its content
+  so the bar has a gutter instead of being clipped away by the scroller.
+- **A repaint no longer loses your place.** The sheet redraws as one block, so `shRender`
+  carries the body's scroll position across by hand. Without it, *choosing an option* halfway
+  down threw you back to the title — the same defect that made `more` feel like a jump to the
+  top. Opening a disclosure now also brings the first setting it revealed into view and gives
+  it the cursor.
+- **A section that opened itself could not be closed** — a real bug, found while fixing the
+  above. `open` was a Set, which cannot say "closed on purpose", so a config whose override
+  lived under `more` was stuck open. It is a Map of explicit decisions now.
+- **THE LOOK IS ONE ROW WITH A STAGE.** A hex beside a hex beside a URL tells nobody what a
+  player will look like. One frame does: the logo where it will sit, a progress bar in the
+  brand colour, a button carrying the text colour ON the brand — the pair the contrast rule is
+  about — with the ratio under it, amber below 3:1. The three fields sit beside it, and the
+  stage follows every `input` the colour wheel fires, in place, because a repaint there would
+  destroy the input the picker is anchored to and shut it mid-drag.
+
+**SLEEKER CARDS, A SHEET THAT SAYS EACH THING ONCE (14 Sep, user call — *"the cards can be
+more sleek and more mature; the modal still feels cluttered and disjointed"*).** Every cut here
+is a deletion, and each one removes a repetition rather than a fact.
+
+- **The cards lost their eyebrow.** `CUSTOM CONFIG` stood over every custom card, which is a
+  label that never varies and therefore never informs; the name and the card's own ground say
+  which kind it is. The name moved up to the first line beside the switch, the long sentence
+  under it became two or three words (`Every player on this surface` · `3 overrides` ·
+  `Follows the default`), and every card now carries FOUR facts, so a row of them is even
+  instead of six-against-three.
+- **The sheet's head was one idea said three times** — `DEFAULT PLAYER CONFIG` over
+  `Every player` over a sentence beginning *"what this surface serves"*. The eyebrow is gone.
+  What is left is a title and ONE line: what this is for, what it has taken over, or the rule
+  a new key must pass — and a refusal REPLACES that line, so the head never grows a third.
+- **The sheet opens with the name that was clicked.** The card said `Default` and the sheet
+  said `Every player`; a title that renames itself between the two is two objects, not one.
+- **The section hints went.** *"How the video plays"* under `Playback` is a gloss on a word
+  that does not need one, three times down one sheet.
+- **THE WORD `default` DOWN TWENTY ROWS WAS THE CLUTTER.** A receded row already IS the
+  default's answer, and the line under the title says so once. The tail column now carries
+  only `Follow default` — the one thing in it that is an action — and the default's own sheet
+  has no third column at all.
+- **The `more` doors are ink, not accent.** Three blue links down one sheet read as three
+  invitations; they are a way to see the rest, and they go accent on hover like any link here.
+- **Verified, not asserted:** a probe walks the server's own `PLAYER_FIELDS` against the
+  sheet's sections and against what actually renders. 29 of 29 reachable, no duplicates, no
+  orphans, every one with a definition; 28 render on a normal integration and the 29th
+  (`redirectUrl`) appears only for an Inline + redirect player, by design. The live document
+  still carries all 25 of the player team's keys in their five namespaces.
+
+**CARDS AND THREE LEVELS — THE PLAYER CONFIG, RE-CUT (14 Sep, user call).** *"Let's not have
+this column-like approach; clean cards, clicking on which opens the preview … limited fields
+upfront, then at level 2 we have some fields, and so on, so that we are not bombarded with too
+many fields upfront. Also the modal needs to be redesigned in a mature way."*
+
+- **The two surfaces before this failed the same way from opposite ends.** The folded card put
+  eight groups of CONTROLS on the page; the comparison grid put every config on screen at once
+  in columns. Both answered "show me everything" when the question a person actually arrives
+  with is *which config, and what does it do*. Three levels answer that one.
+- **LEVEL 1 — CARDS.** The default first, then one per config, then the card that makes
+  another. A card is identity and a few facts: on the default what a player gets, on a config
+  WHAT IT OVERRIDES. Nothing on a card is a control except the switch, which is state, and the
+  ⋯ that holds the rare acts. Four across at the editor's width, so the default and all six
+  configs are two calm rows and nothing scrolls sideways.
+- **LEVEL 2 — THE SHEET.** Clicking a card opens it: the three sections, each showing the
+  handful of settings a surface is actually set up with (6 · 4 · 3 rows). **LEVEL 3 — MORE**,
+  counted on its own door ("7 more playback settings"), opening in place — never a second
+  dialog and never a tab. A section whose `more` holds an override opens ITSELF, because a
+  setting somebody deliberately chose may never sit behind a disclosure. On the DEFAULT
+  nothing opens itself, since "set" has no meaning there and level 3 would collapse into
+  level 2 — which it did, and the walk caught it.
+- **ONE SHEET, THREE MODES** — default, existing config, new — so the "mature, enterprise"
+  modal is not a fourth thing to learn: it is the same sheet with the key where the title goes.
+  The first two write straight to the page draft and close with Done; a NEW config is the one
+  genuinely modal act and alone carries Cancel and Create.
+- **The title is its own rename field** (the shape the ad setup's placement tabs already use),
+  restoring the rename the grid's column head used to own. Done will not close over a key the
+  server would refuse — a sheet that closes hides the problem — and the pre-save guard now
+  reads the three key rules straight off the data rather than a `PC_BAD` map that the walk
+  caught dangling after the rewrite.
+- **Retired:** the whole `.pg-*` grid and its spreadsheet machinery (cell editing, popovers,
+  Tab/arrow walking, column focus `PG_ONLY`, the sticky header band) and the `.ncf-*` create
+  form. What survived is what was never about layout: `cfgDefs()` — one description of every
+  field, read by the cards, the sheet and the change review alike — `pbWord`, the colour pair
+  with its contrast preview, and the sparse-override model underneath, which has not moved.
+
+**CREATING A CONFIG IS A FORM, IN A MODAL (14 Sep, user call — *"let's open the fields in a
+  clean form in a modal while creating a custom config"*).** Creating and editing want different
+  surfaces, and collapsing them was the mistake. EDITING is a hundred small corrections against
+  what the other columns say — the grid's whole job. CREATING is one deliberate act with nothing
+  to compare against yet, so a new column of faded inherited values gave a person nothing to work
+  with; and it is the one genuinely modal moment, because the config does not exist until it is
+  named. The `+` no longer pushes a half-born unnamed column the server would refuse — which is
+  why the add button had to disable itself, why callers had to know about a column "waiting for
+  its key", and why `pcAdd` / `pcFocusEmpty` / `pcSyncAdd` / `.wants` existed. All four are gone.
+- **The form is a LEFT RAIL AND A PANE** — the ad setup's own shape for "one subject at a time",
+  so twenty-nine fields are never twenty-nine fields on screen. The rail counts what has been
+  changed in the sections you are not looking at, so nothing hides behind a tab. Every row starts
+  at the default's answer RECEDED with `default` beside it — the grid's own faded-means-inherited
+  language, taught at the moment a person first meets the model — and touching one makes it this
+  config's own (accent rule, `Follow default` back). The foot counts the whole form. One control
+  renderer reads the SAME `pgDefs()` the grid reads, so the two surfaces cannot drift on a
+  vocabulary, a default or a refusal.
+- **The key is refused in place**, by `pcKeyWhy`, the same three rules the server holds it to, with
+  what was typed still in the field. An empty key is now one of them (it could only ever have been
+  a transient birth state, and births no longer happen on the page). The veil closes an untouched
+  form and is ignored once there is work in it, so a stray click cannot cost a filled-in form;
+  Escape and Cancel always close, and Escape reaches the form before the grid's own stack.
+- **THE CARD EXPLAINS ITSELF, SO THE PARAGRAPH ABOVE IT IS GONE (14 Sep, user call —
+  *"remove this byline"*, and *"make it feel like an enterprise platform"*).** The lede said
+  *"a custom config changes only the cells you set — faded cells follow the default"*, which is
+  a card asking to be read before it can be used. The words moved into the STRUCTURE, where they
+  survive a reader who does not read: the header band is now a TABLE HEAD of two lines — the
+  column's NAME (`Default`, or the key, typeable in place) over its STATE against the default
+  beside it, counted (`every player` · `3 overrides` · `follows default`), with the switch and
+  the ⋯ on the state line. One sentence deleted, the same idea said by the thing itself.
+- **The add is a COLUMN.** `+ Add config` left the card's title row for a `+` at the end of the
+  header row — the panel's own rule for an add (it lives where the thing it makes will appear),
+  applied to a grid whose new thing is a column. Its refusals ride its hover, as everywhere.
+- **One word for one concept: OVERRIDE.** A section's per-config count read `3 differ` while the
+  model, the menu and the review all said override; it reads `3 overrides` now (and `1 override`,
+  which also fixes the `1 differs` the old wording produced).
+- **A column boundary at its faintest, and a header that is a header.** Six columns of the word
+  "same" with nothing between them read as scattered text, so each column edge from the first
+  config on carries a hairline, drawn in the GAP so it changes no size and follows no radius; the
+  header band takes its own quiet ground and a rule under it. With no config beside it the
+  default's column is capped rather than stretched — a lone value column spread over the whole
+  card strands its values from their labels.
+- **The switch moved to the state line for a measured reason:** on the name line it held 34px of
+  a 98px column at the six-config maximum, and the KEY — the column's whole identity — clipped to
+  five characters. Both head lines are capped to the key's own measure, so in a focused column
+  270px wide the key, its state and its switch stay one object instead of drifting apart.
 - **`PG_ONLY` holds the config OBJECT, never an index**, so a removal or a reorder can never leave
   the view pointing at the wrong column: if the object is gone the focus is gone, healed in
   `pgCols()`. Cell ids stay TRUE indices, so hiding a column changes what is drawn and nothing

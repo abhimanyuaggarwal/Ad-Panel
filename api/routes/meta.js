@@ -4,7 +4,7 @@ import express from 'express';
 import * as store from '../store.js';
 import { handle } from '../error-handler.js';
 import { RULE_PRESETS, PLAYER_PRESETS, ME } from '../mock/world.js';
-import { BULK_PLAYER_FIELDS } from './keys-bulk.js';
+import { BULK_NEVER_FIELDS, BULK_PLAYER_FIELDS } from './keys-bulk.js';
 
 const r = express.Router();
 
@@ -57,6 +57,8 @@ r.get('/panel/meta', handle((req, res) => {
     tagProviders: store.TAG_PROVIDERS,
     providerTypes: store.PROVIDER_TYPE,
     bulkPlayerFields: BULK_PLAYER_FIELDS,
+    // What a cohort act refuses, with the reason the sheet prints beside the greyed row.
+    bulkNever: BULK_NEVER_FIELDS,
     // Behaviour lives on the SLOT inside the ad setup (25 Aug); these say which fields
     // each slot can have, so the ops editor draws exactly that and nothing else.
     slotBehaviourFields: store.SLOT_BEHAVIOUR_FIELDS,

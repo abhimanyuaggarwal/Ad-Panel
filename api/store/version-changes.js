@@ -76,6 +76,149 @@ function ladderChanges(where, before, after) {
   return [{ where, field: 'Ladder', from: `${a.length} rung${a.length === 1 ? '' : 's'}`, to: `${b.length} — ${bits.join(' · ')}` }];
 }
 
+// ---------- ONE SLOT'S BREAK GROUPS ----------
+// Break groups diff group by group — group 1 doubles as the slot itself, so a slot with no
+// `groups` reads as one group and the line reads exactly as it did before pods existed.
+
+function slotPodChanges(slA, slB, where) {
+  if (!(slA.rungs || slA.groups)) return [];
+  const ga = slotGroupDefs(slA);
+  const gb = slotGroupDefs(slB);
+  const n = Math.max(ga.length, gb.length);
+  const out = [];
+  for (let gi = 0; gi < n; gi++) {
+    const gWhere = n > 1 ? `${where} group ${gi + 1}` : where;
+    out.push(...onePodChanges(ga[gi], gb[gi], gWhere, gi, slA, slB));
+  }
+  return out;
+}
+
+function onePodChanges(a, bg, gWhere, gi, slA, slB) {
+  if (!a) return [{ where: gWhere, field: 'Break group', from: 'there', to: 'removed' }];
+  const out = [];
+  if (!bg) out.push({ where: gWhere, field: 'Break group', from: '—', to: 'added' });
+  out.push(...adSourceChanges(a, bg, gWhere, slA, slB));
+  out.push(...ownLadderChanges(a, bg, gWhere, slA, slB));
+  out.push(...podBehaviourChanges(a, bg, gWhere));
+  // A pod's OWN deal (6 Sep, user bug — it never diffed): pod 1's doubles as the slot's
+  // and is diffed by the caller; every later pod answers for itself here.
+  if (gi > 0 && (a.direct || bg?.direct)) {
+    const pWhere = `${gWhere} · Direct`;
+    out.push(...ladderChanges(pWhere, bg?.direct?.rungs, a.direct?.rungs || []));
+    out.push(...rungFactChanges(pWhere, bg?.direct?.rungs, a.direct?.rungs));
+  }
+  return out;
+}
+
+// WHERE THE BREAK'S ADS COME FROM (5 Sep as a link; three answers 8 Sep): the source
+// moving IS the change — a following break's rungs merely mirror the waterfall (diffed
+// once at the head) and a switched-off break serves none at all, so the ladder diff runs
+// only while both versions served their own.
+function adSourceChanges(a, bg, gWhere, slA, slB) {
+  const srcOf = (g, sl) => (g?.waterfallSource ?? sl.waterfallSource) || 'own';
+  const srcA = srcOf(a, slA);
+  const srcB = bg ? srcOf(bg, slB) : 'own';
+  if (srcA === srcB) return [];
+  const word = x => (x === 'setup' ? 'the waterfall' : x === 'none' ? 'no ads' : 'its own units');
+  return [{ where: gWhere, field: 'ad sources', from: word(srcB), to: word(srcA) }];
+}
+
+// THE LADDER DIFF READS WHAT THE BREAK OWNS (8 Sep). `rungs` is the SERVED walk, and for a
+// break taking its fall from the global waterfall — or with no fall at all — that array is
+// derived: its own primary plus the waterfall's units, which are diffed once at the head.
+// `ownRungs` is what this break actually holds, in every answer, so diffing that says
+// exactly what a person changed here (an old snapshot has no `ownRungs` and its `rungs`
+// ARE its own units). `slotGroupDefs` hands back a bare { rungs, behaviour } for a
+// single-group slot, so `ownRungs` is read off the slot itself there — the same fallback
+// the source above uses. A real mid-roll pod carries its own.
+function ownLadderChanges(a, bg, gWhere, slA, slB) {
+  const ladderOf = (g, sl) => (g && (g.ownRungs ?? sl?.ownRungs ?? g.rungs)) || null;
+  const ladA = ladderOf(a, slA);
+  if (!ladA) return [];
+  const ladB = ladderOf(bg, slB);
+  return [...ladderChanges(gWhere, ladB, ladA), ...rungFactChanges(gWhere, ladB, ladA)];
+}
+
+// Every behaviour field the newer pod carries, compared with what the older one said.
+function podBehaviourChanges(a, bg, gWhere) {
+  const out = [];
+  for (const f of Object.keys(a.behaviour || {})) {
+    if (JSON.stringify(bg?.behaviour?.[f]) === JSON.stringify(a.behaviour[f])) continue;
+    out.push({ where: gWhere, field: f, from: bg?.behaviour?.[f], to: a.behaviour[f] });
+  }
+  return out;
+}
+
+// ---------- HOW A TOP-LEVEL FIELD IS SAID ----------
+// Most fields are one line: the field moved, here is what it was and what it is. Two are
+// nested and get their own reader, because a single line saying "Player" or "Player
+// configs" for a change buried three levels down is the pile this review exists to avoid.
+// A field with no entry here takes the plain one-liner.
+const TOP_FIELD_READERS = {
+  player: (was, now) => leafChanges(was, now, () => 'Player'),
+  drive: (was, now) => leafChanges(was, now, driveWhere),
+  playerConfigs: (was, now) => playerConfigChanges(was, now),
+};
+
+function topFieldChanges(field, was, now) {
+  const read = TOP_FIELD_READERS[field];
+  return read ? read(was, now) : [{ where: '', field, from: was, to: now }];
+}
+
+// A drive field is keyed by BREAK (`preroll.tries`), so the break is the where — "Ad
+// delivery" for all four reads as one undifferentiated pile, and which break a decision
+// moved on is the first thing anyone asks.
+function driveWhere(key) {
+  const seg = key.split('.')[0];
+  return SLOT_WORD[seg] || seg;
+}
+
+// A nested object's leaves, compared one by one. `whereOf` names the zone a leaf sits in.
+function leafChanges(was, now, whereOf) {
+  const fb = flat(was || {}, '', {});
+  const fa = flat(now || {}, '', {});
+  const out = [];
+  for (const k of new Set([...Object.keys(fb), ...Object.keys(fa)])) {
+    if (JSON.stringify(fb[k]) === JSON.stringify(fa[k])) continue;
+    out.push({ where: whereOf(k), field: k.split('.').pop(), from: fb[k], to: fa[k] });
+  }
+  return out;
+}
+
+// A custom config appearing or leaving is one decision, one line; a field moving inside
+// one is named where it lives — matched by name, like placements.
+function playerConfigChanges(was, now) {
+  const byName = arr => Object.fromEntries((arr || []).map(c => [c.name, c]));
+  const before = byName(was);
+  const after = byName(now);
+  const out = [];
+  for (const name of Object.keys(before)) {
+    if (!after[name]) out.push({ where: 'Player configs', field: name, from: 'custom config', to: 'removed' });
+  }
+  for (const name of Object.keys(after)) out.push(...oneConfigChanges(name, before[name], after[name]));
+  return out;
+}
+
+// One named config: it arrived, its switch moved, or one of the fields it overrides did.
+function oneConfigChanges(name, was, now) {
+  if (!was) return [{ where: 'Player configs', field: name, from: '—', to: 'added' }];
+  const out = [];
+  // The switch, in words — absence is on, like a rung's.
+  const onWord = c => (c.on !== false ? 'on' : 'off');
+  if (onWord(was) !== onWord(now)) {
+    out.push({ where: 'Player configs', field: name, from: onWord(was), to: onWord(now) });
+  }
+  // EVERY FIELD A CONFIG MAY OVERRIDE (13 Sep) — the one list, not a copy of three. A
+  // config is sparse, so an absent side is "follows default", said in words: the review's
+  // whole point is that a new override on an existing config is one line.
+  const word = v => (v === undefined ? 'follows default' : v);
+  for (const g of PLAYER_FIELDS) {
+    if (JSON.stringify(was[g]) === JSON.stringify(now[g])) continue;
+    out.push({ where: `Player configs · ${name}`, field: g, from: word(was[g]), to: word(now[g]) });
+  }
+  return out;
+}
+
 // Every field a version moved, said where it lives. Placements added or removed are one
 // line each rather than forty — a new placement is one decision, not forty of them.
 export function versionChanges(kind, before, after) {
@@ -85,52 +228,8 @@ export function versionChanges(kind, before, after) {
 
   for (const f of Object.keys(after)) {
     if (f === 'sections' || f === 'waterfall') continue;
-    const x = JSON.stringify(b[f]);
-    const y = JSON.stringify(after[f]);
-    if (x === y) continue;
-    if (f === 'player' || f === 'drive') {
-      const fb = flat(b[f] || {}, '', {});
-      const fa = flat(after[f] || {}, '', {});
-      for (const k of new Set([...Object.keys(fb), ...Object.keys(fa)])) {
-        if (JSON.stringify(fb[k]) !== JSON.stringify(fa[k])) {
-          // A drive field is keyed by BREAK (`preroll.tries`), so the break is the
-          // where — "Ad delivery" for all four read as one undifferentiated pile, and
-          // which break a decision moved on is the first thing anyone asks.
-          const seg = f === 'drive' ? k.split('.')[0] : null;
-          out.push({
-            where: seg ? (SLOT_WORD[seg] || seg) : 'Player',
-            field: k.split('.').pop(), from: fb[k], to: fa[k],
-          });
-        }
-      }
-    } else if (f === 'playerConfigs') {
-      // A custom config appearing or leaving is one decision, one line; a field moving
-      // inside one is named where it lives — matched by name, like placements.
-      const byName = arr => Object.fromEntries((arr || []).map(c => [c.name, c]));
-      const cb = byName(b[f]);
-      const ca = byName(after[f]);
-      for (const name of Object.keys(cb)) {
-        if (!ca[name]) out.push({ where: 'Player configs', field: name, from: 'custom config', to: 'removed' });
-      }
-      for (const name of Object.keys(ca)) {
-        if (!cb[name]) { out.push({ where: 'Player configs', field: name, from: '—', to: 'added' }); continue; }
-        // The switch, in words — absence is on, like a rung's.
-        if ((cb[name].on !== false) !== (ca[name].on !== false)) {
-          out.push({ where: 'Player configs', field: name, from: cb[name].on !== false ? 'on' : 'off', to: ca[name].on !== false ? 'on' : 'off' });
-        }
-        // EVERY FIELD A CONFIG MAY OVERRIDE (13 Sep) — the one list, not a copy of three.
-        // A config is sparse, so an absent side is "follows default", said in words: the
-        // review's whole point is that a new override on an existing config is one line.
-        for (const g of PLAYER_FIELDS) {
-          if (JSON.stringify(cb[name][g]) !== JSON.stringify(ca[name][g])) {
-            const word = v => (v === undefined ? 'follows default' : v);
-            out.push({ where: `Player configs · ${name}`, field: g, from: word(cb[name][g]), to: word(ca[name][g]) });
-          }
-        }
-      }
-    } else {
-      out.push({ where: '', field: f, from: b[f], to: after[f] });
-    }
+    if (JSON.stringify(b[f]) === JSON.stringify(after[f])) continue;
+    out.push(...topFieldChanges(f, b[f], after[f]));
   }
 
   // THE SHARED WATERFALL is diffed ONCE, by name (5 Sep): the breaks that follow it
@@ -180,57 +279,7 @@ export function versionChanges(kind, before, after) {
         out.push(...ladderChanges(dWhere, slB.direct?.rungs, slA.direct?.rungs || []));
         out.push(...rungFactChanges(dWhere, slB.direct?.rungs, slA.direct?.rungs));
       }
-      const ga = slA.rungs || slA.groups ? slotGroupDefs(slA) : null;
-      const gb = slotGroupDefs(slB);
-      if (ga) {
-        const n = Math.max(ga.length, gb.length);
-        for (let gi = 0; gi < n; gi++) {
-          const gWhere = n > 1 ? `${where} group ${gi + 1}` : where;
-          const a = ga[gi];
-          const bg = gb[gi];
-          if (!a) { out.push({ where: gWhere, field: 'Break group', from: 'there', to: 'removed' }); continue; }
-          if (!bg) { out.push({ where: gWhere, field: 'Break group', from: '—', to: 'added' }); }
-          // WHERE THE BREAK'S ADS COME FROM (5 Sep as a link; three answers 8 Sep): the
-          // source moving IS the change — a following break's rungs merely mirror the
-          // waterfall (diffed once above) and a switched-off break serves none at all,
-          // so the ladder diff below runs only while both versions served their own.
-          const srcOf = (g, sl) => (g?.waterfallSource ?? sl.waterfallSource) || 'own';
-          const srcA = srcOf(a, slA);
-          const srcB = bg ? srcOf(bg, slB) : 'own';
-          if (srcA !== srcB) {
-            const word = x => (x === 'setup' ? 'the waterfall' : x === 'none' ? 'no ads' : 'its own units');
-            out.push({ where: gWhere, field: 'ad sources', from: word(srcB), to: word(srcA) });
-          }
-          // THE LADDER DIFF READS WHAT THE BREAK OWNS (8 Sep). `rungs` is the SERVED
-          // walk, and for a break taking its fall from the global waterfall — or with no
-          // fall at all — that array is derived: its own primary plus the waterfall's
-          // units, which are diffed once above. `ownRungs` is what this break actually
-          // holds, in every answer, so diffing that says exactly what a person changed
-          // here (an old snapshot has no `ownRungs` and its `rungs` ARE its own units).
-          // `slotGroupDefs` hands back a bare { rungs, behaviour } for a single-group
-          // slot, so `ownRungs` is read off the slot itself there — the same fallback the
-          // source above uses. A real mid-roll pod carries its own.
-          const ladderOf = (g, sl) => (g && (g.ownRungs ?? sl?.ownRungs ?? g.rungs)) || null;
-          const ladA = ladderOf(a, slA);
-          if (ladA) {
-            const ladB = ladderOf(bg, slB);
-            out.push(...ladderChanges(gWhere, ladB, ladA));
-            out.push(...rungFactChanges(gWhere, ladB, ladA));
-          }
-          for (const f of Object.keys(a.behaviour || {})) {
-            if (JSON.stringify(bg?.behaviour?.[f]) !== JSON.stringify(a.behaviour[f])) {
-              out.push({ where: gWhere, field: f, from: bg?.behaviour?.[f], to: a.behaviour[f] });
-            }
-          }
-          // A pod's OWN deal (6 Sep, user bug — it never diffed): pod 1's doubles as
-          // the slot's and is covered above; every later pod answers for itself here.
-          if (gi > 0 && (a.direct || bg?.direct)) {
-            const pWhere = `${gWhere} · Direct`;
-            out.push(...ladderChanges(pWhere, bg?.direct?.rungs, a.direct?.rungs || []));
-            out.push(...rungFactChanges(pWhere, bg?.direct?.rungs, a.direct?.rungs));
-          }
-        }
-      }
+      out.push(...slotPodChanges(slA, slB, where));
     }
   }
   return out;

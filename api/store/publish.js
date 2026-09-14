@@ -5,7 +5,7 @@ import { versionChanges } from './version-changes.js';
 import { listKeys, updateKey } from './keys.js';
 import { driveWalkRungs, effectiveBehaviour, liveRungs, slotGroupDefs } from './ladders.js';
 import { keysUsingSetup, servedHeaderBidding, servedUnitHeaderBidding, updateSetup } from './setups.js';
-import { Refusal, RUNG_FACTS, SLOT_TYPES, SLOT_WORD, state } from './state.js';
+import { ACTOR, RUNG_FACTS, Refusal, SLOT_TYPES, SLOT_WORD, state } from './state.js';
 import { mustGet } from './validate.js';
 
 
@@ -124,23 +124,78 @@ function publishedGroupLadders(setupSnap, secName, t) {
   return slotGroupDefs(sec.slots[t]).map(g => (g.rungs || []).filter(r => r.on !== false && r.tagId));
 }
 
-function darkBreaks(keySnap) {
+/**
+ * THE ONE WALK behind both refusals below: every switched-on break in `keySnap` that
+ * `setupSnap` would leave with nothing published to ask. The two rooms ask the same
+ * question of different pairs — the surface against its live demand, an ops version
+ * against each live holder — so the walk is shared and the WORDS are not: each room
+ * names a dark break the way its own people say it.
+ * @param {object} keySnap    an integration snapshot: whose breaks are switched on
+ * @param {object|null} setupSnap  the demand snapshot to read those breaks against
+ * @returns {{sectionName: string, slotType: string, groupIndex: number, isMulti: boolean}[]}
+ *          in section, then slot, then pod order — so the first entry is the first found
+ */
+function emptyBreaks(keySnap, setupSnap) {
   const out = [];
-  const setupSnap = keySnap.adSetupId ? liveSnapshot(keySnap.adSetupId) : null;
-  for (const s of keySnap.sections || []) {
+  for (const sec of keySnap.sections || []) {
     for (const t of SLOT_TYPES) {
-      if (!s.slots[t]?.on) continue;
-      const groups = publishedGroupLadders(setupSnap, s.name, t);
-      const multi = groups.length > 1;
-      groups.forEach((live, gi) => {
-        if (!live.length) out.push(`${s.name} ${SLOT_WORD[t].toLowerCase()}${multi ? ` pod ${gi + 1}` : ''}`);
-      });
+      if (!sec.slots[t]?.on) continue;
+      out.push(...emptyPodsOfBreak(sec.name, t, setupSnap));
     }
   }
   return out;
 }
 
-export function publishObject(kind, id, actor = 'You', note) {
+// One break's pods, and which of them have no published demand. Split out so the walk
+// above stays inside the depth ceiling and reads as the two loops it actually is.
+function emptyPodsOfBreak(sectionName, slotType, setupSnap) {
+  const groups = publishedGroupLadders(setupSnap, sectionName, slotType);
+  const isMulti = groups.length > 1;
+  return groups
+    .map((live, groupIndex) => (live.length ? null : { sectionName, slotType, groupIndex, isMulti }))
+    .filter(Boolean);
+}
+
+// The product room's words for a dark break: the placement, the break, the pod.
+function darkBreakNames(keySnap) {
+  const setupSnap = keySnap.adSetupId ? liveSnapshot(keySnap.adSetupId) : null;
+  return emptyBreaks(keySnap, setupSnap)
+    .map(b => `${b.sectionName} ${SLOT_WORD[b.slotType].toLowerCase()}${b.isMulti ? ` pod ${b.groupIndex + 1}` : ''}`);
+}
+
+// A surface may not go on air with a switched-on break that has nothing published behind
+// it — no answer, no publish, named either way.
+function refuseIfSurfaceWouldGoDark(obj, snapshot) {
+  const anyOn = (snapshot.sections || []).some(s => SLOT_TYPES.some(t => s.slots[t].on));
+  if (!anyOn) {
+    throw new Refusal(409, 'nothing_runs',
+      `“${obj.name}” has every break switched off — publishing it would put nothing on air. Switch a break on, or leave it unpublished`);
+  }
+  const dark = darkBreakNames(snapshot);
+  if (!dark.length) return;
+  const setup = obj.adSetupId ? state.setups.get(obj.adSetupId) : null;
+  throw new Refusal(409, 'demand_unpublished',
+    setup
+      ? `${dark.join(', ')} would go on air with nothing behind ${dark.length === 1 ? 'it' : 'them'} — publish “${setup.name}” first`
+      : `${obj.name} has no ad setup attached, so ${dark.join(', ')} would ask nobody`,
+    { usedBy: dark });
+}
+
+// Taking demand away from a published break is the same darkness, one room over: the
+// same walk, read against each live holder's own overlay. Refuses on the first it finds,
+// in the ops room's words.
+function refuseIfHoldersWouldGoDark(setupId, snapshot) {
+  for (const k of keysUsingSetup(setupId)) {
+    if (!isPublished(k.id)) continue;
+    const [dark] = emptyBreaks(liveSnapshot(k.id), snapshot);
+    if (!dark) continue;
+    throw new Refusal(409, 'would_go_dark',
+      `“${k.name}” is live on ${dark.sectionName} ${dark.slotType}${dark.isMulti ? ` group ${dark.groupIndex + 1}` : ''} and this version leaves it nothing to ask — switch that break off there first`,
+      { usedBy: [k.name] });
+  }
+}
+
+export function publishObject(kind, id, actor = ACTOR, note) {
   // The person's own line under the version — why this went out, in their words.
   const memo = String(note ?? '').trim().slice(0, 200);
   const obj = objectOf(kind, id);
@@ -148,42 +203,8 @@ export function publishObject(kind, id, actor = 'You', note) {
   const before = liveSnapshot(id);
   const warnings = [];
 
-  if (kind === 'key') {
-    const anyOn = (snapshot.sections || []).some(s => SLOT_TYPES.some(t => s.slots[t].on));
-    if (!anyOn) {
-      throw new Refusal(409, 'nothing_runs',
-        `“${obj.name}” has every break switched off — publishing it would put nothing on air. Switch a break on, or leave it unpublished`);
-    }
-    const dark = darkBreaks(snapshot);
-    if (dark.length) {
-      const setup = obj.adSetupId ? state.setups.get(obj.adSetupId) : null;
-      throw new Refusal(409, 'demand_unpublished',
-        setup
-          ? `${dark.join(', ')} would go on air with nothing behind ${dark.length === 1 ? 'it' : 'them'} — publish “${setup.name}” first`
-          : `${obj.name} has no ad setup attached, so ${dark.join(', ')} would ask nobody`,
-        { usedBy: dark });
-    }
-  } else {
-    // Taking demand away from a published break is the same darkness, one room over.
-    const holders = keysUsingSetup(id).filter(k => isPublished(k.id));
-    for (const k of holders) {
-      const ks = liveSnapshot(k.id);
-      for (const s of ks.sections || []) {
-        for (const t of SLOT_TYPES) {
-          if (!s.slots[t]?.on) continue;
-          const groups = publishedGroupLadders(snapshot, s.name, t);
-          const multi = groups.length > 1;
-          groups.forEach((live, gi) => {
-            if (!live.length) {
-              throw new Refusal(409, 'would_go_dark',
-                `“${k.name}” is live on ${s.name} ${t}${multi ? ` group ${gi + 1}` : ''} and this version leaves it nothing to ask — switch that break off there first`,
-                { usedBy: [k.name] });
-            }
-          });
-        }
-      }
-    }
-  }
+  if (kind === 'key') refuseIfSurfaceWouldGoDark(obj, snapshot);
+  else refuseIfHoldersWouldGoDark(id, snapshot);
 
   const changes = versionChanges(kind, before, snapshot);
   if (!changes.length) throw new Refusal(409, 'nothing_to_publish', `“${obj.name}” is already live, exactly as it is`);
@@ -208,7 +229,7 @@ export function publishObject(kind, id, actor = 'You', note) {
 // TAKING IT OFF THE AIR is a publish-plane act, not a field (27 Aug): the draft is
 // untouched, so what comes back on Publish is exactly what you had. This is the whole
 // of what the old `status` pause did, without a second concept in the model.
-export function unpublishObject(kind, id, actor = 'You') {
+export function unpublishObject(kind, id, actor = ACTOR) {
   const obj = objectOf(kind, id);
   if (!state.live.has(id)) throw new Refusal(409, 'not_live', `“${obj.name}” is not on air`);
   if (kind === 'setup') {
@@ -230,7 +251,7 @@ export function unpublishObject(kind, id, actor = 'You') {
 // version, so the thing you reverted away from is still there to revert back to. The
 // draft follows, because leaving the editor showing something other than what is live
 // is how people publish an accident.
-export function restoreVersion(kind, id, v, actor = 'You', note) {
+export function restoreVersion(kind, id, v, actor = ACTOR, note) {
   const obj = objectOf(kind, id);
   const src = versionsOf(id).find(x => x.v === Number(v));
   if (!src) throw new Refusal(404, 'not_found', `“${obj.name}” has no version ${v}`);

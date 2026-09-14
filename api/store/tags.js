@@ -1,7 +1,7 @@
 // store/tags.js — ad tags and ad unit templates: normalization, CRUD, in-use checks.
 import { slotGroupDefs } from './ladders.js';
 import { listSetups } from './setups.js';
-import { AD_UNIT_EXAMPLE, AD_UNIT_PATH, DIRECTORY_PROVIDERS, PROPERTY_SCOPES, PROVIDER_TYPE, PROVIDER_WORD, Refusal, SLOT_TYPES, TAG_PROVIDERS, TAG_TYPES, TEMPLATE_MACROS, URL_PROVIDERS, state } from './state.js';
+import { AD_UNIT_EXAMPLE, AD_UNIT_PATH, DIRECTORY_PROVIDERS, PROPERTY_SCOPES, PROVIDER_TYPE, PROVIDER_WORD, Refusal, SLOT_TYPES, TAG_PROVIDERS, TAG_TYPES, TEMPLATE_MACROS, URL_PROVIDERS, state, updateStamp } from './state.js';
 import { bool, diff, httpUrl, mustGet, oneOf, str, uniqueName } from './validate.js';
 
 
@@ -47,7 +47,7 @@ export function normalizeTemplate(input, exceptId) {
 export function createTemplate(input) {
   const t = normalizeTemplate(input);
   const id = `tpl_${++state.counters.template}`;
-  const obj = { id, ...t, updatedAt: new Date().toISOString(), updatedBy: 'You' };
+  const obj = { id, ...t, ...updateStamp() };
   state.templates.set(id, obj);
   return obj;
 }
@@ -65,7 +65,7 @@ export function updateTemplate(id, input) {
     }
   }
   const changes = diff(existing, t);
-  Object.assign(existing, t, { updatedAt: new Date().toISOString(), updatedBy: 'You' });
+  Object.assign(existing, t, { ...updateStamp() });
   return { obj: existing, changes };
 }
 
@@ -173,7 +173,7 @@ export function normalizeTag(input, exceptId) {
 export function createTag(input) {
   const t = normalizeTag(input);
   const id = `tag_${++state.counters.tag}`;
-  const obj = { id, ...t, updatedAt: new Date().toISOString(), updatedBy: 'You' };
+  const obj = { id, ...t, ...updateStamp() };
   state.tags.set(id, obj);
   return obj;
 }
@@ -191,7 +191,7 @@ export function updateTag(id, input) {
     }
   }
   const changes = diff(existing, t);
-  Object.assign(existing, t, { updatedAt: new Date().toISOString(), updatedBy: 'You' });
+  Object.assign(existing, t, { ...updateStamp() });
   return { obj: existing, changes };
 }
 

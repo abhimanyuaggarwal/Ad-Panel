@@ -29,11 +29,11 @@ npm start          # http://localhost:4200 — serves the API and the web app to
 | Command | What it does |
 | --- | --- |
 | `npm start` | the API and web app on :4200 (`PANEL_PORT` to change it) |
-| `npm test` | the rule suite — 171 cases over HTTP, ~1 s |
+| `npm test` | the rule suite — 174 cases over HTTP, ~1 s |
 | `npm run check` | every JS file parses |
 | `npm run demo` | rebuild the seeded demo world (same ids every time) |
 | `npm run scale` | rebuild it at the `scale` scenario |
-| `npm run ui:snapshot <label>` | capture all 73 screens in headless Chrome, then `… diff a b` |
+| `npm run ui:snapshot <label>` | capture all 74 screens in headless Chrome, then `… diff a b` |
 
 `ui:snapshot` additionally needs a local Chrome and `puppeteer-core`, neither of which this
 package declares — point `PUPPETEER` and `CHROME` at your own installs if it cannot find them.

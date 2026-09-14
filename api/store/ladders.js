@@ -447,6 +447,24 @@ export function localWalk(rungs) {
   return localLadder(rungs).filter(r => !r.opsOff);
 }
 
+// THE UNREACHABLE TAIL, counted (31 Aug): how many of a ladder's sources the break
+// never gets to ask, because it gives up before it reaches them — tries × per-try wait
+// against the break's own giving-up point. Counted the same way wherever it is said, so
+// the number in a save's warning is the number the behaviour door warns with. A lever,
+// never a wall: every caller warns and none refuse.
+// (`fillNote` in web/js/controls.js says the same thing live, on the other side of HTTP.)
+/**
+ * @param {object[]} rungs      the slot's ladder
+ * @param {object|null} behaviour  the slot's behaviour (fillTimeoutSec, tagTimeoutMs)
+ * @returns {number} how many sources never run; 0 when every one is reachable
+ */
+export function unreachableTail(rungs, behaviour) {
+  if (!behaviour) return 0;
+  const asked = localWalk(rungs).length;
+  const reachable = Math.max(1, Math.floor((behaviour.fillTimeoutSec * 1000) / behaviour.tagTimeoutMs));
+  return asked > 1 && reachable < asked ? asked - reachable : 0;
+}
+
 // The provider a rung answers with — the vocabulary drive decisions are made in.
 export function rungProvider(r) {
   const tag = state.tags.get(r.tagId);

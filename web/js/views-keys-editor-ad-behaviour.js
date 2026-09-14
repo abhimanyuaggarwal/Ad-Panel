@@ -245,7 +245,7 @@ function driveStampAll(t) {
     if (!FORM.data.drive) FORM.data.drive = {};
     const slot = { ...(FORM.data.drive[t2] || {}) };
     for (const f of ['ask', 'tries']) {
-      if (d[f] === undefined) delete slot[f]; else slot[f] = JSON.parse(JSON.stringify(d[f]));
+      if (d[f] === undefined) delete slot[f]; else slot[f] = deepCopy(d[f]);
     }
     if (Object.keys(slot).length) FORM.data.drive[t2] = slot;
     else delete FORM.data.drive[t2];
@@ -391,8 +391,7 @@ function driveHbRowHtml(t) {
   const asSetUp = keyHbAsSetUp(t);
   const cur = d.headerBidding;
   const mode = cur === undefined ? 'setup' : cur === 'off' ? 'off' : 'custom';
-  const partners = (KL_META.headerBidding && KL_META.headerBidding.length ? KL_META.headerBidding : HB_ANSWERS)
-    .filter(x => x !== 'off');
+  const partners = hbPartners();
   const start = partners.includes(asSetUp) ? asSetUp : partners[0];
   const modeSeg = accSeg(mode, ['setup', 'off', 'custom'], ['As set up', 'Off', 'Custom'],
     o => `driveSet('${t}', 'headerBidding', ${o === 'setup' ? 'null' : o === 'off' ? "'off'" : `'${start}'`})`);

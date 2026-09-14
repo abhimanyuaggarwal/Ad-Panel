@@ -5,7 +5,10 @@
 // The suite talks to the server over HTTP only, so it pins behaviour, not internals:
 // a refactor that keeps the suite green kept the product.
 
-export const BASE = 'http://localhost:4299';
+import { TEST_BASE } from '../api/config.js';
+
+/** The suite's own server — the one address every case talks to (api/config.js). */
+export const BASE = TEST_BASE;
 
 let passed = 0, failed = 0;
 const failures = [];

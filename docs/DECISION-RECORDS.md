@@ -22,6 +22,9 @@ codebase to (say) `AD-JSON-SCOPE.md` resolves to the chapter of that name below.
 - [DRIVING-SCOPE — quick decisions on Ad delivery, the workshop in the setup (26 Aug 2026)](#driving-scope--quick-decisions-on-ad-delivery-the-workshop-in-the-setup-26-aug-2026)
 - [AD-JSON-SCOPE — the player's ads JSON (31 Aug 2026)](#ad-json-scope--the-players-ads-json-31-aug-2026)
 - [STORE-SPLIT — how api/store.js was split, and the rules it followed (3 Sep 2026)](#store-split--how-apistorejs-was-split-and-the-rules-it-followed-3-sep-2026)
+- [API-REFACTOR — the knobs, the seams and the walks, said once (14 Sep 2026)](#api-refactor--the-knobs-the-seams-and-the-walks-said-once-14-sep-2026)
+- [WEB-REFACTOR — the words said once, and a flaky net made honest (14 Sep 2026)](#web-refactor--the-words-said-once-and-a-flaky-net-made-honest-14-sep-2026)
+- [COHORT-SHORTLIST — which player settings a bulk change may answer (14 Sep 2026)](#cohort-shortlist--which-player-settings-a-bulk-change-may-answer-14-sep-2026)
 
 ---
 
@@ -2286,3 +2289,282 @@ reset rebuilds the world with the same ids, so nothing counted ever shifts.
 - `store.js` is a re-export file; no module is longer than ~500 lines.
 - `server.js`, the tests, and the mock world are untouched.
 - 117/117 before, 117/117 after, and no probe reports a console error.
+
+---
+
+## API-REFACTOR — the knobs, the seams and the walks, said once (14 Sep 2026)
+
+A behaviour-preserving pass over `api/`. No rule changed, no screen changed, no route
+changed. What changed is how many places each rule is written in. Recorded here because
+four of the calls below were judgment, not mechanics, and the reasoning is worth more than
+the diff.
+
+### What moved
+
+| Was | Is | Why |
+| --- | --- | --- |
+| `process.env` read in `server.js`, `routes/gam.js`; `4299` spelled in four files | `api/config.js` | one place for the knobs; changing a port used to break three of four spellings |
+| `darkBreaks()` **and** a 7-deep copy of the same walk inside `publishObject` | `emptyBreaks()` + two named refusals | the same question asked in two rooms; only the WORDS differed |
+| the unreachable-tail arithmetic, twice in `setups.js` | `unreachableTail()` in `ladders.js` | one concept, two spellings, already drifting in shape |
+| `'You'` in 15 places | `ACTOR` + `updateStamp()` in `state.js` | §11's authorship gap becomes a one-function change |
+| `6` and `60` inline in `normalizeSetup` | `ADS_ACROSS_PODS_WARN`, `PODS_TOO_CLOSE_SEC` in `state.js` | every other cap already lives there |
+| `normalizeSetup`, 216 lines / 7 deep | 9 named functions, none over 3 deep | the per-slot body was four concerns interleaved |
+| the two seams, nested 6–7 deep | `checkPlacementSeam` / `checkLiveOverlay` and friends | the code that must never let a break go dark should be the code you can read |
+| `versionChanges`' field if/else chain | `TOP_FIELD_READERS` dispatch | the branches picked behaviour, not validation |
+| `versionChanges`' pods walk, 7 deep | `slotPodChanges` → `onePodChanges` → four readers | one pod's diff is four separate questions |
+| `mergeSlot`, a closure capturing nothing | `mergeSlotPatch` / `mergePods` / `mergePod` / `mergeSingleBreak` at module level | a pure function hidden inside a 136-line one
+
+### The judgment calls
+
+**A config file, in a codebase that said it had none.** §9 used to open "There is no config
+file and no `.env`", and the same paragraph said enums, caps and words stay as code *on
+purpose*. Those are two different claims. The second is a real principle and is untouched:
+a cap is a rule the suite pins, and `config.js` says so out loud. The first was a
+description of four scattered `process.env` reads and a port spelled in four files, which
+is not a principle — it is the thing §7 exists to fix. So: the knobs moved, the rules did
+not, and §9 now says which is which.
+
+**The one deliberate behaviour change.** `PANEL_PORT` is validated at boot. It used to fall
+through to `app.listen('notaport')`, which binds a unix socket of that name, logs
+`StreamAds panel API on http://localhost:notaport` and serves nobody. Failing loud at the
+boundary is worth breaking a "behaviour-preserving" promise for; nothing else in this pass
+changes an observable answer.
+
+**Duplication kept on purpose.** `unreachableTail` is still written twice — once here and
+once as `fillNote` in `web/js/controls.js` — because the web app has no bundler and no
+import, so the two sides of HTTP cannot share a module. That mirroring is the codebase's
+existing pattern (`servedHeaderBidding` / `suHbServed`), so it stays, now with a comment on
+each side naming the other. The alternative is a build step, which is a much larger
+decision than this pass.
+
+**Words kept apart where they read differently.** The two dark-break refusals share one
+walk but not one sentence: the product room says "Default pre-roll … pod 2", the ops room
+says "Default midroll … group 2". Unifying the wording would have been a UI change wearing
+a refactor's clothes, so `emptyBreaks` returns structure and each room writes its own line.
+
+**Context objects, not longer parameter lists.** Extracting the per-slot body would have
+meant ten positional arguments. That is the signal to reshape the data, not to add a
+wrapper, so each extracted family takes one named `ctx` (`{ setupName, loc, where,
+waterfall, defaults, errors, warnings }` and so on). Same shape in all three families, so
+there is one thing to learn.
+
+### How it was proved
+
+- `npm test` — 171/171 before and after, unchanged.
+- A 63-call wire probe over every touched path (both dark-break refusals, every warning,
+  every stamp, the player's JSON, every list and view in two scenarios): byte-identical
+  responses once timestamps are normalized.
+- Differential checks running the pre-refactor function beside the new one over generated
+  payloads: `versionChanges` 612/612, `normalizeSetup` 172/172 (refusals and warnings
+  included), `normalizeKey` 147/147 (seam refusals included), `updateSetup` 115/115
+  (matching the stored object after each patch, not just the answer).
+- `npm run ui:snapshot diff` — 86/86 captures identical (one `data-quiet-at` epoch stamp
+  the normalizer does not strip; the normalizer is worth extending).
+
+### What was deliberately left alone
+
+`web/js/` entirely — it had concurrent edits from another session and its only net is the
+screen capture. `mock/world.js` (385 lines) is seeded fixture data, and flattening data
+buys nothing. `resetWorld`, `liveConfig` and `normalizeRungs` sit at 4–5 levels because
+their nesting follows the model's own shape (placement → slot → pod → rung); breaking them
+up would scatter one readable walk across four functions. Nothing in `api/` is deeper than
+5 now, and nothing outside `mock/` is deeper than 6.
+
+---
+
+## WEB-REFACTOR — the words said once, and a flaky net made honest (14 Sep 2026)
+
+The second half of the same pass, over `web/`. Same rule: no screen moves. Proved by the
+capture (`ui:snapshot diff`, 86 captures identical), the 171 HTTP cases, and — for the one
+path the capture never reaches — a browser driven by hand.
+
+### What moved
+
+| Was | Is | Why |
+| --- | --- | --- |
+| the meta-fallback for header-bidding answers, spelled in **5** controls | `hbAnswers()` / `hbPartners()` in `util.js` | one question, five wordings; `meta` and `KL_META` are the same cached object, so all five were already equal |
+| `JSON.parse(JSON.stringify(…))` **33** times across 9 files | `deepCopy()` | an operation with a name reads better than a round-trip idiom |
+| `document.getElementById('dialog-root')` in **24** places, 12 of them spelling "close" by hand | `dialogRoot()` / `closeDialog()` / `wireDialogExit()` | the element is now named once; Cancel and the veil are wired once |
+| `viewSetupForm`'s loader, 112 lines / 7 deep | `suFormSections` → `suFormSlot` → `suFormOwnUnits` | the reshape of a saved setup into what the form holds is its own job |
+| `askForm`'s catch, 6 deep | `paintDialogRefusal` / `paintFieldRefusal` | "a refusal stays in the dialog" is a rule worth a name |
+| `HB_SLOT_ANSWERS`, `suSrcParked` | gone | defined, never referenced — `suWfOwnUnits` is what counts kept units now |
+| `suHeaderBiddingZoneHtml(meta)`, `suWfMirrorHtml(t)` | parameters dropped | unused; the first became unused in this pass, the second already was |
+
+### A flaky safety net, found and fixed
+
+Two screens differed between runs — the setup chooser and the copy it opens. Neither was
+caused by this work: **two captures of identical code differ the same way**, which is how it
+was proved. The cause is in the fixture. `as_8`…`as_10` carry no backdated stamp, so all
+three were written in the same instant, the chooser's newest-first sort had a three-way tie,
+and its order came down to which millisecond each object happened to be built in.
+
+They are now stamped seconds apart in id order — the order a tie already produced, now
+guaranteed — with `updatedBy` left as created, so nothing on screen changes. Back-to-back
+captures now agree. `ARCHITECTURE.md` §7 already promised a deterministic mock; this is the
+corner where it was not true.
+
+Separately, `ui-snapshot.mjs`'s normalizer stripped ISO timestamps but not epoch ones, so
+`data-quiet-at` reported a false difference on **every** pair of runs. It now strips those
+too. Both of these make the net trustworthy, which is the only reason the rest of this
+chapter can claim anything.
+
+### The judgment calls
+
+**Markup left alone.** The three dialogs still repeat their shell — a veil, a card, a title,
+a body, a foot. Unifying the *markup* would have moved whitespace between tags, which is a
+real DOM change the capture would flag, for a cosmetic gain. So the **behaviour** was shared
+(the root, the close, the way out) and every byte of markup was left where it was. The
+remaining repeat is deliberate.
+
+**Testing what the capture cannot see.** `askForm`'s refusal path — the field wearing its
+own reason while the dialog stands — is on no captured screen. Rewriting it and leaning on a
+green diff would have proved nothing, so it was driven in a browser: an empty name paints on
+`name`, a bad URL repaints on `url` and clears the first, and a good write closes. A
+`FORM.rerender()` error seen while doing that was the harness calling `tplNew()` from a
+screen where `FORM` is null; `tplRefresh` is byte-identical to HEAD.
+
+### What was deliberately left alone
+
+`web/css/` — 11 files whose load order *is* the cascade, where the safe change is the one a
+designer asks for. The remaining depth-5 functions (`viewKeyForm`, `suSlotToAll`,
+`setupSeedSections`) follow the model's own placement → slot → pod shape, as on the API
+side. And 515 top-level globals stay globals: modules and a bundler are the production call
+`ARCHITECTURE.md` §11 already names, not something to slip into a refactor.
+
+---
+
+## COHORT-SHORTLIST — which player settings a bulk change may answer (14 Sep 2026)
+
+*"Now let's see how to accommodate the bulk change in player config across multiple
+integrations — can we define which fields are relevant for the bulk changes that the team may
+want to do across integrations and only give those options upfront."*
+
+### What was actually there
+
+The curation already existed; it was just the wrong shortlist, and nobody could see it was
+wrong. The **Default player behaviour** sheet offered **six** fields. The seam accepted
+**twenty-seven**. The six were not chosen for a cohort at all — they were the six a custom
+config was allowed to carry under the 11 Sep fork rule, and that rule was reversed two days
+later (`CONFIG_FORKABLE = PLAYER_FIELDS`, 13 Sep) while the cap stayed behind. So the
+**Custom player behaviour** sheet — which edits one surface at a time and has no cohort
+argument to make — could not show a fork the logo that fork was entitled to carry, and
+`pcFields()` still carried a comment promising it read the same list as the seam.
+
+### The two questions, asked in order
+
+A field's tier is decided by two questions and nothing else:
+
+1. **Would a team ever answer this the same way for many surfaces?** No → it is a value ONE
+   surface owns, and a blanket write is not a blunt instrument but a wrong one.
+2. **Would a wrong blanket answer SHOW ITSELF?** Yes → the front row. No — silent until a
+   month-end report — → behind the counted door, where the spread is named loudest.
+
+Question 2 does the real work, and it was already this panel's rule: `store/state.js` calls
+measurement *"the one group where a wrong answer is otherwise invisible"*. So the three
+vendor ids and the two timings sit behind the door — **not** because stamping a Nielsen id
+across an estate is rare (it is one of the most common reasons to reach for a cohort act at
+all) but because a mistake there costs a month before anyone sees it, while a wrong brand
+colour is on screen at the next page load.
+
+### The three tiers
+
+| Tier | Rows | Why |
+|---|---|---|
+| **Front row** (7 rows, 9 fields) | Autoplay · Passive volume · Starts muted · End screen · Controls · Appearance (brand, text, logo — one row on its preview stage) · Events reported | The occasions a player-ops room actually has: a brand refresh, a sound policy, a controls lockdown, a reporting level. Every one is visible at the next page load. |
+| **Behind the door** (14 rows, 16 fields) | Playback mode · Loop · Expand MiniTV for ads · Remembers · Dock position · Pause below visibility · Hidden controls · Speeds · Hide controls after · A view counts after · Heartbeat every · comScore id · Nielsen id · Google Analytics id | Still a cohort's to answer, one counted click away. The measurement group carries a line saying what it costs to get wrong. |
+| **Never offered** (4 fields) | Player type · Redirect URL · Quality · Fallback media | A value one surface owns. Refused **by name** at the seam, and drawn greyed **in place** on the sheet with its one-line reason. |
+
+`playback` and `loop` were on the old six and moved behind the door: where a player sits is a
+per-surface fact more often than an estate policy, so they keep the capability and lose the
+front row. Three of the four refusals (`playbackMode`, `quality`, `fallbackMediaId`) were on
+the seam's allowed list since 25 Aug and are removed from it; `redirectUrl` never was.
+`playbackMode` is the sharpest: one type for the whole cohort strands each surface's own
+redirect, which `normalizePlayer` then blanks.
+
+### The judgment calls
+
+**Curation belongs to the cohort act, not to the field.** The master-detail sheet now offers
+**every** field, because you are looking at one surface at a time — capping it cost
+capability for no safety at all. Two sheets, two answers, one catalogue.
+
+**A shortlist the server and the screen spell differently is the drift this record is about.**
+So the four refusals travel on `/panel/meta` with the UI sentence the greyed row prints, and
+the sheet reads that list rather than repeating it. The literal in `views-keys-editor-player.js`
+is a fallback for a panel drawn before meta landed, nothing more.
+
+**Refused in place, not hidden.** The four rows keep their seats at the bottom of the fold so
+*"why can't I set the fallback video for all of them?"* is answered where it is asked.
+
+**One control renderer, three receivers.** `shCtl` became `cfgCtlHtml(r, def, eff, na, h)`,
+where `h` is the receiver — one verb per way a control can be written to, each returning the
+inline-handler string. The page's own sheet passes `SH_H` and did not move a byte; the cohort
+sheet and the master-detail sheet pass their own. That is what lets both bulk sheets draw
+colours, chips, timings and text at all, having only ever drawn segments before.
+
+**Opening a row never queues one.** A segment can draw "nothing chosen"; a number, a timing
+and a colour cannot, so those are seeded — from what the cohort already holds **when it
+agrees**, and from the field's own default when it does not. A seed is counted, never a
+suggestion, and nothing is queued until somebody moves it.
+
+**The kicker was lying.** *"Custom configs keep their own values"* stopped being true when
+forks went sparse: a config stores only what it dissented on and resolves the rest from the
+default live (`publish.js`), so a blanket write **does** move every fork that never spoke
+about that field. It now says *"custom configs follow unless they overrode it"*.
+
+**The height floor stayed off.** The 7 Sep call removed this sheet's `.steady` frame on
+purpose — 860×481 for 260px of content. It is taller now and still content-height.
+
+### Superseded the same day — ONE SHEET, FIVE ROWS
+
+*"Let's drop Change default player behaviour, Custom player behaviour, and have a Player
+behaviour which will have options to control a few fields that are Autoplay, Passive Volume,
+Playback Mode, Loop, Expand MiniTV for ads."*
+
+The sort above is right about **which** fields a cohort may answer and wrong about how much
+of it to put on screen. A cohort act is for the handful of things a team genuinely decides
+for a whole estate at once; everything else belongs to the surface that owns it, and the
+integration page already draws the entire catalogue — default and custom configs alike, with
+a working copy, Cancel and Done. So:
+
+- **The bulk bar has two acts, not three**: `Ad behaviour` and `Player behaviour`.
+- **`BULK_ROWS` is five**: Autoplay · Passive volume · Playback mode · Loop · Expand MiniTV
+  for ads. Flat, no fold — they are all Playback facts, and one list of five is not three
+  groups of two, so the sheet carries no section headings either.
+- **The master-detail sheet is deleted.** Walking every custom config of every selected
+  surface from a cohort bar was capability nobody asked for, standing where the one simple
+  act should have been. With it went its rail, its per-config folds, its 529px frame and
+  ~110 lines of CSS.
+- **The counted door, the tier split and the greyed refusal rows go with it.** Greying
+  twenty-four rows a five-row sheet was never going to offer would be noise, not honesty.
+
+**What the morning's cut leaves behind, and should:** the seam. `BULK_PLAYER_FIELDS` still
+accepts the whole player behaviour card and `BULK_NEVER_FIELDS` still refuses the four a
+single surface owns **by name**, travelling on `/panel/meta`, pinned by the test that says
+every player field is either a cohort act or one surface's own. The seam being wider than
+the sheet is the deliberate trade the 11 Sep volume note recorded: a sixth row is a line of
+code rather than a release, and a wrong blanket write is refused whatever draws it.
+
+`cfgCtlHtml(r, def, eff, na, h)` also survives its first sheet, which is the point of it: the
+one control renderer now serves the page's sheet and this one, and a peer session's
+`hiddenControls` → `Player controls` rework rode the same `h.chip` verb into both without
+touching either.
+
+### Third cut the same day — one screen, two contents
+
+*"Can we have them the same way as the change ad behaviour pending changes on the right side
+section; the pending changes can be renamed to something clear and communicative … also don't
+show the values as set up … that are not needed."*
+
+The two cohort acts now share an anatomy and a component: levers left, **CHANGES TO APPLY**
+right (`changesCardHtml` in `controls.js`, one card, two callers), the same row grammar and
+the same 860 frame. The rename is the user's pick from three.
+
+**A row at rest prints a value only when the cohort has one.** "as set up" is the absence of
+an answer, not an answer — four rows of it down one column is a phrase repeating "nothing
+here", and it drowned the one row (`Special · on`) that was saying something. A mixed spread
+still names it, because there some surfaces have dissented and some have not; and the queue
+card still shows it as the from-side of a change, where it answers *what is this replacing*.
+
+**A queued row stops saying it twice.** Its from → to lives on the card; the row's own
+"was …" tail repeated it in a second vocabulary a hand's width away. An unset open row keeps
+today's value, because nothing on the card has taken it over yet.
