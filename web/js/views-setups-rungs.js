@@ -4,7 +4,8 @@
 // `suRungPanelHtml` the settings that edit those facts — the last two swapped by the
 // block's own `open` class, which FOCUS sets (`suUnitOpen`). Also here: the rung writers
 // (add / toggle / remove / a unit fact), the tag search that fills a rung, and
-// `suLadderHtml` (the primary's rule and block, then the waterfall's).
+// `suLadderHtml` (one flat list of blocks) and `suBreakLadderHtml` (a break: its PRIMARY
+// section, then its WATERFALL section with the source controls on that section's own rule).
 //
 // Rungs are addressed by slot key and index; the slot key may be a break ('preroll'),
 // a break's direct tier ('preroll@direct') or the waterfall ('shared') — see
@@ -209,11 +210,26 @@ function suRemoveRung(t, n) {
   FORM.rerender();
 }
 
-// ---------- a banner's own facts, on its rung (31 Aug, AD-JSON-SCOPE) ----------
-// Type-based, never value-based: a display rung in a BREAK always carries them, a video
-// rung never does — nothing appears or vanishes as values change. In a rotation the
-// timings live in Delivery settings (drawn once, not five times), so its rungs keep
-// only the page position.
+// ---------- a unit's own facts, on its rung (31 Aug, AD-JSON-SCOPE; folded 11 Sep) ----------
+// Type-based first: a display rung in a BREAK carries the banner clocks, a video rung
+// never does, and in a rotation the timings live in Delivery settings (drawn once, not
+// five times), so its rungs keep only the page position. Then ONE value-based fold (11
+// Sep, user call): Content pause is the PARENT of the facts that only exist while the
+// content keeps playing under the ad — where it sits (Ad placement), whose sound is
+// quiet (Mute) and when the viewer may close it (Close button). While content pauses
+// (Yes) they are not shown — not dimmed — in the fact line and the settings alike; No
+// and Auto (the player may not pause) keep them live. Their answers are kept underneath
+// and return the moment the answer flips back, the way a unit's own pause answer sits
+// under the waterfall's one answer. A dim row with a reason is for a pick the platform
+// would REFUSE; a fact with no meaning right now is clutter.
+
+// THE PAUSE ANSWER A UNIT ACTUALLY RUNS: the waterfall's one answer while its switch is
+// on, else the unit's own, else its type's default. Both tiers read through this, so
+// the glance and the editor can never fold differently.
+function suRungPause(t, r, isDisplay) {
+  const gov = t === 'shared' ? suWf().pauseAll : null;
+  return gov || r.pause || (isDisplay ? 'no' : 'yes');
+}
 
 function suRungFact(t, n, f, v) {
   suSlot(t).rungs[n][f] = v;
@@ -375,66 +391,127 @@ document.addEventListener('focusin', e => {
   if (u) suUnitOpen(u.dataset.uk);
 });
 
+// ---------- header bidding, per unit (11 Sep, user call) ----------
+// The break row's own grammar, one tier down: `Auto` borrows the BREAK's served answer
+// (named beside it, so nobody scrolls up to learn it), `Off` refuses bidders, `Custom`
+// is this unit's own with the partners under it. A pasted URL makes no GAM request for
+// bidders to decorate, so on a CAN unit the row greys where it sits with that reason.
+function suRungHbWhy(tag) {
+  return tag && (KL_META.urlProviders || ['can']).includes(tag.provider)
+    ? 'A pasted URL — header bidding decorates a GAM request, so there are no bidders to ask' : '';
+}
+// What the unit borrows while it says Auto: its break's served answer. The global
+// waterfall's units run in whichever break follows it, so there is no one answer to name.
+function suRungHbBorrowed(t) { return t === 'shared' ? null : suHbServed(baseSlot(t)); }
+// The answer the unit actually runs, in words — mirrors servedUnitHeaderBidding server-side.
+function suRungHbServedWord(t, r, tag) {
+  if (suRungHbWhy(tag)) return label('headerBidding', 'off');
+  const a = r.headerBidding || 'auto';
+  if (a !== 'auto') return `${label('headerBidding', a)} · custom`;
+  const b = suRungHbBorrowed(t);
+  return b ? label('headerBidding', b) : 'each break’s own';
+}
+function suRungHbRowHtml(t, n, r, tag, row) {
+  if (!tag) return '';
+  const why = suRungHbWhy(tag);
+  const cur = r.headerBidding || 'auto';
+  const mode = cur === 'auto' ? 'auto' : cur === 'off' ? 'off' : 'custom';
+  const partners = ((KL_META.headerBidding && KL_META.headerBidding.length) ? KL_META.headerBidding : HB_ANSWERS).filter(x => x !== 'off');
+  const borrowed = suRungHbBorrowed(t);
+  // Choosing Custom starts from what the unit runs today, so "make it mine" is one click.
+  const start = partners.includes(borrowed) ? borrowed : partners[0];
+  const set = v => `suRungFact('${t}', ${n}, 'headerBidding', '${v}')`;
+  const modeSeg = accSeg(mode, ['auto', 'off', 'custom'], ['Auto', 'Off', 'Custom'], m => set(m === 'custom' ? start : m), why);
+  const note = mode === 'auto' && !why ? `<span class="sg-off">${esc(borrowed ? label('headerBidding', borrowed) : 'each break’s own')}</span>` : '';
+  const partnerSeg = mode === 'custom' && !why
+    ? accSeg(cur, partners, partners.map(x => label('headerBidding', x)), x => set(x)) : '';
+  return row('Header bidding', `<div class="hb-ctl"><div class="hb-l1">${modeSeg}${note}</div>${partnerSeg}</div>`, why, !!why);
+}
+
 function suRungPanelHtml(t, n, r) {
   if (!r.tagId) return '';
   const isDisplay = window.TAG_TYPE[r.tagId] === 'display';
   const rot = isRotation(baseSlot(t));
   const tv = f => QF_TEXT[`${suQFKey(t, f)}:r${n}`] ?? (r[f] ?? '');
-  const clock = (f, ph, off) => `<div class="num-wrap sm${off ? ' off' : ''}"><input value="${esc(tv(f))}" placeholder="${ph}" inputmode="numeric"${off ? ' disabled' : ''}
+  const clock = (f, ph) => `<div class="num-wrap sm"><input value="${esc(tv(f))}" placeholder="${ph}" inputmode="numeric"
       oninput="suRungFactNum(this, '${t}', ${n}, '${f}')"><span class="unit">sec</span></div>`;
-  const row = (lbl, ctl, why, off) => `
-      <div class="up-r${off ? ' off' : ''}"${why ? ` title="${esc(why)}"` : ''}>
+  // `sub` is a child of Content pause: indented under it, controls on the parent's x.
+  const row = (lbl, ctl, why, off, sub) => `
+      <div class="up-r${off ? ' off' : ''}${sub ? ' sub' : ''}"${why ? ` title="${esc(why)}"` : ''}>
         <span class="up-l">${esc(lbl)}</span>
         <span class="up-c">${ctl}</span>
       </div>`;
   const slots = (KL_META.displaySlots || []).map(v => ({ v, label: label('displaySlot', v) }));
-  const paused = (r.pause || (isDisplay ? 'no' : 'yes')) === 'yes';
   const tag = SU_TAGS.find(x => x.id === r.tagId);
   const provTpls = tag ? SU_TPLS.filter(x => x.provider === tag.provider && inScope(x.property)) : [];
+  const placement = row('Ad placement',
+    selectHtml(r.displaySlot || (KL_META.displaySlots || [])[0], slots, v => { suRungFact(t, n, 'displaySlot', v); }), '', false, !rot);
+  const template = tag ? row('Ad unit template',
+    // A switched-off template stays pickable — the pick is legal, just inert — and
+    // wears the fact as a micro-suffix where the decision is made.
+    selectHtml(tag.tplId || '', [{ v: '', label: 'Standard' }, ...provTpls.map(x => ({ v: x.id, label: x.on === false ? `${x.name} · off` : x.name }))],
+      v => { suRungTplSet(t, n, v); }),
+    (tag.usedBy || 1) > 1 ? `A tag fact — changes ${tag.usedBy} setups` : '') : '';
+  const bidding = suRungHbRowHtml(t, n, r, tag, row);
+  // A rotation has no pause question — an idle player has no content playing — so its
+  // facts simply stand on the same sides as a break unit's.
+  if (rot) return `<div class="ad-unit-panel"><div class="up-col">${template}${bidding}</div><div class="up-col">${placement}</div></div>`;
   // ONE PAUSE ANSWER FOR THE WHOLE WATERFALL (5 Sep): while the waterfall's own
   // switch is on, every unit's Content pause dims in place wearing the one answer — the
   // unit's own answer is kept underneath and returns the moment the switch goes off.
   const govPause = t === 'shared' ? suWf().pauseAll : null;
+  const pause = suRungPause(t, r, isDisplay);
+  const modes = KL_META.pauseModes || ['yes', 'no', 'size'];
+  const mutes = KL_META.muteModes || ['ad', 'content'];
+  // TWO COLUMNS BY MEANING (11 Sep). LEFT: when it asks, what it requests through and (a
+  // banner) when it leaves — true whatever the pause answer, so the column that anchors
+  // the block never moves. RIGHT: how the ad meets the content — Content pause, then the
+  // three that exist only while the content keeps playing, indented under it (the user's
+  // call the same day: the question that grows and shrinks sits on the right).
+  const over = pause === 'yes' ? '' : `
+        ${placement}
+        ${row('Mute', accSeg(r.mute || 'ad', mutes, mutes.map(x => label('mute', x)),
+          o => `suRungFact('${t}', ${n}, 'mute', '${o}')`), '', false, true)}
+        ${isDisplay ? row('Close button', clock('closeAfterSec', ''), '', false, true) : ''}`;
   return `
     <div class="ad-unit-panel">
-      ${rot ? '' : row('Content pause', govPause
-        ? `<span class="sg-off">${esc(label('pause', govPause))} — one answer for the whole waterfall</span>`
-        : accSeg(r.pause || (isDisplay ? 'no' : 'yes'), KL_META.pauseModes || ['yes', 'no', 'size'],
-        (KL_META.pauseModes || ['yes', 'no', 'size']).map(x => label('pause', x)),
-        o => `suRungFact('${t}', ${n}, 'pause', '${o}')`),
-        govPause ? 'Set once for the whole waterfall' : '', !!govPause)}
-      ${rot ? '' : row('Request delay', clock('showAfterSec', 'now'))}
-      ${row('Ad placement',
-        selectHtml(r.displaySlot || (KL_META.displaySlots || [])[0], slots, v => { suRungFact(t, n, 'displaySlot', v); }))}
-      ${tag ? row('Ad unit template',
-        // A switched-off template stays pickable — the pick is legal, just inert — and
-        // wears the fact as a micro-suffix where the decision is made.
-        selectHtml(tag.tplId || '', [{ v: '', label: 'Standard' }, ...provTpls.map(x => ({ v: x.id, label: x.on === false ? `${x.name} · off` : x.name }))],
-          v => { suRungTplSet(t, n, v); }),
-        (tag.usedBy || 1) > 1 ? `A tag fact — changes ${tag.usedBy} setups` : '') : ''}
-      ${isDisplay && !rot ? `
-        ${row('Close button', clock('closeAfterSec', '', paused), paused
-          ? 'Content pauses — no close button' : '', paused)}
-        ${row('Auto-hide', clock('hideAfterSec', ''))}` : ''}
+      <div class="up-col">
+        ${row('Request delay', clock('showAfterSec', 'now'))}
+        ${template}
+        ${bidding}
+        ${isDisplay ? row('Auto-hide', clock('hideAfterSec', '')) : ''}
+      </div>
+      <div class="up-col">
+        ${row('Content pause', govPause
+          ? `<span class="sg-off">${esc(label('pause', govPause))} — one answer for the whole waterfall</span>`
+          : accSeg(pause, modes, modes.map(x => label('pause', x)), o => `suRungFact('${t}', ${n}, 'pause', '${o}')`),
+          govPause ? 'Set once for the whole waterfall' : '', !!govPause)}${over}
+      </div>
     </div>`;
 }
 
 // THE UNIT'S FACTS RIDE UPFRONT (4 Sep, user call — Ui/UX_Changes branch). An ad unit
-// is TWO rows now: the unit itself, then its values as a quiet fact line — every fact
-// of the unit's TYPE, fixed order, defaults included, so reading a ladder never needs
-// a fold opened per unit. The grammar is the panel's own: micro-labels, values in ink,
-// nothing appears or vanishes as values change — a fact that cannot apply right now
-// (Skip while content pauses) dims in place with the reason on hover. The line is the
-// summary, the gear panel stays the EDITOR: clicking either opens it, and while it is
-// open the line hides — the panel IS this row, expanded. Words are the panel's exactly
-// (label('pause'), label('displaySlot'), the template's name), so the glance and the
-// editor can never disagree.
+// is TWO rows now: the unit itself, then its values as a quiet fact line. The grammar is
+// the panel's own: micro-labels, values in ink. The line is the GLANCE, the settings
+// panel stays the EDITOR: clicking either opens it, and while it is open the line hides
+// — the panel IS this row, expanded. Words are the panel's exactly (label('pause'),
+// label('displaySlot'), label('mute'), the template's name), so the two never disagree.
+// A FIXED GLANCE OF FOUR, THE REST FOLDED (11 Sep, user call — "3-4 keys in read-only,
+// the rest on click, a see-more cue"): the line carries Content pause, Ad unit template,
+// and while content plays Ad placement and Mute — the facts that say how the ad meets
+// the viewer — and folds everything else (Request delay, Header bidding, Close button,
+// Auto-hide) behind one counted cue, `+N more`, that wears their exact values on hover.
+// Header bidding joined the fold the same day the glance was fixed at four: a fifth
+// fact on every row would have undone that call. The facts every unit always
+// has come first, so each lands on one x down the whole ladder whatever its neighbours
+// answer; the over-content pair rides as a tail that exists only while the content
+// keeps playing — a Yes row is simply shorter, with no hole where a fact would have
+// been. The fold's own order is by meaning; the line's is by stability.
 function suRungFactsHtml(t, n, r) {
   if (!r.tagId) return '';
   const isDisplay = window.TAG_TYPE[r.tagId] === 'display';
   const rot = isRotation(baseSlot(t));
   const tag = SU_TAGS.find(x => x.id === r.tagId);
-  const paused = (r.pause || (isDisplay ? 'no' : 'yes')) === 'yes';
   // FULL LABELS, STRONG VALUES (4 Sep, user review — "complete context"): the pairs
   // wear the editor's whole words, not compressed stubs, and the value carries the ink.
   // The fact NAMES ITS COLUMN (`data-f`), so the same fact lands on the same x down the
@@ -443,37 +520,46 @@ function suRungFactsHtml(t, n, r) {
   const pair = (f, lbl, val, dim, why, dflt) =>
     `<span class="uf${dim ? ' na' : ''}${dflt ? ' dflt' : ''}" data-f="${f}"${why ? ` title="${esc(why)}"` : ''}><i>${esc(lbl)}</i><b>${esc(val)}</b></span>`;
   const secs = v => (v === undefined || v === null || v === '' ? null : `${v}s`);
+  const slot0 = (KL_META.displaySlots || [])[0];
+  const placement = () => pair('slot', 'Ad placement', label('displaySlot', r.displaySlot || slot0), false, '',
+    !r.displaySlot || r.displaySlot === slot0);
+  const template = () => {
+    const tpl = tag.tplId ? SU_TPLS.find(x => x.id === tag.tplId) : null;
+    return pair('tpl', 'Ad unit template', tpl ? (tpl.on === false ? `${tpl.name} · off` : tpl.name) : 'Standard', false, '', !tpl);
+  };
   const facts = [];
-  const govPause = t === 'shared' ? suWf().pauseAll : null;
-  if (!rot) {
+  const folded = [];
+  let more = '';
+  if (rot) {
+    if (tag) facts.push(template());
+    facts.push(placement());
+    if (tag && !suRungHbWhy(tag)) folded.push(['Header bidding', suRungHbServedWord(t, r, tag)]);
+  } else {
+    const govPause = t === 'shared' ? suWf().pauseAll : null;
+    const pause = suRungPause(t, r, isDisplay);
     const pauseDflt = isDisplay ? 'no' : 'yes';
     facts.push(govPause
       ? pair('pause', 'Content pause', label('pause', govPause), true, 'Set once for the whole waterfall')
-      : pair('pause', 'Content pause', label('pause', r.pause || pauseDflt), false, '', !r.pause || r.pause === pauseDflt));
-    facts.push(pair('delay', 'Request delay', secs(r.showAfterSec) ?? 'now', false, '', r.showAfterSec == null));
+      : pair('pause', 'Content pause', label('pause', pause), false, '', !r.pause || r.pause === pauseDflt));
+    if (tag) facts.push(template());
+    // The tail: only while the content keeps playing under the ad (No, or Auto — the
+    // player may not pause). ONE WORD PER CONCEPT (7 Sep, UAT P2): the settings call
+    // this Ad placement for both kinds, so the closed line does too.
+    if (pause !== 'yes') {
+      facts.push(placement());
+      facts.push(pair('mute', 'Mute', label('mute', r.mute || 'ad'), false, '', !r.mute || r.mute === 'ad'));
+    }
+    // The rest, folded: counted in the cue, exact on hover, in the fold's own order —
+    // the request's clock, who bids for it, and (a banner) how it leaves.
+    folded.push(['Request delay', secs(r.showAfterSec) ?? 'now']);
+    if (tag && !suRungHbWhy(tag)) folded.push(['Header bidding', suRungHbServedWord(t, r, tag)]);
+    if (isDisplay && pause !== 'yes') folded.push(['Close button', secs(r.closeAfterSec) ?? '—']);
+    if (isDisplay) folded.push(['Auto-hide', secs(r.hideAfterSec) ?? '—']);
   }
-  // ONE WORD PER CONCEPT (7 Sep, UAT P2): the gear panel calls this Ad placement for
-  // both kinds, so the closed line does too — glance and editor can never disagree.
-  facts.push(pair('slot', 'Ad placement',
-    label('displaySlot', r.displaySlot || (KL_META.displaySlots || [])[0]), false, '',
-    !r.displaySlot || r.displaySlot === (KL_META.displaySlots || [])[0]));
-  if (tag) {
-    const tpl = tag.tplId ? SU_TPLS.find(x => x.id === tag.tplId) : null;
-    facts.push(pair('tpl', 'Ad unit template', tpl ? (tpl.on === false ? `${tpl.name} · off` : tpl.name) : 'Standard', false, '', !tpl));
-  }
-  // THE BANNER-ONLY PAIR RIDES LAST (7 Sep, user call — "does not feel cluttered"): the
-  // four facts EVERY unit has fill the first four columns on every row, so a video row
-  // and a banner row line up all the way across and the banner simply carries two more.
-  // Ordered the same way in the settings below, so glance and editor never disagree.
-  if (isDisplay && !rot) {
-    facts.push(paused
-      ? pair('close', 'Close button', '—', true, 'Content pauses — no close button')
-      : pair('close', 'Close button', secs(r.closeAfterSec) ?? '—', false, '', r.closeAfterSec == null));
-    facts.push(pair('hide', 'Auto-hide', secs(r.hideAfterSec) ?? '—', false, '', r.hideAfterSec == null));
-  }
+  if (folded.length) more = `<span class="uf-more" title="${esc(folded.map(([l, v]) => `${l} ${v}`).join(' · '))}">+${folded.length} more</span>`;
   return `
     <div class="ad-unit-facts" onclick="suToggleRungSettings('${t}', ${n})">
-      ${facts.join('')}
+      ${facts.join('')}${more}
     </div>`;
 }
 
@@ -494,7 +580,7 @@ function suRungSearchHtml(t, n) {
       const rung = { type: 'tag', tagId: tag.id, on: cur?.on !== false };
       // A unit starts with its facts stated (31 Aug) — the same defaults the server
       // would fill, so what you see is what saves.
-      if (!isRotation(baseSlot(t))) rung.pause = tag.type === 'display' ? 'no' : 'yes';
+      if (!isRotation(baseSlot(t))) { rung.pause = tag.type === 'display' ? 'no' : 'yes'; rung.mute = 'ad'; }
       if (tag.type === 'display') {
         rung.displaySlot = (KL_META.displaySlots || ['player_bottom'])[0];
         if (!isRotation(baseSlot(t))) Object.assign(rung, { showAfterSec: 1, closeAfterSec: 5, hideAfterSec: 10 });
@@ -518,56 +604,94 @@ function suRungSearchHtml(t, n) {
 // a fall: its banners take turns, so they stay one flat list.
 function suLadderHtml(t, ctx) {
   const slot = suSlot(t);
-  // NOTHING IN IT, SAID ONCE (8 Sep, with the source band): a ladder break's empty state
-  // is the band's `No ads yet` — counted, consequenced, with both roads beside it — so
-  // the bare words `No tags` under it were a second, weaker answer to the same question.
-  // A rotation has no band (it has no waterfall to follow), so it keeps a sentence.
-  if (!slot.rungs.length) {
-    if (isRotation(t)) return '<div class="ladder-empty">No banner tags yet</div>';
-    // No primary yet, but the fall may still be somebody else's and worth drawing —
-    // a break with no first ask of its own can still take its whole walk from the
-    // global waterfall, and its shared settings belong on it.
-    return ctx.fallHtml || '';
-  }
+  // A FLAT LADDER: the out-stream's rotation, a break's special deal, and the global
+  // waterfall itself — one list of blocks, no sections. A ladder BREAK is two sections and
+  // is drawn by `suBreakLadderHtml` below.
+  if (!slot.rungs.length) return isRotation(t) ? '<div class="ladder-empty">No banner tags yet</div>' : '';
   const rows = slot.rungs.map((r, n) => suUnitHtml(t, n, r, ctx));
-  // A flat ladder has no first ask — a rotation's banners take turns, and the shared
-  // waterfall (7 Sep, user call) is a waterfall through and through: no primary row.
-  // A rotation names its rows ("Banner 3"), so its ladder keeps the wide position
-  // column; every other ladder here numbers them and rides narrow.
-  if (isRotation(t) || ctx.flat) return `<div class="rung-list${isRotation(t) ? ' rot' : ''}">${rows.join('')}</div>`;
-  // THE FALL IS NOT ALWAYS THE BREAK'S (8 Sep, user call — *"when switched to global why
-  // is primary ad unit being removed, it should stay"*). `ctx.fallHtml` lets the caller
-  // put something else where the fall goes — the global waterfall's shared settings, or
-  // nothing — while the PRIMARY block above it is drawn exactly as it always is. Absent,
-  // the break owns its fall and draws its own rows.
-  const fall = ctx.fallHtml == null ? rows.slice(1) : [];
-  // COUNTED OVER THE REAL RUNGS, BOTH SIDES (8 Sep, user call): the units that would be
-  // asked, of the units that are actually there. An empty row waiting to be filled used
-  // to inflate the total, so a ladder could read "7 of 8 active" with nothing off.
-  const fallRungs = slot.rungs.slice(1).filter(r => r.tagId);
-  const liveFall = fallRungs.filter(r => r.on !== false).length;
-  // THE TWO KINDS OF ROW ARE NAMED ONCE (7 Sep, user call — the unit had to move left
-  // and the word "Primary" was the 46px column holding it out there). The fall has
-  // always been named by a rule above it rather than nine times over; the primary now
-  // is too, in that rule's exact grammar. Same distinction, said once, and every unit
-  // in the ladder starts on the same x with its handle beside it.
+  return `<div class="rung-list${isRotation(t) ? ' rot' : ''}">${rows.join('')}</div>`;
+}
+
+// ---------- A BREAK IS TWO NAMED SECTIONS (11 Sep, user call) ----------
+// *"In a newly created placement, in every slot, primary should always show it is on top of
+// waterfall — currently it only shows if the waterfall switch is enabled. Also the waterfall
+// switch is non symmetrical and not aligned with other switches, plus it is not cleanly
+// discoverable — too much cognition."* And: *"there is no clear demarcation of primary and
+// the waterfall section, it is not getting communicated correctly."*
+//
+// WHAT WAS WRONG. The zone drew whatever happened to exist: an empty break showed a bare
+// switch and an `+ Add ad unit` button, so the anatomy every break has — ONE first ask, then
+// a fall — was invisible until you had already built it, and it was learned by accident
+// rather than read. A filled break showed three floating rows between its blocks (the
+// `Primary` rule, the source switch at its own x, then `WATERFALL ORDER · N active`), which
+// is two headers for one section and a control aligned to nothing.
+//
+// WHAT IT IS NOW. Two sections, always both, in the order they are asked:
+//
+//   PRIMARY ───────────────────────────────────────      ← always drawn, even when empty
+//   ⠿  ⬤  [IMA] TOI Mweb VideoShow Post-roll
+//   WATERFALL ─────────────────────────────────────
+//   [ Off │ Custom │ Global ]  2 of 2 active       ← one control, three answers, one confirm
+//   ⠿ 1 ⬤  [CAN] TOI Video Backfill
+//   ⠿ 2 ⬤  [IMA] TOI Desktop VideoShow Mid-roll
+//          + Add waterfall tag
+//
+// The waterfall's control row holds ONE seg with the section's three answers (11 Sep, fourth
+// cut — the switch and its far-right CTA were one question split across a thousand pixels;
+// see the block above `suSrcPick`). It stands on the section's own left edge, the same x its
+// header and its blocks start on, so the whole section reads down one line. The primary needs
+// no such row at all: its first ask always serves.
+function suBreakLadderHtml(t, ctx, meta) {
+  const slot = suSlot(t);
+  const rungs = slot.rungs || [];
+  const src = suSrcState(t);
+  const atMax = chainCount(rungs) >= meta.maxRungs;
+
+  // THE HEADER IS A HEADER, AND THE CONTROLS ARE A ROW (11 Sep, user call — *"the primary
+  // and waterfall header are not communicating as a header"*). They shared one line for an
+  // hour: the word then the switch, which made the word a LABEL FOR THE SWITCH rather than
+  // a heading for the section, and pushed it 90px off the left edge of everything it heads.
+  // It also left it at 9.5px faint — smaller and paler than the `AD SOURCES` gutter label
+  // beside it, which is the exact fault the head sections fixed on 4 Sep (*"the 10px eyebrow
+  // sat visually below the + Add template button"* → `.pl-head`, a step up in size and ink).
+  // So: the header stands alone on the section's own left edge, in the head sections' own
+  // type one notch down; the controls take the row under it, wearing the unit rail so the
+  // switch keeps the column every unit switch stands in.
+  const header = word => `<div class="fall-rule"><span class="fall-w">${esc(word)}</span></div>`;
+
+  // ---- PRIMARY: the break's own first ask, asked before anything else, always drawn ----
+  const primary = rungs.length
+    ? `<div class="rung-list lead">${suUnitHtml(t, 0, rungs[0], ctx)}</div>`
+    : `<div class="slot-multi-foot sec-foot">
+        <button class="slot-add" onclick="suAddRung('${t}')">+ Add ad unit</button>
+      </div>`;
+
+  // ---- WATERFALL: what it falls through to — its own rows, the global's, or nothing ----
+  let fallBody = '';
+  if (src === 'own') {
+    const rows = rungs.slice(1).map((r, i) => suUnitHtml(t, i + 1, r, ctx));
+    fallBody = `
+      ${rows.length ? `<div class="rung-list fall">${rows.join('')}</div>` : ''}
+      <div class="slot-multi-foot sec-foot">
+        ${atMax
+          ? `<span class="slot-order-note">${meta.maxRungs} of ${meta.maxRungs}</span>`
+          : `<button class="slot-add" ${canAddRung(rungs) ? '' : 'disabled title="Fill the tag above first"'}
+              onclick="suAddRung('${t}')">+ Add waterfall tag</button>`}
+      </div>`;
+  } else if (src === 'wf') {
+    fallBody = suWfMirrorHtml(t);
+  }
+
+  // The waterfall's control row: the section's THREE answers in one seg, on the section's own
+  // left edge under its header, with the chosen answer's counted fact beside them
+  // (`suWfRuleSourceHtml`). No section word — the header directly above already named it — and
+  // no second control anywhere: one question, one place to answer it.
+  const wfControls = `<div class="wf-ctl src-${src}">${suWfRuleSourceHtml(t)}</div>`;
+
   return `
-    ${/* THE RULE IS THE WORD (8 Sep, user call — *"asked first, every time: remove this
-          text"*). `Primary` already says which row it names; the gloss explained the
-          ladder to someone who had read it nine breaks ago. */''}
-    <div class="fall-rule lead-rule">
-      <span class="fall-w">Primary</span>
-    </div>
-    <div class="rung-list lead">${rows[0]}</div>
-    ${/* The source band rides here, under the primary and above the fall (8 Sep, user
-          call, asked twice) — the break's first ask opens its zone, and where the FALL
-          begins is where swapping the source belongs. Supplied by the caller, because
-          only the setup editor's ladder breaks have a source to state. */''}
-    ${ctx.midHtml || ''}
-    ${ctx.fallHtml != null ? ctx.fallHtml : fall.length ? `
-      <div class="fall-rule">
-        <span class="fall-w">Waterfall order</span>
-        <span class="fall-n">${liveFall} of ${fallRungs.length} active</span>
-      </div>
-      <div class="rung-list fall">${fall.join('')}</div>` : ''}`;
+    ${header('Primary')}
+    ${primary}
+    ${header('Waterfall')}
+    ${wfControls}
+    ${fallBody}`;
 }

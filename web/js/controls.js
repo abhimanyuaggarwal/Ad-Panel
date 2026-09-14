@@ -648,6 +648,38 @@ function behaviourRowsHtml(t, a) {
   const text = (f, ph, why) => `<span class="rule-text${why ? ' off' : ''}"><input type="text" value="${esc(a.tv(f))}" placeholder="${esc(mix(f) || ph)}"${why ? ' disabled' : ''} oninput="${a.text(f)}"></span>`;
   const note = (s, why) => `<span class="podl${why ? ' off' : ''}">${esc(s)}</span>`;
   const rj = (s, why) => `<span class="rj${why ? ' off' : ''}">${esc(s)}</span>`;
+  // WHO ELSE BIDS FOR THIS SLOT (10 Sep; re-cut twice 11 Sep, the second on the user's
+  // call — *"move header bidding to the top of delivery settings; three options upfront —
+  // auto, off, customize — and if customize is clicked then ask for Amazon+Prebid, Amazon
+  // or Prebid. No need of a modal or dialog."*). THE FIRST ROW OF EVERY BREAK'S DELIVERY
+  // SETTINGS, and it is inline: a seg of the three STATES — `Auto` borrows the setup's
+  // answer (and says what that is today, as a quiet note beside it, so nobody scrolls up
+  // to learn it), `Off` refuses bidders, `Custom` is this break's own — and, only while
+  // Custom stands, a second seg under it with the partners. `Custom` rather than the
+  // user's "Customize": the page already says `Custom │ Global` about every break's
+  // waterfall, and a slot's own answer should wear one word everywhere. Choosing Custom
+  // starts from the setup's own partners when it has some, so "make it mine" is one click.
+  // The dialog that stood here for an hour is gone on the same call — the decision is two
+  // segs, and two segs belong on the row.
+  const hbRow = () => {
+    if (!a.set) return '';
+    const cur = a.v('headerBidding') || 'auto';
+    const mode = cur === 'auto' ? 'auto' : cur === 'off' ? 'off' : 'custom';
+    const partners = ((KL_META.headerBidding && KL_META.headerBidding.length) ? KL_META.headerBidding : HB_ANSWERS)
+      .filter(x => x !== 'off');
+    const served = a.hbServed ? a.hbServed() : '';
+    const start = partners.includes(served) ? served : partners[0];
+    const modes = [['auto', 'Auto', 'auto'], ['off', 'Off', 'off'], ['custom', 'Custom', start]];
+    const modeSeg = `<div class="seg small">${modes.map(([m, l, v]) =>
+      `<button type="button" class="${mode === m ? 'on' : ''}" onclick="${a.set('headerBidding', v)}">${l}</button>`).join('')}</div>`;
+    const partnerSeg = mode !== 'custom' ? '' : `<div class="seg small">${partners.map(p =>
+      `<button type="button" class="${cur === p ? 'on' : ''}" onclick="${a.set('headerBidding', p)}">${esc(label('headerBidding', p))}</button>`).join('')}</div>`;
+    return row('headerBidding', fieldName('headerBidding'), `
+      <div class="hb-ctl">
+        <div class="hb-l1">${modeSeg}${mode === 'auto' && served ? note(label('headerBidding', served)) : ''}</div>
+        ${partnerSeg}
+      </div>`);
+  };
   const pods = Number(a.v('podAds')) || 1;
   // The one thing a break plays more than one ad for. Two of the four fields that used
   // to hide behind it are NOT pod-only, so only these two grey out.
@@ -723,9 +755,11 @@ function behaviourRowsHtml(t, a) {
   // idea now ends with a slightly larger gap. Rhythm, not headings: the 25 Aug "one flat
   // list, no group headings" call stands.
   const gap = '<div class="lr-gap"></div>';
-  if (t === 'preroll') return `${whenPre()}${videoStarts()}${headStart()}${gap}${takesRows()}${gap}${fillRows()}`;
-  if (t === 'midroll') return `${whenMid()}${gap}${takesRows()}${gap}${fillRows()}`;
-  if (t === 'postroll') return `${takesRows()}${gap}${fillRows()}`;
+  // Header bidding leads every break (11 Sep, user call) — who else is in the auction is
+  // decided before how the break is paced — as its own cluster, then the rest as before.
+  if (t === 'preroll') return `${hbRow()}${gap}${whenPre()}${videoStarts()}${headStart()}${gap}${takesRows()}${gap}${fillRows()}`;
+  if (t === 'midroll') return `${hbRow()}${gap}${whenMid()}${gap}${takesRows()}${gap}${fillRows()}`;
+  if (t === 'postroll') return `${hbRow()}${gap}${takesRows()}${gap}${fillRows()}`;
   // A rotation is not a break: banners take turns, so it has no pod, no walk depth and
   // no next-ad question. Structural, not a reveal.
   const cfg = a.rungCount ? a.rungCount() : 0;
@@ -735,6 +769,8 @@ function behaviourRowsHtml(t, a) {
   // and its count wears the breaks' own words: Total Target Impressions, typed, because
   // a rotation runs all session where a break picks from 1/2/3.
   return `
+    ${hbRow()}
+    ${gap}
     ${row('times', 'Schedule', `${text('times', '8:00, 16:00')}`)}
     ${row('hold', 'Display duration', `${num('hold', 'sec')}`)}
     ${row('perSession', fieldName('perSession'), `${num('perSession', '')}`)}

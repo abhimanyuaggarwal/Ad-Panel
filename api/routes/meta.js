@@ -22,11 +22,33 @@ r.get('/panel/meta', handle((req, res) => {
     playbackModes: store.PLAYBACK_MODES,
     playbackKinds: store.PLAYBACK_KINDS,
     maxPlayerConfigs: store.MAX_PLAYER_CONFIGS,
+    // THE PLAYER BEHAVIOUR CARD's vocabularies (11 Sep, docs/PLAYER-LEVERS.xlsx) — the card
+    // draws exactly these and nothing else, so a vocabulary the player team revises
+    // moves the control without touching a screen.
+    controlsModes: store.CONTROLS_MODES,
+    endScreens: store.END_SCREENS,
+    dockPositions: store.DOCK_POSITIONS,
+    dockWords: store.DOCK_WORD,
+    analyticsLevels: store.ANALYTICS_LEVELS,
+    analyticsLevelWords: store.ANALYTICS_LEVEL_WORD,
+    playerControls: store.PLAYER_CONTROLS,
+    playerControlWords: store.PLAYER_CONTROL_WORD,
+    playbackRates: store.PLAYBACK_RATES,
+    // Every field the player carries, in the card's order — a custom config may override
+    // any of them (13 Sep), and the editor, the chips and the review all read this list.
+    playerFields: store.PLAYER_FIELDS,
+    configForkable: store.CONFIG_FORKABLE,
     preRollTiming: store.PREROLL_TIMING,
     prerollWaits: store.PREROLL_WAIT,
     midrollModes: store.MIDROLL_MODES,
     slotAlsoTakes: store.SLOT_ALSO_TAKES,
     slotKind: store.SLOT_KIND,
+    // HEADER BIDDING (10 Sep): the setup's four answers, the five a slot may give
+    // (`auto` borrows the setup's), and the partners' words — one vocabulary, so the
+    // seg on the head section and the one on every slot are the same control.
+    headerBidding: store.HEADER_BIDDING,
+    slotHeaderBidding: store.SLOT_HEADER_BIDDING,
+    headerBiddingWords: store.HB_WORD,
     rotationMax: store.ROTATION_MAX,
     podNextAds: store.POD_NEXT_AD,
     slotTypes: store.SLOT_TYPES,
@@ -56,6 +78,9 @@ r.get('/panel/meta', handle((req, res) => {
     displaySlotWords: store.DISPLAY_SLOT_WORD,
     pauseModes: store.PAUSE_MODES,
     pauseWords: store.PAUSE_WORD,
+    // Whose sound is quiet while content plays under an ad (11 Sep): Ad or Content.
+    muteModes: store.MUTE_MODES,
+    muteWords: store.MUTE_WORD,
     maxMidrollGroups: store.MAX_MIDROLL_GROUPS,
     templateMacros: store.TEMPLATE_MACROS,
     // Presets STAMP values at creation — a photocopy, never a live link. Editing a

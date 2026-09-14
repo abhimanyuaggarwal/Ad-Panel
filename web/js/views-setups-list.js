@@ -161,6 +161,12 @@ function setupCreateChangeList() {
     rows.push({ where: '', field: 'waterfall', label: 'Waterfall', fromText: '—',
       toText: `${wfN} unit${wfN === 1 ? '' : 's'}${followed ? ` · followed by ${followed} break${followed === 1 ? '' : 's'}` : ''}` });
   }
+  // HEADER BIDDING is news only when somebody answered it (10 Sep): a blank setup starts
+  // Off, and a line saying "Off" about a thing nobody switched on is noise on a review.
+  if ((d.headerBidding || 'off') !== 'off') {
+    rows.push({ where: '', field: 'headerBidding', label: HB_WORD, fromText: '—',
+      toText: `${label('headerBidding', d.headerBidding)} · every ad slot on Auto follows it` });
+  }
   for (const sec of d.sections || []) {
     const n = KL_META.slotTypes.reduce((a, t) => a + suSeedRungCount(sec, t), 0);
     rows.push({ where: 'Placements', field: sec.name, label: sec.name, fromText: '—',
@@ -393,7 +399,7 @@ function askForm(opts, readFn) {
     root.innerHTML = `
       <div class="dlg-veil">
         <div class="dlg ${esc(opts.cls || '')}">
-          <h3>${esc(opts.title)}</h3>
+          <h3>${esc(opts.title)}${opts.kicker ? `<span class="dlg-kicker">${esc(opts.kicker)}</span>` : ''}</h3>
           <div class="dlg-body">${opts.body || ''}</div>
           <div class="dlg-foot">
             <button class="btn ghost" data-act="no">${esc(opts.cancelLabel || 'Cancel')}</button>

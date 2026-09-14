@@ -4,8 +4,8 @@
 import { versionChanges } from './version-changes.js';
 import { listKeys, updateKey } from './keys.js';
 import { driveWalkRungs, effectiveBehaviour, liveRungs, slotGroupDefs } from './ladders.js';
-import { keysUsingSetup, updateSetup } from './setups.js';
-import { Refusal, SLOT_TYPES, SLOT_WORD, state } from './state.js';
+import { keysUsingSetup, servedHeaderBidding, servedUnitHeaderBidding, updateSetup } from './setups.js';
+import { Refusal, RUNG_FACTS, SLOT_TYPES, SLOT_WORD, state } from './state.js';
 import { mustGet } from './validate.js';
 
 
@@ -38,6 +38,10 @@ const PUBLISHABLE = {
   }),
   setup: s => ({
     name: s.name, property: s.property,
+    // WHO ELSE BIDS, for the whole surface (10 Sep). One scalar, always present: every
+    // slot's `auto` is resolved against it at the boundary below, so the snapshot the
+    // player reads has to carry the thing being borrowed.
+    headerBidding: s.headerBidding || 'off',
     // The waterfall rides the snapshot RAW (per-unit answers kept) with its two
     // levers beside it; what a linked break serves is already materialized in its
     // rungs. Absent while unconfigured, so older setups' snapshots read unchanged.
@@ -86,11 +90,11 @@ const PUBLISHABLE = {
   }),
 };
 
-// A rung's publishable facts: the tag it points at, its switch, and — for a banner —
-// its four own facts. Never the view-only fields.
+// A rung's publishable facts: the tag it points at, its switch, and the unit's own
+// facts (`RUNG_FACTS`). Never the view-only fields.
 function snapRung(r) {
   const out = { tagId: r.tagId, on: r.on !== false };
-  for (const f of ['displaySlot', 'pause', 'showAfterSec', 'closeAfterSec', 'hideAfterSec']) {
+  for (const f of RUNG_FACTS) {
     if (r[f] !== undefined) out[f] = r[f];
   }
   return out;
@@ -284,6 +288,60 @@ export function restorePreview(kind, id, v) {
   };
 }
 
+// THE ONE SERIALIZATION BOUNDARY for the player's config block (11 Sep). The panel
+// holds these fields FLAT — one object, one normalizer, one diff, so the change review
+// can name any of them without walking a tree — and the player reads them NESTED, in
+// the five namespaces its own config document uses. The translation lives here, once.
+//
+// Two encodings are honoured rather than argued with: a sentinel `0` means off for every
+// timing (the UI draws that as a switch, but the wire keeps the 0), and `pip` is the
+// empty string when docking is off. Milliseconds on the wire throughout; the panel says
+// seconds on screen, as it does for every other timing it carries.
+export function playerBlock(P) {
+  if (!P) return {};
+  // Q1 IS ANSWERED AT THE BOUNDARY, NOT IN THE MODEL. The panel's vocabulary is still
+  // on / off / auto (changing it is a decision the player team owns), so the mapping is
+  // stated here in one place: `auto` is what the player calls mutedOnScroll.
+  const AUTOPLAY_WIRE = { on: 'always', off: 'off', auto: 'mutedOnScroll' };
+  return {
+    pref: {
+      volume: P.rememberVolume === false ? 0 : 1,
+      audLang: P.rememberAudioLang === false ? 0 : 1,
+      capLang: P.rememberCaptions === false ? 0 : 1,
+    },
+    playback: {
+      autoPlay: AUTOPLAY_WIRE[P.autoplay] || 'off',
+      autoPlayVol: P.passiveVolume ?? 100,
+      loop: !!P.loop,
+      playMode: P.playback || 'active',
+      muted: !!P.muted,
+      level: P.quality || 'auto',
+      pip: !P.dock || P.dock === 'off' ? '' : P.dock,
+      autoPause: P.autoPausePct ?? 0,
+      endScreen: P.endScreen || 'none',
+    },
+    theme: {
+      primary: P.brandColor || '#ff0000',
+      text: P.textColor || '#ffffff',
+      logo: P.logoUrl || '',
+    },
+    controls: {
+      mode: P.controlsMode || 'full',
+      playbackRates: [...(P.playbackRates || [])],
+      autoHide: P.controlsAutoHideMs ?? 5000,
+      hideControls: [...(P.hiddenControls || [])],
+    },
+    analytics: {
+      level: P.analyticsLevel ?? 3,
+      viewDuration: P.viewAfterMs ?? 3000,
+      interval: P.heartbeatMs ?? 10000,
+      comscoreId: P.comscoreId || null,
+      nielsenId: P.nielsenId || null,
+      gaId: P.gaId || null,
+    },
+  };
+}
+
 // WHAT THE PLAYER GETS. Published integration joined with published setup, resolved the
 // same way the panel resolves a draft — the drive decision applied over the arrangement,
 // so the client is handed the walk it should make, not the two halves to combine itself.
@@ -299,7 +357,7 @@ export function liveConfig(apiKey) {
   // Every template a served tag requests through, resolved by NAME at the boundary —
   // authored in the panel (31 Aug), emitted here, never edited by the player.
   const unittpl = {};
-  const walkEntry = x => {
+  const walkEntry = (x, hb) => {
     const tag = state.tags.get(x.tagId);
     if (!tag) return null;
     const out = { provider: tag.provider, type: tag.type, value: tag.value };
@@ -310,9 +368,12 @@ export function liveConfig(apiKey) {
       const tpl = state.templates.get(tag.tplId);
       if (tpl && tpl.on !== false) { out.tpl = tpl.name; unittpl[tpl.name] = tpl.url; }
     }
-    for (const f of ['displaySlot', 'pause', 'showAfterSec', 'closeAfterSec', 'hideAfterSec']) {
+    for (const f of RUNG_FACTS) {
       if (x[f] !== undefined) out[f] = x[f];
     }
+    // HEADER BIDDING IS HANDED OVER RESOLVED PER UNIT (11 Sep): who bids for THIS unit —
+    // its own answer, its break's while it borrows, `off` on a pasted URL — never `auto`.
+    out.headerBidding = servedUnitHeaderBidding(x, tag, hb);
     return out;
   };
 
@@ -327,10 +388,15 @@ export function liveConfig(apiKey) {
         const { walk } = driveWalkRungs(g.rungs, g.behaviour, drive, t);
         if (!walk.length) return null;
         const gd = drive?.direct === false ? [] : liveRungs(g.direct?.rungs);
+        // HEADER BIDDING IS HANDED OVER RESOLVED (10 Sep): the player is told WHO bids
+        // for this break — never `auto`, which is a panel-side inheritance and would
+        // make the client join the two halves itself (the rule this whole seam keeps).
+        const bhv = effectiveBehaviour(t, g.behaviour, drive).values;
+        const hb = servedHeaderBidding(bhv?.headerBidding, ss?.headerBidding);
         return {
-          behaviour: effectiveBehaviour(t, g.behaviour, drive).values,
-          walk: walk.map(walkEntry).filter(Boolean),
-          ...(gd.length ? { direct: { walk: gd.map(walkEntry).filter(Boolean) } } : {}),
+          behaviour: bhv && { ...bhv, headerBidding: hb },
+          walk: walk.map(x => walkEntry(x, hb)).filter(Boolean),
+          ...(gd.length ? { direct: { walk: gd.map(x => walkEntry(x, hb)).filter(Boolean) } } : {}),
         };
       }).filter(Boolean);
       if (!groups.length) continue;
@@ -342,24 +408,36 @@ export function liveConfig(apiKey) {
       // Group 1's deal doubles as the slot's, the way group 1's ladder does.
       const dRungs = drive?.direct === false ? [] : liveRungs(slotGroupDefs(def.slots[t])[0]?.direct?.rungs ?? def.slots[t].direct?.rungs);
       if (dRungs.length) {
-        slots[t].direct = { walk: dRungs.map(walkEntry).filter(Boolean) };
+        slots[t].direct = { walk: dRungs.map(x => walkEntry(x, slots[t].behaviour?.headerBidding)).filter(Boolean) };
       }
     }
     return { name: s.name, slots };
   }).filter(s => Object.keys(s.slots).length);
 
-  // The named forks a player may ask for (2 Sep): each carries only the three facts
-  // that vary per placement; everything else follows `player`. A switched-off config
-  // (4 Sep) is simply not in the answer — a player asking for it follows the default —
-  // and the emitted shape never grows the switch itself. Emitted only when any survive,
-  // so the common integration's JSON does not grow a field.
+  // THE CUSTOM CONFIGS, RESOLVED (13 Sep). Stored sparse — a config carries only what it
+  // overrides — and handed over WHOLE: the default laid under the overrides, then the
+  // same five namespaces the root carries, so a config on the wire has exactly the
+  // shape of the document's own player section and the player reads one grammar twice.
+  // Because resolution happens here, moving a lever on the default moves every config
+  // that never spoke about it — live inheritance, the Q12 the 11 Sep cut left open.
+  // A switched-off config (4 Sep) is simply not in the answer, and the emitted shape
+  // never grows the switch itself. Emitted only when any survive.
   const liveConfigs = (ks.playerConfigs || []).filter(c => c.on !== false)
-    .map(({ on, ...c }) => ({ ...c }));
+    .map(({ id, on, name, ...ov }) => {
+      const resolved = { ...ks.player, ...ov };
+      return { name, player: resolved, ...playerBlock(resolved) };
+    });
 
   return {
     key: apiKey,
     integration: { name: ks.name, property: ks.property, platform: ks.platform, domains: ks.domains, packageName: ks.packageName },
     player: ks.player,
+    // THE PLAYER'S OWN CONFIG BLOCK (11 Sep) — the five namespaces it already parses,
+    // built HERE and nowhere else. `player` above is unchanged, so nothing the player
+    // reads today moves; the three fields that appear in both are derived from one
+    // internal field each, so they can never disagree. They collapse into one node
+    // once Q1 and Q4 are answered (docs/PLAYER-LEVERS.xlsx).
+    ...playerBlock(ks.player),
     ...(liveConfigs.length ? { playerConfigs: liveConfigs } : {}),
     version: { integration: liveVersion(k.id), adSetup: ks.adSetupId ? liveVersion(ks.adSetupId) : null },
     unittpl,

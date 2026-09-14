@@ -370,11 +370,50 @@ function breakTabsHtml() {
 // The driving controls for one break: three or four rows, all switches and pickers,
 // nothing to type. "Use the setup's" beside a bent switch drops the decision — the
 // field follows the workshop again, so a later ops change still arrives.
+// WHO ELSE BIDS FOR THIS BREAK (11 Sep, user call — *"in the integration screen, in the ad
+// behaviour section, give this header bidding switch too"*). The surface's own answer over
+// the ad setup's, stored sparse like every other quick decision: `As set up` IS absence, and
+// it names what the setup resolves to today beside it, so leaving it alone is never leaving
+// it unknown. `Custom` reveals the partners — the same two-tier shape the ad setup's own
+// delivery row wears, so one control is learned once and read in both rooms.
+function keyHbAsSetUp(t) {
+  const j = keySecs()[0] ?? 0;
+  const own = slotBhv(j, t)?.headerBidding || 'auto';
+  return own === 'auto' ? (sectionSetup(j)?.headerBidding || 'off') : own;
+}
+
+function driveHbRowHtml(t) {
+  const d = driveOf(t);
+  // WHAT THE SETUP RESOLVES TO, mirrored exactly as the server resolves it
+  // (`servedHeaderBidding`): the placement's own answer, or the setup's global while that
+  // answer is `auto`. Same rule, both sides of HTTP — the page's own standing arrangement
+  // for every resolved fact on it (see `clientDriveWalk`).
+  const asSetUp = keyHbAsSetUp(t);
+  const cur = d.headerBidding;
+  const mode = cur === undefined ? 'setup' : cur === 'off' ? 'off' : 'custom';
+  const partners = (KL_META.headerBidding && KL_META.headerBidding.length ? KL_META.headerBidding : HB_ANSWERS)
+    .filter(x => x !== 'off');
+  const start = partners.includes(asSetUp) ? asSetUp : partners[0];
+  const modeSeg = accSeg(mode, ['setup', 'off', 'custom'], ['As set up', 'Off', 'Custom'],
+    o => `driveSet('${t}', 'headerBidding', ${o === 'setup' ? 'null' : o === 'off' ? "'off'" : `'${start}'`})`);
+  const partnerSeg = mode !== 'custom' ? '' : accSeg(cur, partners, partners.map(p => label('headerBidding', p)),
+    o => `driveSet('${t}', 'headerBidding', '${o}')`);
+  return accRow(fieldName('headerBidding'), `
+    <div class="hb-ctl">
+      <div class="hb-l1">${modeSeg}${mode === 'setup'
+        ? `<span class="podl">${esc(label('headerBidding', asSetUp))}</span>` : ''}</div>
+      ${partnerSeg}
+    </div>`, null, driveDirty(t, 'headerBidding'));
+}
+
 function driveControlsHtml(t) {
   if (isRotation(t)) {
-    // A ROTATION HAS NOTHING TO DECIDE (7 Sep, UAT P2 — this row was a sentence
-    // explaining itself). The switch is on the tab; the row just names the shape.
-    return `<div class="sg-empty" style="padding:4px 0">Banners take turns</div>`;
+    // A ROTATION HAS ALMOST NOTHING TO DECIDE (7 Sep, UAT P2 — this row was a sentence
+    // explaining itself): no pod, no walk, no order. It has ONE answer since 11 Sep —
+    // who else bids for the banner slot — so the shape is named and the one decision
+    // stands under it.
+    return `<div class="sg-empty" style="padding:4px 0">Banners take turns</div>
+      ${driveHbRowHtml(t)}`;
   }
   const d = driveOf(t);
   const base = slotBhv(0, t) || {};
@@ -407,6 +446,7 @@ function driveControlsHtml(t) {
         ${deferOff ? 'disabled' : ''} oninput="driveDeferInput(this, '${t}')"><span class="unit">sec</span></div>`, null, driveDirty(t, 'start', 'deferSec')) : ''}
     ${accRow(fieldName('podAds'), accSeg(d.podAds ?? base.podAds ?? 1, [1, 2, 3], ['1', '2', '3'],
       o => `driveSet('${t}', 'podAds', ${o})`), null, driveDirty(t, 'podAds'))}
+    ${driveHbRowHtml(t)}
     <div class="zrow drive-foot">
       ${usable.length > 1 ? `<button type="button" class="zlink" onclick="driveStampAll('${t}')">Apply to all breaks</button>` : '<span></span>'}
       <button type="button" class="btn ghost sm drive-reset" ${bent ? '' : 'disabled'}

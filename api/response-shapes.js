@@ -48,8 +48,8 @@ export function rungView(r) {
     // later sync can change on its own, so it is derived here every time.
     offDirectory: store.tagOffDirectory(tag),
   };
-  // A banner's own four facts ride the rung (31 Aug, AD-JSON-SCOPE).
-  for (const f of ['displaySlot', 'pause', 'showAfterSec', 'closeAfterSec', 'hideAfterSec']) {
+  // A unit's own facts ride the rung (31 Aug, AD-JSON-SCOPE; one list since 11 Sep).
+  for (const f of store.RUNG_FACTS) {
     if (r[f] !== undefined) out[f] = r[f];
   }
   return out;

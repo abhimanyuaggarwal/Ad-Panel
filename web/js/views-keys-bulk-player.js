@@ -44,7 +44,7 @@ function pbSet(ki, ci, f, v) {
 // count read the same list.
 function pbChanges() {
   const out = [];
-  const word = (f, v) => label(f, v);
+  const word = (f, v) => pbFieldWord(f, v);
   for (const k of PB_DRAFT.keys) {
     const pairs = [[-1, 'Default', k.player, k.orig.player]];
     k.playerConfigs.forEach((c, i) => {
@@ -52,12 +52,13 @@ function pbChanges() {
       if (o) pairs.push([i, c.name, c, o]);
     });
     for (const [ci, cfgName, cur, orig] of pairs) {
-      // THREE FACTS, DEFAULT AND FORK ALIKE (7 Sep, user call — "why do we have the
-      // passive volume, that is not part of the default or custom player config?").
-      // Exactly right: a player config IS playback mode, MiniTV expansion and autoplay.
-      // Passive volume is the PLAYER's, like its type and its fallback media — it lives
-      // in Details on the integration page and never belonged in a sheet of configs.
-      for (const f of ['playback', 'expandInMini', 'autoplay']) {
+      // ONE LIST, DRAWN IN TWO PLACES (11 Sep). The facts a fork may carry went from
+      // three to six, and this sheet's own promise — "a new player-config fact is one
+      // more form row HERE and nowhere else" — only holds if it reads the same list the
+      // integration page reads. `pcFields()` is that list; the seam holds it too
+      // (CONFIG_FORKABLE), so a fork edited here can never lose a field it carries there.
+      // Passive volume is still not among them: it is the PLAYER's one volume (7 Sep).
+      for (const f of pcFields().map(d => d.f)) {
         if (JSON.stringify(cur[f]) !== JSON.stringify(orig[f])) {
           out.push({
             where: `${k.name} · ${cfgName}`, field: f,
@@ -119,7 +120,13 @@ function pbRailHtml() {
 // dialog changed size. Now a moved field says so in its own row: an accent bar, the
 // value it held, and an × that puts it back. The rail counts them per surface, and
 // Review still reads every one before anything lands.
-function pbWasWord(f, v) { return label(f, v); }
+// The word for a value, from the same definition that draws its control — so the rail,
+// the "was" and the review can never spell one answer three ways.
+function pbFieldWord(f, v) {
+  const d = pcFields().find(x => x.f === f);
+  return d ? d.word(v ?? d.dflt) : String(v);
+}
+function pbWasWord(f, v) { return pbFieldWord(f, v); }
 
 function pbConfigBlockHtml(ki, ci) {
   const k = PB_DRAFT.keys[ki];
@@ -139,14 +146,21 @@ function pbConfigBlockHtml(ki, ci) {
         <button type="button" class="pbd-x" onclick="pbDropField(${ki}, ${ci}, '${f}')">×</button>` : ''}</span>
     </div>`;
   };
+  // The form grows DOWNWARD as a config grows facts — n fields is a longer form, never
+  // a wider table. Six rows today, in the integration page's own order and grouped under
+  // its own section names, so the sheet and the page read as one document.
+  let lastSec = '';
+  const rows = pcFields().map(d => {
+    const head = d.sec !== lastSec ? `<div class="pbd-sec">${esc(d.sec)}</div>` : '';
+    lastSec = d.sec;
+    return head + frow(d.f, d.l,
+      accSeg(c[d.f] ?? k.player[d.f] ?? d.dflt, d.seg[0], d.seg[1],
+        o => `pbSet(${ki}, ${ci}, '${d.f}', ${typeof o === 'string' ? `'${o}'` : o})`));
+  }).join('');
   return `
     <div class="pbd-g" id="pbg-${ci}">
       <div class="pbd-gh">${esc(ci < 0 ? 'Default' : c.name)}</div>
-      ${frow('playback', 'Playback mode', accSeg(c.playback ?? 'active', meta.playbackKinds, meta.playbackKinds.map(o => label('playback', o)), o => `pbSet(${ki}, ${ci}, 'playback', '${o}')`))}
-      ${frow('expandInMini', 'Expand MiniTV for ads', accSeg(c.expandInMini ?? true, [true, false], ['Yes', 'No'], o => `pbSet(${ki}, ${ci}, 'expandInMini', ${o})`),
-        'Whether the MiniTV expands while an ad runs')}
-      ${frow('autoplay', 'Autoplay behaviour', accSeg(c.autoplay ?? 'auto', meta.autoplay, meta.autoplay.map(o => label('autoplay', o)), o => `pbSet(${ki}, ${ci}, 'autoplay', '${o}')`),
-        'Whether the player starts on its own — Auto lets the player decide')}
+      ${rows}
     </div>`;
 }
 
@@ -249,9 +263,8 @@ function dcTodayWord(f) {
   for (const k of selectedKeys()) {
     const p = k.player || {};
     let w;
-    if (f === 'playback') w = label('playback', p.playback ?? 'active');
-    else if (f === 'expandInMini') w = (p.expandInMini ?? true) ? 'Yes' : 'No';
-    else w = label('autoplay', p.autoplay ?? 'auto');
+    const w0 = pcFields().find(x => x.f === f);
+    w = w0 ? w0.word(p[f] ?? w0.dflt) : String(p[f]);
     if (!words.includes(w)) words.push(w);
   }
   if (words.length === 1) return words[0];
@@ -304,11 +317,9 @@ function renderDCScreen() {
     <div class="dlg-veil"><div class="dlg sheet">
       <h3>Default player behaviour<span class="dlg-kicker">${keys.length} integration${keys.length > 1 ? 's' : ''} · custom configs keep their own values</span></h3>
       <div class="dlg-body">
-        ${dcRowHtml('playback', 'Playback mode', () => accSeg(f.playback, meta.playbackKinds, meta.playbackKinds.map(o => label('playback', o)), o => `dcSet('playback', '${o}')`))}
-        ${dcRowHtml('expandInMini', 'Expand MiniTV for ads', () => accSeg(f.expandInMini, [true, false], ['Yes', 'No'], o => `dcSet('expandInMini', ${o})`),
-          'Whether the MiniTV expands while an ad runs')}
-        ${dcRowHtml('autoplay', 'Autoplay behaviour', () => accSeg(f.autoplay, meta.autoplay, meta.autoplay.map(o => label('autoplay', o)), o => `dcSet('autoplay', '${o}')`),
-          'Whether the player starts on its own — Auto lets the player decide')}
+        ${pcFields().map(d => dcRowHtml(d.f, d.l,
+          () => accSeg(f[d.f], d.seg[0], d.seg[1],
+            o => `dcSet('${d.f}', ${typeof o === 'string' ? `'${o}'` : o})`))).join('')}
       </div>
       <div class="dlg-foot">
         <span class="rvw-count">${n ? `${n} change${n === 1 ? '' : 's'} · ${keys.length} integration${keys.length > 1 ? 's' : ''}` : ''}</span>
@@ -318,17 +329,12 @@ function renderDCScreen() {
     </div></div>`;
 }
 
-function dcValueWord(f, v) {
-  if (f === 'playback') return label('playback', v);
-  if (f === 'expandInMini') return v ? 'Yes' : 'No';
-  return label('autoplay', v);
-}
+function dcValueWord(f, v) { return pbFieldWord(f, v); }
 
 function dcChanges() {
-  // THREE FACTS (7 Sep, user call): a player config is playback mode, MiniTV expansion
-  // and autoplay. Passive volume is the PLAYER's — Details on the integration page.
-  const words = { playback: 'Playback mode', expandInMini: 'Expand MiniTV for ads',
-    autoplay: 'Autoplay behaviour' };
+  // The same six this sheet draws (11 Sep) — words from the one definition, so the
+  // review can never name a field differently from the row that moved it.
+  const words = Object.fromEntries(pcFields().map(d => [d.f, d.l]));
   return Object.keys(DC_DRAFT.fields).map(f => ({
     where: 'Default player', field: f, label: words[f] || f,
     fromText: dcTodayWord(f), toText: dcValueWord(f, DC_DRAFT.fields[f]),

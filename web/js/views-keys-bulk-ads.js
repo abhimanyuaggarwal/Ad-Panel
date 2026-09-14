@@ -212,6 +212,7 @@ function driveWord(f, v) {
     if (!Array.isArray(v) || !v.length) return 'as set up';
     return v.map(fmtCue).join(', ');
   }
+  if (f === 'headerBidding') return v === undefined || v === null || v === 'setup' ? 'as set up' : label('headerBidding', v);
   if (f === 'tries') return !v || v === 'setup' ? 'full waterfall' : String(v);
   if (f === 'start') return v === 'deferred' ? 'delayed' : 'immediate';
   if (f === 'deferSec') return `${v}s`;
@@ -240,6 +241,26 @@ function bulkFieldDefs(t) {
   // Clean slate: an untouched lever's control holds NOTHING — the cohort's current
   // state is the today-word beside it, never a preselected answer.
   const dv = f => (d.dTouched.has(f) ? d.dv[f] : undefined);
+  // WHO ELSE BIDS (11 Sep, user call) — the one lever every break carries, the out-stream
+  // included. `As set up` is the clear, sent as the drive's own `setup` word; `Custom`
+  // reveals the partners, in the same two tiers both rooms draw it in.
+  const hbPartners = (KL_META.headerBidding && KL_META.headerBidding.length ? KL_META.headerBidding : HB_ANSWERS)
+    .filter(x => x !== 'off');
+  const hbDef = {
+    f: 'headerBidding', label: fieldName('headerBidding'),
+    ctl: () => {
+      const v = dv('headerBidding');
+      const mode = v === undefined ? undefined : v === 'setup' ? 'setup' : v === 'off' ? 'off' : 'custom';
+      return `
+        <div class="hb-ctl">
+          <div class="hb-l1">${accSeg(mode, ['setup', 'off', 'custom'], ['As set up', 'Off', 'Custom'],
+            o => `bulkDriveSet('${t}', 'headerBidding', ${o === 'setup' ? "'setup'" : o === 'off' ? "'off'" : `'${hbPartners[0]}'`})`)}</div>
+          ${mode === 'custom' ? accSeg(v, hbPartners, hbPartners.map(p => label('headerBidding', p)),
+            o => `bulkDriveSet('${t}', 'headerBidding', '${o}')`) : ''}
+        </div>`;
+    },
+  };
+  if (isRotation(t)) return [hbDef];
   const defs = [
     {
       f: 'direct', label: label('slotType', 'direct'),
@@ -287,6 +308,7 @@ function bulkFieldDefs(t) {
     f: 'podAds', label: fieldName('podAds'),
     ctl: () => accSeg(dv('podAds'), [1, 2, 3], ['1', '2', '3'], o => `bulkDriveSet('${t}', 'podAds', ${o})`),
   });
+  defs.push(hbDef);
   void dv;
   return defs;
 }
@@ -380,10 +402,13 @@ function bulkUnsetField(t, f) {
 
 function bulkFieldsHtml(t, shownOff) {
   if (isRotation(t)) {
-    // A rotation has no lever to bulk-edit, so the tab says what it CAN do rather than
-    // leaving the frame to explain itself: the switch above is the whole decision here.
-    return `<div class="bt-note">Banners take turns — the switch above is the only bulk
-      decision here. Schedule, display duration and impressions are set in each ad setup.</div>`;
+    // A rotation has no WALK to bulk-edit — no pod, no order, no depth — so the tab says
+    // what it can do rather than leaving the frame to explain itself. Since 11 Sep it has
+    // one lever of its own: who else bids for the banner slot.
+    return `<div class="bt-note">Banners take turns — the switch above, and who bids below,
+      are the bulk decisions here. Schedule, display duration and impressions are set in
+      each ad setup.</div>
+      ${bulkFieldDefs(t).map(def => bulkFieldRowHtml(t, def, shownOff)).join('')}`;
   }
   return bulkFieldDefs(t).map(def => bulkFieldRowHtml(t, def, shownOff)).join('');
 }
@@ -449,7 +474,7 @@ function bulkKeyWord(k, t, f) {
   if (f === 'direct') return driveWord('direct', d.direct !== false);
   // No decision on this surface = it follows its ad setup (tries and ask say so via
   // their own vocabularies; start and podAds have no absent word of their own).
-  if (d[f] === undefined && !['tries', 'ask'].includes(f)) return 'as set up';
+  if (d[f] === undefined && !['tries', 'ask', 'headerBidding'].includes(f)) return 'as set up';
   if (f === 'start') {
     return d.start === 'deferred' ? `delayed ${d.deferSec ?? 7}s` : driveWord('start', d.start);
   }

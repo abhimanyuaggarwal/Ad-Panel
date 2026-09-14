@@ -22,7 +22,7 @@ is a working prototype of the product, not yet wired to production systems.
 | **Ad setup** | Ad ops | The demand for one integration: placements, each with four breaks (pre-roll, mid-roll, post-roll, out-stream), each break a ladder of ad units |
 | **Ad tag** | Ad ops | One ad unit or endpoint: IMA and GPT tags point at GAM ad-unit paths, CAN tags at a URL |
 | **Request template** | Ad ops | A named request URL shared account-wide; its macros are a fixed list of five the player fills |
-| **Custom player config** | Product | A named fork of the player a page can ask for by key (`shorts`), carrying exactly three facts |
+| **Custom player config** | Product | A named set of overrides a page asks for by key (`shorts`) — any of the player's fields, carried sparse, inheriting the rest live |
 
 The rule that shapes everything: **one integration asks from exactly one ad setup** — a
 surface has one source of demand, never two. The other direction is open (8 Sep): **one ad
@@ -36,12 +36,43 @@ tuning that copy never moves the original.
 
 ## The integration page
 
-One page holds the whole surface. Details at the top (platform decides what identity is
+One page, four cards. **Details** at the top is identity alone (platform decides what is
 asked for — web platforms need at least one domain, app platforms a package name; the
-other field greys out where it stands). The player's own fields sit inside Details, and
-custom configs are a small table underneath — adding one inserts a row with the cursor
-already in its key, and the key is held to the same rule the server holds it to: one
-word, unique, never "default".
+other field greys out where it stands).
+
+**Player config** is the second card, and it is ONE GRID: rows are the player's settings,
+the first column is the **Default**, and every custom config a page can ask for by key is one
+more column beside it. Three sections fold the rows — **Playback** (how the video plays),
+**Controls & appearance** (what the viewer sees and can touch) and **Analytics &
+measurement** (what is reported) — each one line at rest carrying the default's headline
+values and, in each config's column, how many cells of that section it sets (`3 differ` /
+`same`). Inside a fold, eight quiet row groups (Start, Source, Out of view, Completion │
+Controls, Appearance │ Reporting, Vendors) chunk the rows. The header row sticks under the
+page's fixed header while the card is in view, so deep in a fold the columns are still named.
+
+A cell is a VALUE until it is clicked, and then it is its control, in place: a menu for a
+choice, a typeable box for a number or a text, chips for a set, the OS colour wheel with a
+typeable hex for a colour (the text colour previews the pair as `Aa`, with a contrast that
+fails visible where it is chosen). A switch is drawn as a switch because it is its own value.
+Enter commits, Escape reverts, Tab steps to the next cell, arrows move, and typing on a
+focused cell starts editing it. Timings read in seconds and travel in milliseconds; a blank
+timing is off. A value a column cannot apply right now greys where it sits with its reason
+(Controls: None takes the three settings under it with it, in that column only).
+
+A config's column says what a config IS without a sentence: a cell that follows the default
+is faded read-through; a cell the config sets is full weight in the accent's ink, with × to
+let it go (or Backspace on the cell, or `Default` at the top of its menu). Everything a config
+never touched follows the default live. `+ Add config` adds a column with the cursor already
+in its key, held to the same rule the server holds it to: one word, unique, never "default";
+the column head carries the config's switch and its ⋯ (show only this config · follow the
+default for everything · remove).
+
+With several configs the grid grows wide, and most work happens in one config at a time, so
+**a column can be focused**: the count on any closed section row (`3 differ`, `same`) shows
+that config beside the default with that section open, and the column's ⋯ says the same in
+words. The default never leaves, because a config IS its differences from the default. The
+header's own leading cell then carries the way back, counted (`‹ All 6 configs`). Escape
+unwinds the narrowest thing first: the open cell, then the open section, then the focus.
 
 Ad behaviour fills the rest: which setup this surface fills from (a chip that opens the
 setup's own editor and brings you back with unsaved edits intact), four break tabs, and
@@ -60,7 +91,9 @@ zones down a left rail: **Pods** (a mid-roll may run up to three, each owning it
 special deal, ladder and cadence), **Special** (one uncapped deal per break or pod, tried
 before everything else), **Ad sources** (the ladder — one primary, up to nine fallbacks,
 drag to reorder; the word covers a break's own units and the shared waterfall alike), and
-**Delivery settings**. Each ad unit is ONE BLOCK — the unit, its counted fact line and its
+**Delivery settings** — led by **Header bidding**: `Auto` (the setup's own answer, named
+beside it), `Off`, or `Custom` with `Amazon+Prebid │ Amazon │ Prebid` under it; then the
+timings. Each ad unit is ONE BLOCK — the unit, its counted fact line and its
 settings as three tiers of one soft shape; the caret at the block's end opens and closes
 the settings, and so does putting the caret in the unit's field. Every break can be cleared with a
 counted confirmation, and the whole setup at once from the ⋯ menu — demand only,
@@ -132,8 +165,8 @@ on a hand-typed unit is its shape (`/7176/toi/mweb/videoshow/preroll`: network c
 then path segments), because a stale directory is normal and a malformed path never is.
 
 **Everything refuses by name.** No silent drops: a removed field is refused with where
-its answer lives now ("startVolume is gone — the player carries one Passive volume, set
-in Details"); a limit names the number found next to the number allowed; anything in use
+its answer lives now ("startVolume is gone — the volume is passiveVolume (Passive
+volume)"); a limit names the number found next to the number allowed; anything in use
 cannot be deleted, and the refusal names or counts its users. Every refusal is
 machine-readable (`status`, `code`, `message`, field-level details), so the UI can put
 the reason exactly where the mistake was made.
@@ -142,7 +175,9 @@ the reason exactly where the mistake was made.
 (1 primary + 9 fallbacks), 5 tags in an out-stream rotation, 6 custom configs per
 integration, 1 direct deal per break or pod. Names are unique case-insensitively per
 object type. Autoplay is On/Off/Auto; Passive volume is 0–100 and is the player's only
-volume — a config fork carrying one is refused. Heavy configurations warn with counted
+volume on the default; a custom config may override it, or any other field, and is held
+to the same rules. Pause below visibility is 0 or 10–100, and 1–9 is refused by name —
+below 10% the player cannot tell. Heavy configurations warn with counted
 arithmetic ("4 tries × 2.5s is a 10s wait before anything plays") but never block a save
 — warnings are levers, refusals are walls, and the difference is deliberate.
 

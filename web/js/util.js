@@ -18,6 +18,16 @@ function esc(s) {
 // the seller's word for it, and the only place it is spelled.
 const WF_WORD = 'Global waterfall';
 
+// HEADER BIDDING (10 Sep, user call) — who else bids for a slot before the ad server is
+// asked. The setup answers once at its head; every slot borrows that answer (`Auto`) or
+// gives its own. Named once here, both for the section's head and for every slot's row.
+const HB_WORD = 'Header bidding';
+// The answers, spelled here as well as in meta (`meta.headerBidding` / `meta.slotHeaderBidding`),
+// so a control never paints EMPTY against an API that predates them — the `pauseModes`
+// fallback rule. Meta wins when it answers; this is what the page draws when it does not.
+const HB_ANSWERS = ['off', 'amazon_prebid', 'amazon', 'prebid'];
+const HB_SLOT_ANSWERS = ['auto', ...HB_ANSWERS];
+
 const LABELS = {
   property: { TOI: 'TOI', ET: 'ET', NBT: 'NBT' },
   platform: { mweb: 'Mweb', desktop: 'Desktop', android: 'Android', ios: 'iOS' },
@@ -25,6 +35,17 @@ const LABELS = {
   playbackMode: { inline: 'Inline', inline_redirect: 'Inline + redirect', youtube: 'YouTube' },
   // A config's playback mode (2 Sep) — the user's vocabulary, verbatim.
   playback: { active: 'Active', passive: 'Passive' },
+  // The Player behaviour card's own vocabularies (11 Sep, docs/PLAYER-LEVERS.xlsx). `controls`
+  // above is the RETIRED 19 Aug field — same three answers, different field — so the new
+  // one is keyed by its own field name and the two can never be read for each other.
+  controlsMode: { full: 'Full', minimal: 'Minimal', none: 'None' },
+  endScreen: { none: 'None', related: 'Related', custom: 'Custom' },
+  dock: { off: 'Off', lt: 'Top left', rt: 'Top right', lb: 'Bottom left', rb: 'Bottom right' },
+  analyticsLevel: { 1: 'Basic', 2: 'Basic + ads', 3: 'Full' },
+  playerControl: {
+    play: 'Play / pause', progress: 'Progress bar', volume: 'Volume', fullscreen: 'Fullscreen',
+    quality: 'Quality', captions: 'Captions', speed: 'Speed', pip: 'Picture in picture', share: 'Share',
+  },
   expandInMini: { true: 'True', false: 'False' },
   endOfVideo: { loop: 'Loop', upnext: 'Play next', replay: 'Replay + related' },
   preload: { none: 'None', metadata: 'Metadata', auto: 'Full' },
@@ -53,6 +74,13 @@ const LABELS = {
   // player-side with the position, never here.
   displaySlot: { player_bottom: 'Player bottom', player_top: 'Player top', l_50: 'L-band 50' },
   pause: { yes: 'Yes', no: 'No', size: 'Auto' },
+  // Whose sound is quiet while the content keeps playing under an ad (11 Sep).
+  mute: { ad: 'Ad', content: 'Content' },
+  // Header bidding (10 Sep): the partners in the user's own spelling, compact because
+  // these five sit in one seg on every slot. `Auto` borrows the setup's answer — the
+  // same grammar `Content pause` uses for "each unit's own", so an inherited answer and
+  // the concrete ones share one control rather than needing a mode switch above it.
+  headerBidding: { auto: 'Auto', off: 'Off', amazon_prebid: 'Amazon+Prebid', amazon: 'Amazon', prebid: 'Prebid' },
   tagType: { video: 'Video', display: 'Display' },
   // Short by design: these sit as a badge beside every tag, and a badge is read, not
   // parsed. THREE providers since 27 Aug — SLike behaved exactly like CAN (a pasted
@@ -295,7 +323,6 @@ function fadeInView() {
  * The rule follows from what a pill IS: two seconds, bottom of the screen, nowhere near
  * where you are looking. Nothing that has to be READ survives that, so nothing that has
  * to be read goes in it. Each kind of text has a better home, and they are all in use:
- *   · a soft warning ("4 breaks — a lot")  → THE CHANGE REVIEW, before the act (pubFlagsHtml)
  *   · a refusal that names a number        → in place, on the field or the row that refused
  *   · a skipped/left-alone list            → the rows themselves, which show their state
  *   · an exact value behind a short one    → title=, per the 7 Sep tooltip policy
@@ -473,14 +500,26 @@ const FIELD_NAMES = {
   nextAd: 'Waterfall fill order',
   times: 'Schedule', hold: 'Display duration', perSession: 'Total Target Impressions',
   tagTimeoutMs: 'Request timeout', behaviour: 'Ad behaviour',
+  headerBidding: 'Header bidding',
   // The player's JSON (31 Aug, AD-JSON-SCOPE): the break's giving-up point, a cadence
   // that stops, the idle player's rotation, a banner's own facts, playback timing.
   fillTimeoutSec: 'Total timeout',
-  displaySlot: 'Ad placement', pause: 'Content pause',
+  displaySlot: 'Ad placement', pause: 'Content pause', mute: 'Mute',
   showAfterSec: 'Request delay', closeAfterSec: 'Close button', hideAfterSec: 'Auto-hide',
   direct: 'Special',
   prefetchSec: 'Prefetch', minContentSec: 'Min content playback', expandInMini: 'Expand MiniTV for ads',
   playback: 'Playback mode', playerConfigs: 'Player configs',
+  // The card's own fields — a diff line must never print a JSON key at anyone.
+  quality: 'Quality', muted: 'Starts muted',
+  rememberVolume: 'Remember volume', rememberAudioLang: 'Remember audio language',
+  rememberCaptions: 'Remember captions',
+  controlsMode: 'Controls', hiddenControls: 'Hidden controls', playbackRates: 'Speeds',
+  controlsAutoHideMs: 'Hide controls after', dock: 'Dock position',
+  autoPausePct: 'Pause below visibility', loop: 'Loop', endScreen: 'End screen',
+  brandColor: 'Brand colour', textColor: 'Text colour', logoUrl: 'Logo',
+  analyticsLevel: 'Events reported', viewAfterMs: 'A view counts after',
+  heartbeatMs: 'Heartbeat every', comscoreId: 'comScore id', nielsenId: 'Nielsen id',
+  gaId: 'Google Analytics id',
   tplId: 'Ad unit template', url: 'Request URL',
   // The drive — the per-break quick decisions (26 Aug, DRIVING-SCOPE). `ask` reads
   // "Waterfall order" (5 Sep — waterfall in place of fallback everywhere): the tiers

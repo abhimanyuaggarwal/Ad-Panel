@@ -1,6 +1,7 @@
 // views-keys-editor-frame.js — the integration page's FRAME and its writes: the header
 // (name, publish state, Save / Publish, the ⋯ menu), the page render that assembles the
-// three cards, WHAT A SAVE WRITES (`keyPayload`, the field-level change list), and
+// FOUR cards (Details · Player behaviour · Player configs · Ad behaviour — 11 Sep: the
+// player's 25 levers could not keep lodging inside Details), WHAT A SAVE WRITES (`keyPayload`, the field-level change list), and
 // save / create / duplicate / delete plus the new-integration chooser.
 // Loads last of the four integration-page files.
 function renderKeyForm(meta) {
@@ -55,10 +56,9 @@ function renderKeyForm(meta) {
           ${chipsFieldHtml('Domains', 'domains', { placeholder: 'add a domain and press Enter', grow: true, dep: 'web' })}
           ${textFieldHtml('Package name', 'packageName', { placeholder: 'com.toi.reader', mono: true, grow: true, dep: 'app' })}
         </div>
-        ${playerFieldsHtml()}
       </div>
 
-      ${customConfigsHtml()}
+      ${playerCardHtml()}
 
       ${adsCardHtml(meta)}
     </div>
@@ -127,9 +127,13 @@ function keyChangeList(a, b) {
       out.push({ where: 'Player configs', field: nm, label: nm,
         fromText: ca[nm].on !== false ? 'on' : 'off', toText: cb[nm].on !== false ? 'on' : 'off' });
     }
-    for (const f of ['playback', 'expandInMini', 'autoplay']) {
+    // EVERY FIELD A CONFIG MAY OVERRIDE (13 Sep) — the seam's own list. A config is
+    // sparse, so an absent side reads `follows default`, in words: a new override on an
+    // existing config is one line, and dropping one is one line too.
+    for (const f of (KL_META.playerFields || [])) {
       if (JSON.stringify(ca[nm][f]) !== JSON.stringify(cb[nm][f])) {
-        out.push({ where: `Player configs · ${nm}`, field: f, from: ca[nm][f], to: cb[nm][f] });
+        out.push({ where: `Player configs · ${nm}`, field: f,
+          fromText: pbWord(f, ca[nm][f]), toText: pbWord(f, cb[nm][f]) });
       }
     }
   }
@@ -176,13 +180,40 @@ function createChangeList() {
   born('', 'property', d.property);
   born('', 'platform', label('platform', d.platform));
   born('', web ? 'domains' : 'packageName', web ? d.domains.join(', ') : d.packageName.trim());
+  // THE PLAYER, SECTION BY SECTION (11 Sep) — the card's THREE sections, in the card's
+  // own order, so the birth certificate reads as the page someone just filled in. Only
+  // what a reader would otherwise open a fold to learn: what decides how the player acts.
   const p = d.player || {};
-  born('Player', 'playback', label('playback', p.playback ?? 'active'));
-  born('Player', 'expandInMini', (p.expandInMini ?? true) ? 'True' : 'False');
-  born('Player', 'autoplay', label('autoplay', p.autoplay ?? 'auto'));
-  born('Player', 'passiveVolume', `${p.passiveVolume ?? 100}%`);
+  const secsOf = ms => (ms > 0 ? `${ms / 1000}s` : 'off');
+  born('Playback', 'playbackMode', label('playbackMode', p.playbackMode));
+  born('Playback', 'quality', (p.quality || 'auto') === 'auto' ? 'Auto' : p.quality);
+  born('Playback', 'fallbackMediaId', (p.fallbackMediaId || '').trim());
+  born('Playback', 'autoplay', label('autoplay', p.autoplay ?? 'auto'));
+  born('Playback', 'passiveVolume', `${p.passiveVolume ?? 100}%`);
+  born('Playback', 'muted', p.muted ? 'Yes' : 'No');
+  born('Playback', 'playback', label('playback', p.playback ?? 'active'));
+  born('Playback', 'expandInMini', (p.expandInMini ?? true) ? 'Yes' : 'No');
+  born('Playback', 'rememberVolume', (p.rememberVolume ?? true) ? 'Yes' : 'No');
+  born('Playback', 'rememberAudioLang', (p.rememberAudioLang ?? true) ? 'Yes' : 'No');
+  born('Playback', 'rememberCaptions', (p.rememberCaptions ?? true) ? 'Yes' : 'No');
+  born('Controls & appearance', 'controlsMode', label('controlsMode', p.controlsMode ?? 'full'));
+  born('Controls & appearance', 'hiddenControls', (p.hiddenControls || []).length
+    ? p.hiddenControls.map(x => label('playerControl', x)).join(', ') : 'none hidden');
+  born('Controls & appearance', 'controlsAutoHideMs', secsOf(p.controlsAutoHideMs ?? 5000));
+  born('Playback', 'dock', label('dock', p.dock ?? 'lb'));
+  born('Playback', 'autoPausePct', (p.autoPausePct ?? 0) > 0 ? `${p.autoPausePct}%` : 'off');
+  born('Playback', 'loop', p.loop ? 'Yes' : 'No');
+  born('Playback', 'endScreen', label('endScreen', p.endScreen ?? 'none'));
+  born('Controls & appearance', 'brandColor', p.brandColor || '');
+  born('Controls & appearance', 'textColor', p.textColor || '');
+  born('Controls & appearance', 'logoUrl', (p.logoUrl || '').trim());
+  born('Analytics & measurement', 'analyticsLevel', label('analyticsLevel', p.analyticsLevel ?? 3));
+  born('Analytics & measurement', 'viewAfterMs', secsOf(p.viewAfterMs ?? 3000));
+  born('Analytics & measurement', 'heartbeatMs', secsOf(p.heartbeatMs ?? 10000));
   for (const c of d.playerConfigs || []) {
-    rows.push({ where: 'Player configs', field: c.name, label: c.name, fromText: '—', toText: c.on === false ? 'added — off' : 'added' });
+    const n = (KL_META.playerFields || []).filter(f => c[f] !== undefined).length;
+    rows.push({ where: 'Player configs', field: c.name, label: c.name, fromText: '—',
+      toText: `${c.on === false ? 'added — off' : 'added'}${n ? ` · ${n} override${n === 1 ? '' : 's'}` : ' · follows the default'}` });
   }
   const setup = sectionSetup(0);
   rows.push({ where: 'Ad behaviour', field: 'adSetupId', fromText: '—',
@@ -251,9 +282,10 @@ async function saveKeyClicked(opts = {}) {
       FORM.saved = JSON.parse(JSON.stringify(FORM.data));
       await pubReload();
       PUB.name = KEY_ORIGINAL.name;
-      // The pill says the act; the header chip counts what waits to publish, and the
-      // warnings are handed back to whoever asked for the save — Publish reads them on
-      // THE CHANGE REVIEW (7 Sep, user call: the receipt carries the act and nothing else).
+      // The pill says the act; the header chip counts what waits to publish. The API's
+      // soft `warnings` are still handed back to whoever asked for the save, but nothing
+      // reads them since 11 Sep — the amber block they filled on THE CHANGE REVIEW was
+      // removed (user call). They never belonged in the two-second pill either.
       if (!quiet) toast('Saved');
       return { warnings };
     } else {

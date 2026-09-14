@@ -7,12 +7,13 @@
 | **Scope** | The Player Console only (`panel/`). The StreamAds direct-partner platform in `v2/` is a separate product and is not covered by this document. "v1" below means the console's first production release. |
 | **Audience** | Player engineering · platform engineering · ad ops · product |
 | **Read with** | `panel/ARCHITECTURE.md` (engineering map) · `panel/PRODUCT-LOG.md` (decision record) · `panel/docs/PRODUCT-SCOPE.md` (product overview) · `panel/docs/DECISION-RECORDS.md` (the scope documents, one chapter each) · `panel/test/run.js` (129 rules — the executable spec) |
-| **Version** | v4 · 7 Sep 2026 |
+| **Version** | v5 · 10 Sep 2026 |
 
 **Change log**
 
 | Version | Date | What changed |
 |---|---|---|
+| v5 | 10 Sep | Header bidding added (Q21b, the node table, Open Item 11) |
 | v4 | 7 Sep | Senior PM review applied: section F for ad ops and product, Open Items with owners, serving-layer answers (caching, failure mode, draft preview), migration and roles, prototype vs proposed labelled, one word per concept |
 | v3 | 7 Sep | Rewritten in a junior developer's voice, answers as pointers, appendices and glossary added |
 | v2 | 7 Sep | Restructured as numbered questions with a header block and index |
@@ -28,7 +29,7 @@
 |---|---|
 | **A · Getting started** | Q1 what is this · Q2 the two screens · Q3 what's an integration · Q4 can surfaces share a setup · Q5 do we deploy this repo · Q6 how do I run it |
 | **B · The JSON** | Q7 where does the player get it · Q8 do I change player code · Q9 why did the demo JSON look different · Q10 multiple placements · Q11 what happened to `repeat` · Q12 what happened to `totalImpression` · Q13 timeouts: conf or per break · Q14 where are the `sizes` · Q15 what is `unittpl` / `tpl` · Q16 seconds or milliseconds · Q17 what's still undecided |
-| **C · Screens → JSON** | Q18 new integration, when can I fetch it · Q19 which screen writes which node · Q20 the quick decisions · Q21 the waterfall · Q22 custom config vs placement |
+| **C · Screens → JSON** | Q18 new integration, when can I fetch it · Q19 which screen writes which node · Q20 the quick decisions · Q21 the waterfall · Q21b header bidding · Q22 custom config vs placement |
 | **D · What happens when…** | Q23 break on, no demand · Q24 Save vs Publish · Q25 what does restore do · Q26 can ops delete something live · Q27 "not in GAM" · Q28 refuse vs warn · Q29 two people edit at once · Q30 the limits · Q31 how often does the player fetch · Q32 what if `/live` fails · Q33 can I preview a draft |
 | **E · Working with the API** | Q34 what endpoints exist · Q35 what do errors look like · Q36 what do I read first · Q37 what is NOT in v1 · Q38 how do existing surfaces get in · Q39 who can publish |
 | **F · For ad ops and product** | Q40 pause mid-rolls tonight · Q41 what "on air" means · Q42 a refusal names another team's object · Q43 will my copy change when the original does · Q44 when will viewers see my change |
@@ -110,7 +111,7 @@ GET /panel/live/:apiKey   →  200  the published config
 - **No.** Settled on the 6 Sep call.
 - The production server emits the **exact contract the player reads today**: same keys (`init`, `maxWait`, `timeout`, `delay`, `skip`, `hide`, `slot`…), same milliseconds.
 - The console's internal shape is translated at one serialization boundary; the player never sees it.
-- Four small encoding details are still open, each with a recommendation (Q17). One player-side behaviour needs confirming: what it does when the config fails to load (Q32).
+- Six small encoding details are still open, each with a recommendation (Q17). One player-side behaviour needs confirming: what it does when the config fails to load (Q32).
 
 ### Q9. The JSON in the demo looked different from our ads JSON. Why?
 
@@ -181,7 +182,7 @@ GET /live?key=sak_toi_mweb_…&placement=shorts_feed
 
 ### Q17. What's still not decided on the contract?
 
-Four encodings, each with a recommendation. Owners and dates are in Open Items #1–#4.
+Six encodings, each with a recommendation. Owners and dates are in Open Items #1–#4, #12 and #13.
 
 | Flag | Open question | Recommendation |
 |---|---|---|
@@ -189,6 +190,8 @@ Four encodings, each with a recommendation. Owners and dates are in Open Items #
 | B | Out-stream `repeat` array semantics | One `outStream` entry per show time (mirrors Q11) |
 | C | Out-stream hold ("each banner holds 20s") has no key | Emit as each unit's `hide` |
 | D | The full macro vocabulary | Player team hands over the complete list, owns additions |
+| E | Whose sound is quiet while content plays under an ad — no key today (11 Sep) | Emit per unit as `mute`: `"ad"` (default) · `"content"`; the player reads it only when `pause ≠ 1` |
+| F | Who bids for ONE unit, where it differs from its break — no key today (11 Sep) | Emit per unit as `headerBidding`, RESOLVED like the break's (`off` · `amazon_prebid` · `amazon` · `prebid`, never `auto`); a pasted-URL unit is always `off` |
 
 Everything else on the contract is settled.
 
@@ -213,6 +216,7 @@ Everything else on the contract is settled.
 | The SPECIAL zone in a break (named DIRECT until 7 Sep) | `units.direct`: one deal, tried first |
 | Mid-roll pods (up to 3) | Multiple `mid` pods |
 | Delivery settings rows | `conf` values + pod timing (`init`, `impression`) |
+| `Header bidding` on a slot, on an integration's break, or the setup's own answer | the break's resolved `headerBidding`: `off` · `amazon_prebid` · `amazon` · `prebid` — **never `auto`**, which is a console-side inheritance (see Q21b) |
 | An ad unit's settings (the block's second tier) | That unit's `pause`, `tpl`, and for banners `slot`, `delay`, `skip`, `hide` |
 | The out-stream tab | `outStream` |
 
@@ -235,12 +239,43 @@ Everything else on the contract is settled.
 - On the wire it's invisible: the ad units are materialized into each connected break at save, so serving code reads one truth.
 - Fails closed both ways: you can't gut a waterfall a live connected break stands on (refused, names the surface), and a connected break over an empty waterfall counts as "no demand".
 
+### Q21b. What is header bidding here, and what does the player get?
+
+- **One answer per ad setup** — `Off` · `Amazon+Prebid` · `Amazon` · `Prebid` — set in the
+  `Header bidding` row of the setup's **Global settings** section, right above the waterfall
+  (added 10 Sep; the two share one folded head since 11 Sep).
+- **Every ad slot answers too**, as the first row of its DELIVERY SETTINGS: `Auto │ Off │ Custom`,
+  and while Custom stands a second seg with `Amazon+Prebid │ Amazon │ Prebid`. `Auto` is the default
+  and means *borrow the setup's answer* (named beside the seg), so one act at the head reaches every
+  slot that has not dissented. Mid-roll pods answer per pod; the out-stream is included (a banner
+  slot is what Prebid was built for).
+- **Every ad unit answers too** (11 Sep), one tier down in the same grammar, in its own settings:
+  `Auto │ Off │ Custom` + partners. `Auto` borrows the BREAK's served answer (named beside it), so
+  one act at the head still reaches every unit that has not dissented. A pasted-URL (CAN) unit
+  makes no GAM request for bidders to decorate, so its row greys with that reason and a named
+  answer is refused.
+- **It is a link, not a copy.** A borrowing slot stores `auto`, so changing the setup's answer
+  changes what every borrowing slot runs, and a dissenting slot keeps its own. `auto` is refused as
+  the setup's own answer — the thing being borrowed cannot borrow.
+- **A surface can answer it too** (11 Sep): `Header bidding` is a quick decision on the
+  integration's Ad behaviour section and in the bulk sheet — `As set up │ Off │ Custom` — stored
+  sparse on its drive and resolved over the ad setup, so absence means *follow the setup*. It is
+  the out-stream's only quick decision.
+- **The player is handed it RESOLVED**, on each break's `behaviour`/`conf` and (11 Sep) on every
+  walk entry as the unit's own `headerBidding`: the console does the join, so the client never sees
+  `auto` and never has to read two places to know who bids.
+  It rides the publish plane like everything else — the draft answer reaches nobody until Publish.
+- **[proposed]** The panel says WHO bids, not HOW: bidder ids, slot params, price granularity and
+  the auction timeout live in the player's own Amazon/Prebid wiring. If the player team needs any of
+  those per slot, that is a new field and a new decision — it is not implied by this one.
+
 ### Q22. Custom player config vs placement: I keep mixing them up.
 
 - **Placement** = demand-side. A named spot in the surface (Default, Shorts feed) with its own breaks and waterfalls. Decides *what ads run where*.
-- **Custom config** = player-side. A named fork of exactly **three facts** (playback mode, expand MiniTV, autoplay) a page asks for by key. Decides *how the player behaves*.
+- **Custom config** = player-side. A named set of OVERRIDES a page asks for by key. It may override ANY of the player's 29 fields and carries only the ones it overrides; everything else follows the default live. Decides *how the player behaves* for that key.
+- **What stops a bad override?** The same rules as the default — a config's overrides are laid over the default and run through the one normalizer, so a bad hex, a visibility threshold under 10 or an unknown control name is refused by name exactly as it would be on the default. And VISIBILITY: every override is an accent cell in the config's column, a count on its section's closed row (`3 differ`), and a line in the change review. Measurement overrides are legal and are named like any other; the review is where a wrong one is caught.
+- **Where is it edited?** In the Player config grid on the integration page: the default is the first column and each config is a column beside it. A faded cell follows the default; click it and set it and it is the config's own (accent ink, with × to let go — or Backspace, or `Default` at the top of its menu). No modal, no Edit button; Save and Publish are unchanged. To work in one config alone, click its count on any closed section row (or `Show only this config` in the column's ⋯) — it is drawn beside the default, which never leaves, and `‹ All N configs` in the header brings the rest back.
 - Both are asked for by name in the request; they answer different questions.
-- A config never carries a volume: `passiveVolume` is the player's one volume, set once in Details. A fork with its own volume is refused.
 
 ---
 
@@ -308,7 +343,10 @@ Everything else on the contract is settled.
 | Out-stream rotation | 5 ad units |
 | Custom configs per integration | 6 |
 | Config / template key | one word, `[A-Za-z0-9_-]{1,24}`, unique, never `default` |
-| Passive volume | 0–100, the player's only volume |
+| Passive volume | 0–100 on the default; a custom config may override it |
+| Fields a custom config may override | any of the 29 — stored sparse, resolved live |
+| Hidden controls | from a fixed vocabulary the player team owns |
+| Pause below visibility | 0 (off) or 10–100 — 1–9 refused by name |
 
 - Every cap refuses by name, counting what was found against what's allowed: *"A mid-roll holds at most 3 break groups (got 4)."*
 
@@ -451,6 +489,9 @@ Everything in this document that is agreed in direction but not yet closed. Owne
 | 8 | Player plays without ads when `/live` fails: confirm or build | Player team lead | Kickoff | Q32 |
 | 9 | Draft JSON preview: design the door and endpoint | Platform eng lead + Abhimanyu Aggarwal | Design before build | Q33 |
 | 10 | Placement parameter name, and behaviour on an unknown placement | Player team lead + Platform eng lead | Kickoff | Q10 |
+| 11 | Header bidding: the player-side Amazon/Prebid wiring the console's answer switches on — bidder ids, slot params, auction timeout — and whether any of it must be per slot | Player team lead + Abhimanyu Aggarwal | Kickoff | Q21b |
+| 12 | Flag E: per-unit `mute` (Ad / Content) while content plays | Player team lead | Kickoff | Q17 |
+| 13 | Flag F: per-unit `headerBidding`, resolved, on every walk entry | Player team lead | Kickoff | Q17, Q21b |
 
 ---
 
@@ -544,10 +585,12 @@ Seconds ×1000 at the boundary; `tagTimeoutMs` and `waitMs` are already ms and p
 | `unit.tpl` | Requests through (the unit's settings) | template name when chosen and on; otherwise omitted |
 | `unit.sizes` | Not authored (Q14) | never emitted; slot owns sizes player-side |
 | `delay` | Appears after (banners) | `showAfterSec × 1000` · always `0` for video |
-| `pause` | Content pause: Yes / No / By player size | `yes → 1` · `no → 0` · `size → -1` |
-| `skip` | Close button after (greys when pause = Yes) | `closeAfterSec × 1000` |
+| `pause` | Content pause: Yes / No / Auto — the parent of `slot`, `mute` and `skip`, which are asked only while content plays (No, Auto) | `yes → 1` · `no → 0` · `size → -1` |
+| `skip` | Close button (only while content plays; not shown when pause = Yes) | `closeAfterSec × 1000` |
 | `hide` | Auto-hides after | `hideAfterSec × 1000` |
-| `slot` | Display slot (fixed dropdown) | as-is |
+| `slot` | Ad placement (only while content plays; not shown when pause = Yes) | as-is |
+| (no key) | **Mute** — Ad / Content: whose sound is quiet while both render (only while content plays) | flag E: recommend a per-unit `mute`: `"ad"` · `"content"`; read only when `pause ≠ 1` |
+| (no key) | **Header bidding** on the unit — Auto (the break's) / Off / Custom + partners; greyed on a pasted URL | flag F: per-unit `headerBidding`, resolved — the unit's own, else the break's; `off` on a pasted URL |
 
 **`outStream[]`**
 

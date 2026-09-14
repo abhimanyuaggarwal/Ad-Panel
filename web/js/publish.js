@@ -63,18 +63,6 @@ function statusCellHtml(o) {
 // something to publish, because at that moment it is the act the page is for.
 // ---------- the rail ----------
 
-function pubChangeLine(c) {
-  const from = showVal(c.field, c.from);
-  const to = showVal(c.field, c.to);
-  const name = fieldName(c.field);
-  const where = c.where ? `<span class="vc-where">${esc(c.where)}</span>` : '';
-  // A long value makes a useless diff — say what moved, not the blob.
-  const body = (from.length > 24 || to.length > 24)
-    ? `${esc(name)} <span class="vc-to">${esc(clip(to, 40))}</span>`
-    : `${esc(name)} <code>${esc(from)}</code> → <code>${esc(to)}</code>`;
-  return `<div class="vc">${where}${body}</div>`;
-}
-
 // TWO STATES, NOT THREE (31 Aug, user call). "Saved" isolated a single row — the
 // pending block — that is always the first thing in All, and whose count already sits
 // in the header chip and on the Publish button. A filter that hides two rows to reveal
@@ -191,12 +179,10 @@ async function publishClicked() {
   // the same act, no interposing dialog (a save writes only the draft, which reaches no
   // viewer, so it needs no confirmation of its own; the publish review that follows is
   // where the whole session is read). A refused save stops the flow with its own message.
-  let saveWarnings = [];
   let savedQuietly = false;
   if (PUB.dirty && PUB.dirty()) {
-    const r = await PUB.saveNow({ quiet: true });
+    await PUB.saveNow({ quiet: true });
     if (PUB.dirty()) return; // the save was refused — its own message stands
-    saveWarnings = r?.warnings || [];
     savedQuietly = true;
   }
   const n = (PUB.unpublished || []).length;
@@ -210,16 +196,13 @@ async function publishClicked() {
     okLabel: live ? 'Publish' : 'Go on air',
     cancelLabel: 'Cancel',
     emptyText: 'Nothing to publish — what is on air is what you see.',
-    // The quiet save just ran: whatever it flagged is read HERE, before the act.
-    caution: pubFlagsHtml(saveWarnings),
     // The note (6 Sep, user call): one line in the person's own words, written at the
     // moment they have just re-read the session's changes — kept with the version.
     withNote: true,
-    notePlaceholder: 'Add a note for the version history — optional',
+    notePlaceholder: 'Add a note — optional',
   });
   if (!res) {
-    // The quiet save DID happen, so it gets its receipt — and its flags were already
-    // read on the screen just cancelled.
+    // The quiet save DID happen, so it gets its receipt.
     if (savedQuietly) toast('Saved, not published');
     return;
   }
@@ -244,18 +227,12 @@ async function publishClicked() {
 //   3. Where am I going back to? — whose version, from when.
 //   4. Can I undo it? — yes, and the dialog says so by naming the number this lands as
 //      and the number that stays behind.
-// SOFT FLAGS, READ BEFORE THE ACT INSTEAD OF AFTER IT (7 Sep, user call). A save's
-// warnings used to ride the receipt as extra lines — "Saved" and then a paragraph in a
-// two-second pill nobody is looking at. They are levers, not walls, so they belong on THE
-// CHANGE REVIEW: the one screen where the traffic about to move is already being read,
-// with room to read them and no clock. Amber, under the change list, above the act.
-function pubFlagsHtml(flags) {
-  if (!flags || !flags.length) return '';
-  return `<div class="rvw-warn soft">
-      <b>Worth a look</b>
-      ${flags.map(f => `<div class="vc">${esc(f)}</div>`).join('')}
-    </div>`;
-}
+// THE SOFT FLAGS ARE GONE (11 Sep, user call — "remove this Worth a look section").
+// A save's warnings ("4 breaks — a lot") rode an amber block between the change list and
+// the act for four days. They were the last thing on this screen that was not a change,
+// and they made publish a different-looking object from the version sheet it is supposed
+// to BE. The screen is now the list and the act, whichever door opened it. The API still
+// returns `warnings` and the savers still hand them back — nothing reads them today.
 
 async function restoreClicked(v) {
   let pre;
@@ -286,15 +263,18 @@ async function restoreClicked(v) {
     title: `Restore v${v}?`,
     kicker: `goes on air as v${pre.nextVersion} — v${pre.liveVersion} stays in history`,
     changes: pre.changes,
-    caution: lost ? `<div class="rvw-warn">
-        <b>${lost} unpublished draft change${lost === 1 ? '' : 's'} will be discarded</b>
-        ${pre.discards.map(pubChangeLine).join('')}
-      </div>` : '',
+    // The discards are CHANGES, so they read as change rows — the same grammar as the
+    // list above them (11 Sep). They used to wear the rail's `.vc` prose line, which
+    // made one screen describe one kind of fact two different ways.
+    caution: lost ? reviewAsideHtml({
+      head: `${lost} unpublished draft change${lost === 1 ? '' : 's'} will be discarded`,
+      changes: pre.discards,
+    }) : '',
     okLabel: `Restore — on air as v${pre.nextVersion}`,
     cancelLabel: 'Cancel',
     danger: lost > 0,
     withNote: true,
-    notePlaceholder: 'Why you went back — optional, kept with the version',
+    notePlaceholder: 'Why you went back — optional',
   });
   if (!res) return;
   try {

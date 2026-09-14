@@ -51,18 +51,50 @@ export const ACCOUNTS = [
 ];
 
 // --- Creation presets (the old three shapes, reborn as value-sets) ---------
+// A preset STAMPS a whole player at creation — a photocopy, never a live link. Since the
+// card grew to hold all 25 levers (11 Sep) the presets carry them too: a new integration that
+// landed on raw defaults would wear a red brand colour and full controls on a feed, and
+// the first thing anyone did would be to correct three sections by hand. The three
+// presets are the three shapes the estate actually runs.
 export const PLAYER_PRESETS = [
   {
+    // A FEED. Passive, loops, carries almost no chrome, docks when scrolled away.
     name: 'MiniTV',
-    values: { autoplay: 'auto', passiveVolume: 60, playbackMode: 'inline', fallbackMediaId: 'med_minitv_default' },
+    values: {
+      autoplay: 'auto', passiveVolume: 60, playbackMode: 'inline', fallbackMediaId: 'med_minitv_default',
+      playback: 'passive', quality: 'auto', muted: true,
+      controlsMode: 'minimal', hiddenControls: ['speed', 'share'], playbackRates: [1, 1.5, 2],
+      controlsAutoHideMs: 3000, dock: 'rb', autoPausePct: 50,
+      loop: true, endScreen: 'none',
+      brandColor: '#e02020', textColor: '#ffffff', logoUrl: '',
+      analyticsLevel: 3, viewAfterMs: 2000, heartbeatMs: 10000,
+    },
   },
   {
+    // AN ARTICLE PLAYER. Sits inside a story: quiet, full chrome, related at the end.
     name: 'ArticleShow',
-    values: { autoplay: 'auto', passiveVolume: 80, playbackMode: 'inline', fallbackMediaId: 'med_article_default' },
+    values: {
+      autoplay: 'auto', passiveVolume: 80, playbackMode: 'inline', fallbackMediaId: 'med_article_default',
+      playback: 'passive', quality: 'auto', muted: true,
+      controlsMode: 'full', hiddenControls: [], playbackRates: [0.5, 1, 1.25, 1.5, 2],
+      controlsAutoHideMs: 5000, dock: 'lb', autoPausePct: 30,
+      loop: false, endScreen: 'related',
+      brandColor: '#1a73e8', textColor: '#ffffff', logoUrl: '',
+      analyticsLevel: 3, viewAfterMs: 3000, heartbeatMs: 10000,
+    },
   },
   {
+    // A DESTINATION. The viewer came for the video: active, loud, everything on.
     name: 'VideoShow',
-    values: { autoplay: 'on', passiveVolume: 100, playbackMode: 'inline', fallbackMediaId: 'med_videoshow_default' },
+    values: {
+      autoplay: 'on', passiveVolume: 100, playbackMode: 'inline', fallbackMediaId: 'med_videoshow_default',
+      playback: 'active', quality: 'auto', muted: false,
+      controlsMode: 'full', hiddenControls: [], playbackRates: [0.5, 1, 1.25, 1.5, 2],
+      controlsAutoHideMs: 5000, dock: 'rb', autoPausePct: 0,
+      loop: false, endScreen: 'related',
+      brandColor: '#c1272d', textColor: '#ffffff', logoUrl: '',
+      analyticsLevel: 3, viewAfterMs: 3000, heartbeatMs: 10000,
+    },
   },
 ];
 
@@ -122,7 +154,11 @@ function place(name, preset, ladders = {}) {
           behaviour: { ...preset.slots[t], ...(g.behaviour || {}) },
         })) }];
       }
-      return [t, { rungs: l.rungs, waterfallSource: l.waterfallSource, behaviour: preset.slots[t], direct: l.direct }];
+      // A slot may BEND the preset it was stamped from (`behaviour:` beside its rungs),
+      // the way a pod does — how a seeded break dissents from the shape, e.g. its own
+      // header bidding answer where the surface's global is not the one it wants.
+      return [t, { rungs: l.rungs, waterfallSource: l.waterfallSource,
+        behaviour: { ...preset.slots[t], ...(l.behaviour || {}) }, direct: l.direct }];
     })),
   };
 }
@@ -206,6 +242,11 @@ export function resetWorld(opts = {}) {
     // Shorts feed post-roll below FOLLOWS it (its own unit kept, parked), so the link,
     // the levers and the source switch's way back all have something to show.
     waterfall: L(tRon, tVideo.toiBackfill, tDisplay.toiMwebVsDisp),
+    // HEADER BIDDING, on the surface that has everything else (10 Sep): both libraries
+    // at the head, one break running Prebid alone and one refusing bidders outright —
+    // so `Auto`, a slot's own answer and a slot's `Off` are all on screen at once, and
+    // the counted "N of M follow it" line is never a set of one.
+    headerBidding: 'amazon_prebid',
     sections: [
       // FULL DEPTH: ten rungs, the cap — one primary and nine waterfalls, with the GPT
       // display sitting mid-walk and two rungs switched off by ops INSIDE the tail. The
@@ -228,13 +269,15 @@ export function resetWorld(opts = {}) {
           tVideo.toiShortsPre,          // Waterfall 8 · IMA
           tVideo.toiMwebVsMid,          // Waterfall 9 · IMA
         ) },
-        midroll: L(tVideo.toiMwebVsMid, tVideo.toiBackfill, tVideo.toiWebVsMid, tVideo.toiBackfill2),
+        midroll: { ...L(tVideo.toiMwebVsMid, tVideo.toiBackfill, tVideo.toiWebVsMid, tVideo.toiBackfill2),
+          behaviour: { headerBidding: 'prebid' } },
         // NO GPT here on purpose: the post-roll is the world "GPT only" falls back in.
         postroll: L(tVideo.toiMwebVsPost, tVideo.toiBackfill, tVideo.toiWebVsMid),
       }),
       place('Shorts feed', B.MiniTV, {
-        preroll: L(tVideo.toiShortsPre, tVideo.toiBackfill, tDisplay.toiMwebVsDisp,
-                   tVideo.toiBackfill2, tVideo.toiWebVsMid),
+        preroll: { ...L(tVideo.toiShortsPre, tVideo.toiBackfill, tDisplay.toiMwebVsDisp,
+                        tVideo.toiBackfill2, tVideo.toiWebVsMid),
+          behaviour: { headerBidding: 'off' } },
         midroll: L(tVideo.toiMwebVsMid, tVideo.toiBackfill2),
         // Follows the waterfall; its own unit stays as the kept arrangement.
         postroll: { ...L(tVideo.toiMwebVsPost), waterfallSource: 'setup' },

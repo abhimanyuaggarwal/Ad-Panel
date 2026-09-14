@@ -29,6 +29,58 @@ export const PLAYBACK_MODES = ['inline', 'inline_redirect', 'youtube'];
 // A config's PLAYBACK MODE (2 Sep, user call — replacing the day-old engagement mode):
 // the player runs the placement actively or passively. The user's vocabulary, verbatim.
 export const PLAYBACK_KINDS = ['active', 'passive'];
+
+// ---------- THE PLAYER'S OWN LEVERS (11 Sep, docs/PLAYER-LEVERS.xlsx) ----------
+// The panel stopped being ads-only when it became the Player Console (3 Sep), so the
+// levers the 25 Aug trim sent back to "the publisher's own player" come home — but
+// SECTIONED, named for what they contain and ordered by the playback lifecycle. Four of
+// the five namespaces the player's config block uses map to exactly one section each
+// (pref, controls, theme, analytics); only `playback` splits, because it holds four
+// unrelated moments. The mapping to that block is done at ONE boundary (publish.js).
+export const CONTROLS_MODES = ['full', 'minimal', 'none'];
+export const END_SCREENS = ['none', 'related', 'custom'];
+// Q10's recommendation, implemented: ONE shape — the four corners, plus Off. The block
+// mixes corners with a bare top/bottom, which cannot be drawn as one control; `off` is
+// the empty string on the wire, so the player's own contract is unchanged.
+export const DOCK_POSITIONS = ['off', 'lt', 'rt', 'lb', 'rb'];
+export const DOCK_WORD = { off: 'Off', lt: 'Top left', rt: 'Top right', lb: 'Bottom left', rb: 'Bottom right' };
+// How much the player reports. 1/2/3 on the wire is the player team's encoding; the
+// panel says it in words, because "3" is not a thing anyone can agree to.
+export const ANALYTICS_LEVELS = [1, 2, 3];
+export const ANALYTICS_LEVEL_WORD = { 1: 'Basic', 2: 'Basic + ads', 3: 'Full' };
+// Q6, PROVISIONAL: the player team owns this list and an unknown name is refused by
+// name, exactly as a tag macro is. Until they hand it over the panel holds these nine.
+export const PLAYER_CONTROLS = ['play', 'progress', 'volume', 'fullscreen', 'quality', 'captions', 'speed', 'pip', 'share'];
+export const PLAYER_CONTROL_WORD = {
+  play: 'Play / pause', progress: 'Progress bar', volume: 'Volume', fullscreen: 'Fullscreen',
+  quality: 'Quality', captions: 'Captions', speed: 'Speed', pip: 'Picture in picture', share: 'Share',
+};
+// A SET, not an order — 1x is always in it, so it is never offered as removable.
+export const PLAYBACK_RATES = [0.5, 1, 1.25, 1.5, 2];
+// EVERY FIELD THE PLAYER CARRIES, in the card's own order — the one list the normalizer,
+// the wire boundary, the change review and the custom-config editor all read.
+export const PLAYER_FIELDS = [
+  // Playback · Start
+  'autoplay', 'passiveVolume', 'muted', 'playback', 'expandInMini',
+  'rememberVolume', 'rememberAudioLang', 'rememberCaptions',
+  // Playback · Source
+  'playbackMode', 'redirectUrl', 'quality', 'fallbackMediaId',
+  // Playback · Out of view · Completion
+  'dock', 'autoPausePct', 'loop', 'endScreen',
+  // Controls & appearance
+  'controlsMode', 'hiddenControls', 'playbackRates', 'controlsAutoHideMs',
+  'brandColor', 'textColor', 'logoUrl',
+  // Analytics & measurement
+  'analyticsLevel', 'viewAfterMs', 'heartbeatMs', 'comscoreId', 'nielsenId', 'gaId',
+];
+// A CUSTOM CONFIG MAY OVERRIDE ANY OF THEM (13 Sep, user call — *"create custom config
+// using all these fields"*). This reverses the 11 Sep six-field fork rule and, with it,
+// the 7 Sep "one Passive volume" refusal: the model is now DEFAULT + SPARSE OVERRIDES.
+// A config carries only what it changes and inherits the rest LIVE, so what a fork may
+// not do is no longer policed by a refusal list — it is made VISIBLE instead: every
+// override is named on the row, in the editor and in the change review, and the one
+// group where a wrong answer is otherwise invisible (measurement) is named loudest.
+export const CONFIG_FORKABLE = PLAYER_FIELDS;
 // How an AD starts on this slot — one decision, three answers (25 Aug, user call): it
 // moved out of the player and onto the slot, because it is the ad that is loud, and
 // because a surface wants to flip it per break without touching anything else.
@@ -69,6 +121,22 @@ export const AD_SOURCES = ['own', 'setup', 'none'];
 // this side of HTTP as it is spelled once on the other (`WF_WORD` in web/js/util.js).
 // The wire key stays `setup` — this names it in refusals and warnings, nothing else.
 export const WF_WORD = 'global waterfall';
+// HEADER BIDDING (10 Sep, user call): who else bids for a slot BEFORE the ad server is
+// asked. Two libraries, so four answers — neither, both, or one of them — and they are
+// the SETUP's answer, set once at its head, because a surface that runs Amazon runs it
+// for the whole surface. Every slot may dissent: see SLOT_HEADER_BIDDING.
+export const HEADER_BIDDING = ['off', 'amazon_prebid', 'amazon', 'prebid'];
+// A SLOT's answer adds one: `auto` — borrow the setup's, whatever it says today, which
+// is what almost every slot wants and so is the default said by absence. Off here is a
+// slot REFUSING bidders the rest of the surface runs, which is why it is stored rather
+// than inferred from the global being off.
+export const SLOT_HEADER_BIDDING = ['auto', ...HEADER_BIDDING];
+// The partners' own words (the user's spelling), so a refusal, a warning and the UI
+// agree. Spelled once on each side of HTTP — `LABELS.headerBidding` in web/js/util.js.
+export const HB_WORD = {
+  auto: 'Auto', off: 'Off', amazon_prebid: 'Amazon+Prebid', amazon: 'Amazon', prebid: 'Prebid',
+};
+
 // THREE providers (27 Aug, user call): IMA and GPT are the two client libraries on the
 // GAM account; CAN is the endpoint you paste. SLike was removed — a fourth name that
 // behaved exactly like CAN (a pasted VAST URL answering with video) bought nothing.
@@ -129,6 +197,18 @@ export const DISPLAY_SLOT_WORD = { player_bottom: 'Player bottom', player_top: '
 // (31 Aug, user call: no pixel threshold in the panel — the player owns "small").
 export const PAUSE_MODES = ['yes', 'no', 'size'];
 export const PAUSE_WORD = { yes: 'Yes', no: 'No', size: 'Auto' };
+// WHICH SOUND IS MUTED while the content keeps playing under an ad (11 Sep, user call):
+// two things are rendering, so one of them is quiet — the ad by default, the viewer
+// came for the content. Only asked while `pause` is not Yes; kept underneath otherwise,
+// the way a unit's own pause answer sits under the waterfall's one answer.
+export const MUTE_MODES = ['ad', 'content'];
+export const MUTE_WORD = { ad: 'Ad', content: 'Content' };
+// A BREAK UNIT'S OWN FACTS, IN ONE LIST (11 Sep): the response shape, the snapshot, the
+// player's JSON and the version diff all copy these same seven, so a fact added here
+// reaches every plane at once — four hand-copied lists carried the first five.
+// `headerBidding` (11 Sep) is the unit's answer in the slot's grammar (SLOT_HEADER_BIDDING:
+// `auto` borrows the BREAK's served answer); the player's JSON carries it RESOLVED.
+export const RUNG_FACTS = ['displaySlot', 'pause', 'mute', 'headerBidding', 'showAfterSec', 'closeAfterSec', 'hideAfterSec'];
 // A MID-ROLL IS BREAK GROUPS (31 Aug, user call): up to 3, each with its own cadence
 // and its own ladder. One group is today's mid-roll, and draws no group chrome.
 export const MAX_MIDROLL_GROUPS = 3;
@@ -152,16 +232,29 @@ export const FIELD_WORDS = {
   nextAd: 'where the next ad comes from',
   tagTimeoutMs: 'how long each tag waits',
   ask: 'the ad partners', tries: 'the waterfall depth', direct: 'special campaigns',
+  headerBidding: 'header bidding',
   times: 'the show times', hold: 'the hold',
   refresh: 'the rotation', perSession: 'the total target impressions',
   fillTimeoutSec: 'when the break gives up',
-  displaySlot: 'the display slot', pause: 'whether content pauses',
+  displaySlot: 'the display slot', pause: 'whether content pauses', mute: 'which sound is muted',
   showAfterSec: 'the request delay', closeAfterSec: 'when its close button appears',
   hideAfterSec: 'when it hides',
   // The player's own five (7 Sep, UAT P2 — these printed their JSON key at people).
   passiveVolume: 'Passive volume', autoplay: 'Autoplay behaviour',
   playbackMode: 'Player type', playback: 'Playback mode',
   expandInMini: 'Expand MiniTV for ads', redirectUrl: 'Redirect URL',
+  // The Player behaviour card's own fields (11 Sep) — a refusal must never print a JSON key.
+  quality: 'Quality', muted: 'Starts muted',
+  rememberVolume: 'Remember volume', rememberAudioLang: 'Remember audio language',
+  rememberCaptions: 'Remember captions',
+  controlsMode: 'Controls', hiddenControls: 'Hidden controls',
+  playbackRates: 'Speeds', controlsAutoHideMs: 'Hide controls after',
+  dock: 'Dock position', autoPausePct: 'Pause below visibility',
+  loop: 'Loop', endScreen: 'End screen',
+  brandColor: 'Brand colour', textColor: 'Text colour', logoUrl: 'Logo',
+  analyticsLevel: 'Events reported', viewAfterMs: 'A view counts after',
+  heartbeatMs: 'Heartbeat every', comscoreId: 'comScore id',
+  nielsenId: 'Nielsen id', gaId: 'Google Analytics id',
   name: 'Name', domains: 'Domains', packageName: 'Package name',
 };
 

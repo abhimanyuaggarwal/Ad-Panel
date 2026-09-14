@@ -4,7 +4,7 @@
 // Ladders are described by name (what joined, what left, what was switched) because a
 // field-level diff of an array says nothing a person can read.
 import { slotGroupDefs } from './ladders.js';
-import { DISPLAY_SLOT_WORD, PAUSE_WORD, SLOT_TYPES, SLOT_WORD, state } from './state.js';
+import { DISPLAY_SLOT_WORD, HB_WORD, MUTE_WORD, PAUSE_WORD, PLAYER_FIELDS, RUNG_FACTS, SLOT_TYPES, SLOT_WORD, state } from './state.js';
 
 // ---------- what changed, in words ----------
 // The rail's whole job is "what did this version do?", so a change is a WHERE and a
@@ -36,10 +36,10 @@ function rungFactChanges(where, before, after) {
   for (const r of after || []) {
     const prev = bB[r.tagId];
     if (!prev) continue;
-    for (const f of ['displaySlot', 'pause', 'showAfterSec', 'closeAfterSec', 'hideAfterSec']) {
+    for (const f of RUNG_FACTS) {
       if (JSON.stringify(prev[f]) !== JSON.stringify(r[f])) {
         const t = state.tags.get(r.tagId);
-        const word = v => f === 'displaySlot' ? (DISPLAY_SLOT_WORD[v] || v) : f === 'pause' ? (PAUSE_WORD[v] || v) : v;
+        const word = v => f === 'displaySlot' ? (DISPLAY_SLOT_WORD[v] || v) : f === 'pause' ? (PAUSE_WORD[v] || v) : f === 'mute' ? (MUTE_WORD[v] || v) : f === 'headerBidding' ? (HB_WORD[v] || v) : v;
         out.push({ where: `${where} · ${t ? t.name : r.tagId}`, field: f, from: word(prev[f]), to: word(r[f]) });
       }
     }
@@ -118,9 +118,13 @@ export function versionChanges(kind, before, after) {
         if ((cb[name].on !== false) !== (ca[name].on !== false)) {
           out.push({ where: 'Player configs', field: name, from: cb[name].on !== false ? 'on' : 'off', to: ca[name].on !== false ? 'on' : 'off' });
         }
-        for (const g of ['playback', 'expandInMini', 'autoplay']) {
+        // EVERY FIELD A CONFIG MAY OVERRIDE (13 Sep) — the one list, not a copy of three.
+        // A config is sparse, so an absent side is "follows default", said in words: the
+        // review's whole point is that a new override on an existing config is one line.
+        for (const g of PLAYER_FIELDS) {
           if (JSON.stringify(cb[name][g]) !== JSON.stringify(ca[name][g])) {
-            out.push({ where: `Player configs · ${name}`, field: g, from: cb[name][g], to: ca[name][g] });
+            const word = v => (v === undefined ? 'follows default' : v);
+            out.push({ where: `Player configs · ${name}`, field: g, from: word(cb[name][g]), to: word(ca[name][g]) });
           }
         }
       }

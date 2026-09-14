@@ -4,7 +4,7 @@
 import { listKeys } from './keys.js';
 import { askWord, driveAsk, groupWalks, liveRungs, localWalk, normalizeRungs, normalizeSlotBehaviour, refuseDeadRules, slotGroupDefs } from './ladders.js';
 import { isPublished } from './publish.js';
-import { AD_SOURCES, DIRECTORY_PROVIDERS, WF_WORD, MAX_MIDROLL_GROUPS, MAX_RUNGS, MAX_SECTIONS, PAUSE_MODES, PROPERTY_SCOPES, Refusal, SLOT_ALSO_TAKES, SLOT_FAMILY, SLOT_KIND, SLOT_TYPES, SLOT_WORD, state } from './state.js';
+import { AD_SOURCES, DIRECTORY_PROVIDERS, URL_PROVIDERS, HB_WORD, HEADER_BIDDING, WF_WORD, MAX_MIDROLL_GROUPS, MAX_RUNGS, MAX_SECTIONS, PAUSE_MODES, PROPERTY_SCOPES, Refusal, SLOT_ALSO_TAKES, SLOT_FAMILY, SLOT_KIND, SLOT_TYPES, SLOT_WORD, state } from './state.js';
 import { diff, fmtSecs, httpUrl, intIn, mustGet, oneOf, str, uniqueName } from './validate.js';
 
 // ---------- ad setups (the ops room's object) ----------
@@ -47,6 +47,46 @@ export function servedWaterfallRungs(wf) {
   return cut.map(r => ({ ...r, ...(wf.pauseAll ? { pause: wf.pauseAll } : {}) }));
 }
 
+// ---------- HEADER BIDDING (10 Sep, user call) ----------
+// ONE answer at the setup's head — off, both libraries, or one of them — and every slot
+// borrows it by default (`behaviour.headerBidding: 'auto'`). The shape is the waterfall's
+// shape: a global thing at the head, consumed per break, dissented from per break. It is
+// NOT a ladder, so it has no rungs, no order and no depth — which is why it is its own
+// field rather than a lever on the waterfall.
+//
+// `auto` IS NOT A GLOBAL ANSWER. The global is the thing being borrowed; a global that
+// borrows has nobody to borrow from, so it is refused by name rather than quietly read
+// as `off`.
+export function normalizeHeaderBidding(input, errors) {
+  const v = input === undefined || input === null || input === '' ? 'off' : input;
+  if (v === 'auto') {
+    errors.push({ field: 'headerBidding', message: 'Auto is a slot\u2019s answer \u2014 it borrows this one, so this one has to name the partners (or Off)' });
+    return 'off';
+  }
+  return oneOf(v, 'header bidding', HEADER_BIDDING, errors);
+}
+
+// WHAT A SLOT ACTUALLY RUNS: its own answer, or the setup's while it says `auto`. The one
+// resolver — the live JSON, the counted UI facts and every warning read through it, so
+// the number on screen is the number that serves (`suHbServed` mirrors it web-side).
+export function servedHeaderBidding(slotAnswer, global) {
+  const a = slotAnswer || 'auto';
+  return a === 'auto' ? (global || 'off') : a;
+}
+
+// The partners in words, for a refusal or a warning that has to name the answer.
+export function headerBiddingWord(v) { return HB_WORD[v] || v; }
+
+// WHAT A UNIT ACTUALLY RUNS (11 Sep): its own answer, or its break's served answer while
+// it says `auto` — and always `off` on a pasted URL, which makes no GAM request for
+// bidders to decorate. The player's JSON reads every walk entry through this, so the
+// client never joins the tiers itself (`suRungHbServedWord` mirrors it web-side).
+export function servedUnitHeaderBidding(rung, tag, slotServed) {
+  if (!tag || URL_PROVIDERS.includes(tag.provider)) return 'off';
+  const a = rung.headerBidding || 'auto';
+  return a === 'auto' ? (slotServed || 'off') : a;
+}
+
 export function normalizeSetup(input, exceptId) {
   const errors = [];
   const name = str(input.name);
@@ -56,6 +96,7 @@ export function normalizeSetup(input, exceptId) {
   }
   const property = oneOf(input.property ?? 'All', 'property', PROPERTY_SCOPES, errors);
   const waterfall = normalizeSharedWaterfall(input.waterfall, errors);
+  const headerBidding = normalizeHeaderBidding(input.headerBidding, errors);
 
   // Back-compat input: a bare `slots` object reads as the Default placement.
   const rawSections = Array.isArray(input.sections) && input.sections.length
@@ -260,7 +301,7 @@ export function normalizeSetup(input, exceptId) {
   }
 
   if (errors.length) throw new Refusal(400, 'invalid_setup', 'Ad setup was refused', { errors });
-  return { name, property, waterfall, sections, warnings };
+  return { name, property, waterfall, headerBidding, sections, warnings };
 }
 
 // A slot's direct tier: the live rungs the player would try before the primary.

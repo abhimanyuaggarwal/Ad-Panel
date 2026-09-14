@@ -37,6 +37,11 @@ export function httpUrl(v) {
   }
 }
 
+// A colour the player can actually paint: #rgb or #rrggbb, normalized to lower case.
+export function hexColor(v) {
+  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(v || '').trim());
+}
+
 export const DOMAIN_RE = /^(\*\.)?[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
 export const PACKAGE_RE = /^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$/;
 

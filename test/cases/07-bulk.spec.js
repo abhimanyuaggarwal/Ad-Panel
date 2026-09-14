@@ -92,8 +92,14 @@ export default async function run({ test, req, eq, assert, freshSetup, patchSlot
     const rot = await req('POST', '/panel/keys/bulk', {
       ids: ['key_2'], action: 'driveFields', value: { slot: 'outstream', fields: { tries: 1 } },
     });
-    eq(rot.status, 400, 'a rotation has nothing to decide');
-    assert((rot.body.message || '').includes('takes turns'), 'says why');
+    eq(rot.status, 400, 'a rotation does not carry pod, walk or order semantics');
+    // Was `takes turns — nothing to decide beyond its switch` until the out-stream gained
+    // its FIRST drive field (10 Sep, header bidding). That line refused pod/walk/order
+    // semantics, which a rotation genuinely has none of; who bids for a banner slot is not
+    // one of those. So the refusal now names what the out-stream DOES carry, which is the
+    // more useful answer — and this case pins that rather than the retired sentence.
+    assert((rot.body.message || '').includes('the waterfall depth'), 'names the field it refused');
+    assert((rot.body.message || '').includes('header bidding'), 'and names the one thing a rotation does decide');
     eq((await req('GET', '/panel/keys/key_1')).body.key.drive, null, 'and nothing half-landed');
   });
 

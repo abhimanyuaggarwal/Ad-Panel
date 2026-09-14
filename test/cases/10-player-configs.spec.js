@@ -30,8 +30,14 @@ export default async function run({ test, req, eq, assert, freshSetup, patchSlot
     eq(r.status, 400, 'a key is one word — spaces refused');
     assert(r.body.errors.some(e => e.message.includes('ONE word')), 'and the rule is named');
 
+    // A config may override ANY player field (13 Sep, user call) — the 7 Sep one-volume
+    // refusal went with the six-field rule. What it may not do is hide: the override is
+    // named on the row, in the editor and in the review.
     r = await req('PATCH', '/panel/keys/key_1', { playerConfigs: [{ name: 'shorts', autoplay: 'on', passiveVolume: 50 }] });
-    eq(r.status, 400, 'a fork carries no volume — the player has ONE Passive volume');
+    eq(r.status, 200, 'a config may carry its own volume now');
+    eq(r.body.key.playerConfigs[0].passiveVolume, 50, 'held as an override');
+    r = await req('PATCH', '/panel/keys/key_1', { playerConfigs: [{ name: 'shorts', startVolume: 50 }] });
+    eq(r.status, 400, 'the retired key is still refused by name');
 
     r = await req('PATCH', '/panel/keys/key_1', { playerConfigs: [
       { name: 'shorts', playback: 'passive' }, { name: 'Shorts', playback: 'active' }] });
@@ -51,9 +57,14 @@ export default async function run({ test, req, eq, assert, freshSetup, patchSlot
     const live0 = (await req('GET', `/panel/live/${k.key}`)).body;
     eq(live0.playerConfigs.length, 1, 'the seeded fork is live');
     eq(live0.playerConfigs[0].name, 'shorts', 'by key');
-    eq(live0.playerConfigs[0].playback, 'passive', 'with its own playback mode');
+    // ON THE WIRE A CONFIG IS WHOLE (13 Sep): stored sparse, handed over resolved, in
+    // exactly the shape of the document's own player section — `player` plus the five
+    // namespaces — so the player reads one grammar twice.
+    eq(live0.playerConfigs[0].player.playback, 'passive', 'with its own playback mode');
+    eq(live0.playerConfigs[0].playback.playMode, 'passive', 'in the player’s own block too');
     eq(live0.player.playback, 'active', 'while the default player runs active');
-    eq(live0.playerConfigs[0].autoplay, 'off', 'and carries its own autoplay behaviour');
+    eq(live0.playerConfigs[0].player.autoplay, 'off', 'and carries its own autoplay behaviour');
+    eq(live0.playerConfigs[0].player.passiveVolume, live0.player.passiveVolume, 'and inherits what it never spoke about');
 
     await req('PATCH', '/panel/keys/key_1', { playerConfigs: [
       { ...k.playerConfigs[0], autoplay: 'on' },
@@ -70,14 +81,20 @@ export default async function run({ test, req, eq, assert, freshSetup, patchSlot
       'a moved field is named where it lives');
     const live2 = (await req('GET', `/panel/live/${k.key}`)).body;
     eq(live2.playerConfigs.length, 2, 'now the player has both');
-    eq(live2.playerConfigs.find(c => c.name === 'shorts').autoplay, 'on', 'with the moved autoplay');
+    eq(live2.playerConfigs.find(c => c.name === 'shorts').player.autoplay, 'on', 'with the moved autoplay');
   });
 
   await test('no custom configs: the JSON does not grow the field, and ids hold across saves', async () => {
     const k2 = (await req('GET', '/panel/keys/key_2')).body.key;
     eq((await req('GET', `/panel/live/${k2.key}`)).body.playerConfigs, undefined,
       'a plain surface’s JSON is exactly what it was');
-    eq(k2.player.playback, 'active', 'and every player saved before the field existed runs active');
+    // The BACKWARD-COMPAT RULE, asserted directly (11 Sep). It used to lean on key_2's
+    // seeded player carrying no playback mode, which made a product decision about what
+    // an ArticleShow surface IS (passive, as of the preset rework) look like a rule
+    // break. The rule is about ABSENCE, so absence is what the case now sends.
+    const bare = await req('PATCH', '/panel/keys/key_2', { player: { ...k2.player, playback: undefined } });
+    eq(bare.status, 200, 'a player sent without a playback mode is accepted');
+    eq(bare.body.key.player.playback, 'active', 'and every player saved before the field existed runs active');
 
     const k1 = (await req('GET', '/panel/keys/key_1')).body.key;
     const id0 = k1.playerConfigs[0].id;

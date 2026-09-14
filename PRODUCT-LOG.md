@@ -1,5 +1,650 @@
 # Player Console — the Integrations Panel (StreamAds repo) — v1
 
+**THE PLAYER CONFIG GRID — VALUES AT REST, A COLUMN PER CONFIG (13 Sep, third cut, user
+call).** *"Improve the UI/UX of the default config, make it less cluttered and more intuitive —
+think from first principles of design, how does a user think, show user empathy … can we make the
+controls more fluid like how it's done in Google Docs or Sheets … the custom config is sounding
+disjointed from the default; the understanding is not clearly communicated."* Three findings,
+one answer.
+
+- **Reading comes before editing.** A PM opens this card to CHECK far more often than to change,
+  and the fold drew twenty-nine controls that each had to be decoded — which option is lit, is
+  that switch on. A word is simply read. So a cell is its VALUE at rest and becomes its control
+  only when clicked: a menu for a choice, a typeable box for a number or a text, chips for a set,
+  the OS colour wheel plus a hex for a colour. The one widget drawn at rest is a switch, because a
+  switch is its own value. Enter commits, Escape reverts (from a snapshot taken when the cell
+  opened), Tab steps, arrows move, typing on a focused cell starts editing — a spreadsheet's
+  grammar, which nobody has to learn.
+- **A custom config is the same settings with a few cells different — so it is a COLUMN.** The
+  morning's cut said that one idea in three languages (a card, a chip row, a modal) and left the
+  reader to connect them; that is the "disjointed" the user named. Now: one grid, rows are
+  settings, the first column is the Default, each config is a column beside it. A config's cell
+  that follows the default is faded read-through; a cell it sets is full weight in the accent's
+  ink with × to let go. Nothing else says "override" — the contrast IS the concept. Two cards
+  became one, the modal editor is gone, and the lede is one sentence because the columns carry
+  the rest.
+- **The closed row keeps the columns real.** Each section at rest shows the default's four
+  headline facts in its column (four, so the row stays one line beside two configs) and, per
+  config, `3 differ` or `same` — "how is shorts different" is one look before any fold opens. The
+  header row (Default · shorts · amp_stories) sticks under the page's fixed header while the card
+  is in view: a sheet's frozen row, for the same reason.
+- **Every keystroke writes the model** — the panel's standing rule — so closing an editor is only
+  a repaint and nothing is lost whichever way it closes: Enter, Tab, a click elsewhere, or a
+  repaint another control caused. The card lets a stale editor go when it draws (`playerCardHtml`
+  nulls `PG_EDIT`), which is what makes click-away safe without a mousedown dance. The colour
+  picker's `input` stream still updates in place and never repaints — the 13 Sep fix, kept.
+- **What did not change:** the model (default + sparse overrides, resolved live at the wire), the
+  seam, the wire, the change review and the version rail. `pbWord` still spells every value once
+  for the cell, the bulk sheet and the review.
+- **Retired:** `.pblk-*` (the folded card), `.pce-*` (the modal editor), the `.pcfg-*` rows (the
+  templates table keeps `.pcfg-acts` / `.pcc-*`), and the `PCE` indirection — one renderer,
+  `pgCellHtml`, draws the default's cell and a config's cell from the column it is given.
+- **ONE CONFIG AT A TIME (14 Sep, user call — *"what if I want to see only a single player
+  config, currently I have no option to do that"*).** At the six-config maximum the grid is eight
+  columns wide and most work is done in ONE config, so a column can be FOCUSED: the others are not
+  drawn and the two that remain take the whole card. The door is the count the closed section row
+  already shows — `3 differ` answers "how is shorts different" by showing shorts beside the
+  default with that section open — and the column's ⋯ names the same act in words. THE DEFAULT
+  NEVER LEAVES: a config is its differences from the default, and a column of overrides with
+  nothing to differ from says nothing. The way back is counted (`‹ All 6 configs`) and stands in
+  the header's own leading cell, the row that names the columns being where "which columns"
+  belongs; nothing narrates that one config is showing, because the header already shows it.
+  Escape unwinds the narrowest thing first — open cell, open section, focused column.
+- **`PG_ONLY` holds the config OBJECT, never an index**, so a removal or a reorder can never leave
+  the view pointing at the wrong column: if the object is gone the focus is gone, healed in
+  `pgCols()`. Cell ids stay TRUE indices, so hiding a column changes what is drawn and nothing
+  about what a cell addresses. Adding a config clears the focus, or the column just made would be
+  the one column not drawn.
+- **Two defects found while testing it, both fixed.** The whole `N differ` CELL was the door, so a
+  click aimed at the section row landed on a column focus — the door is the WORDS now, and the
+  cell belongs to the row. And at six configs the grid was 9px wider than its card (29px at
+  1280): the column head's ⋯ was holding 34px of a 103px column, so it now rides above the head's
+  right edge over a short fade instead of sitting in its flow. Measured 0px overflow at both
+  widths; the page itself never scrolled sideways.
+
+**DEFAULT + SPARSE OVERRIDES — A CUSTOM CONFIG MAY OVERRIDE ANYTHING, AND SAYS SO (13 Sep, user
+call).** *"We need a concept wherein we have default values configured for all these keys as the
+default config, and further the option to create custom config using all these fields as well —
+maybe in a form opened in a modal."* Three asks answered together: the model, the editor, and a
+broken colour picker.
+
+- **The model reverses two of this panel's own rules, on the user's call.** The 11 Sep six-field
+  fork rule and the 7 Sep "one Passive volume" refusal are gone: a custom config may override ANY
+  of the player's 29 fields. What replaced the refusal list is not permission — it is **sparseness
+  and visibility**. A config carries ONLY what it overrides (`{ id, name, on, ...overrides }`),
+  inherits the rest LIVE (resolved at the wire boundary, so moving a lever on the default moves
+  every config that never spoke about it — the Q12 the 11 Sep cut left open, answered yes), and
+  every override is named at three altitudes: a chip on its row, an accent rule in its editor, a
+  line in the change review. Measurement may be overridden; the review is where that is caught.
+- **One normalizer, no second copy.** A config's overrides are laid over the default and the whole
+  is run through `normalizePlayer`; only the override keys are kept. So a config obeys every rule the
+  default does — hex colours, the visibility floor, the control vocabulary — with nothing to drift.
+  What was sent is what is held: an override equal to today's default is still an override, because
+  it says "stay here when the default moves", and equality would erase that intent. `startVolume`
+  is the one key still refused by name (a payload built against a dead contract).
+- **On the wire a config is WHOLE, in the root's own shape.** `playerConfigs[i]` is now
+  `{ name, player, pref, playback, theme, controls, analytics }` — the default laid under the
+  overrides, then the same five namespaces the root carries — so the player reads one grammar
+  twice. This moves `playerConfigs[i].playback` (a string) to `playerConfigs[i].player.playback`;
+  the old flat shape collided with the `playback` namespace. **Wire change for the player team.**
+- **The cards say what they are.** *Player behaviour* → **Default player config**; *Player
+  configs* → **Custom player configs**. The 3 Sep "Default label is gone" call was right when the
+  default was three facts in a table; a default that a dozen configs inherit from live has to be
+  named as the thing they inherit from.
+- **A CONFIG ROW IS ITS OVERRIDES.** Key · a chip per override (four, then `+n`) · switch · `⋯`
+  (with `Follow the default for everything`, asked first) · **Edit**. The inline fold is gone —
+  with every field overridable it would have been a twenty-nine-row page inside a page; a modal is
+  the honest shape for "edit this whole thing, then come back". Empty reads *Follows the default*.
+- **THE EDITOR is the default card, drawn again.** `pbSections()` gained one indirection —
+  `pbView()` / `pbPut()` / `pbKey()` / `pbRepaint()` — so the SAME three sections, eight row groups
+  and two-stack folds draw both the page and the modal; a config's editor is the default's card over
+  a DRAFT of its overrides. The one thing the editor adds is a fourth column saying WHOSE ANSWER a
+  row shows: `inh` (the default's, receded at .55 and back to full ink under the pointer, because
+  it is live) or `bent` (this config's own — the accent rule a dissenting slot already wears in the
+  ad setup — with `Follow default` beside it as the one way an override leaves). Touching a receded
+  row IS overriding it: there is no separate "override this" step, because deciding a value is
+  deciding to override. Done writes the draft to the page, Save writes the page, Publish airs it —
+  the three planes, unchanged. Escape cancels; the veil does nothing (a form with edits does not
+  die to a stray click).
+- **THE COLOUR PICKER WAS BROKEN BY ITS OWN REPAINT** (*"unable to pick a color by moving the
+  cursor"*). The native picker fires `input` continuously as the pointer moves, and every one of
+  those repainted the card — destroying the `<input type=color>` the picker was anchored to and
+  shutting it mid-drag. `input` now updates in place (swatch, hex box, the preview) and only
+  `change` — the picker closing — repaints. Verified headless: five `input` events, the same
+  element still in the DOM, hex and swatch moved with it. The hex box beside it updates the swatch
+  the same way; a three-digit hex is widened to six for the picker, which only accepts six.
+- **The pair is previewed together**: `Aa` in text colour on brand colour, beside Text colour, with
+  the contrast ratio on hover and a quiet *low contrast* under 3:1 — warned, never blocked. Two
+  colours are one decision seen once, and a contrast that fails is visible where it is chosen
+  rather than on a player at a publisher.
+- **The version rail walks every field** (`version-changes.js` had a hard-coded three), wording an
+  absent side as `follows default`; so does the page's save review. Both bulk player sheets show a
+  sparse config's INHERITED answer where it has none of its own, instead of a type default; they
+  still edit the six quick facts — a cohort act is a blunt instrument, and the narrow sheet is the
+  deliberate choice.
+- **Nothing was invented** (asked twice, checked programmatically): 25 keys in the block, 25
+  mapped, 4 pre-existing panel fields alongside, 0 added.
+
+**HEADER BIDDING JOINS THE DRIVE — THE SURFACE ANSWERS IT TOO (11 Sep, user call).** *"In the
+integration screen, in the ad behaviour section, now give this header bidding switch too — as well
+as in the bulk integration editing while changing ad behaviour."*
+
+- **It was ops policy only**: the ad setup's own answer, dissented from per slot. It is a QUICK
+  DECISION now as well — stored sparse on each integration's `drive`, resolved over whatever the
+  setup holds that day, exactly like every other decision on that page. Absence means *follow the
+  setup*, so nothing about the ops room changed and nobody has to answer it twice.
+- **One control, three tiers, both rooms.** `As set up │ Off │ Custom`, and — while Custom stands —
+  the partners. Identical in shape to the ad setup's own row, differing only in what the inherited
+  answer is called and what it borrows: the setup's slot borrows the setup's global (`Auto`), the
+  surface's break borrows whatever the setup resolves to (`As set up`, which names that value
+  beside it, so leaving it alone is never leaving it unknown).
+- **In the bulk sheet it is a lever like any other** — clean slate, `Set` to open, the cohort's
+  today-word beside it, one `×` to drop it, and one row on THE CHANGE REVIEW (`Header bidding ·
+  as set up → Prebid`) before it lands on every selected surface.
+- **THE OUT-STREAM GETS ITS FIRST QUICK DECISION**, reversing *"a rotation takes turns — nothing to
+  decide beyond its switch"* (26 Aug) for this one field only. What that line refused was pod, walk
+  and order semantics, which a rotation genuinely has none of; who bids for a banner slot is not one
+  of those — it is exactly what Prebid was built for. Every other drive field is still refused there
+  by name.
+- **A REAL BUG FELL OUT OF IT.** The bulk sheet says "follow the ad setup" by sending the word
+  `setup`, and the drive normalizer read that word **only inside `ask`** — so the sheet's own
+  `Waterfall depth · Full` came back `400 "must be a whole number between 1 and 10 (got setup)"`.
+  The clear is now read once, before the per-field branches, for every lever. Pinned by a case.
+- 5 new cases (171 in the suite), covering the per-break answer, the `auto` refusal on a surface,
+  the out-stream's one decision, what the player is handed under each layer, and the cohort write.
+
+**HEADER BIDDING ANSWERS ON THE AD UNIT TOO (11 Sep, user call).** *"Also add header bidding
+settings under each ad unit as well."*
+
+- **The third tier of the one grammar.** The setup answers once; every break borrows it by default
+  (`Auto`) or dissents; now every UNIT does the same one tier down, in its own settings: `Auto │ Off │
+  Custom`, the borrowed answer named beside `Auto`, the partners under `Custom` — the break row's
+  control exactly, so the page teaches it once. `Auto` borrows the BREAK's served answer (which may
+  itself be borrowed), so one act at the head still reaches every unit that has not spoken. The
+  global waterfall's units run in whichever break follows them, so their `Auto` reads "each break's
+  own" rather than naming one.
+- **A pasted URL has no bidders to ask.** Header bidding decorates a GAM request; a CAN unit makes
+  none. Its row greys where it sits with that one-line reason, it stores no answer, and a named one
+  is refused by name — the option the platform would refuse, greyed in place (principle 5).
+- **The player is handed every unit RESOLVED.** Each walk entry now carries its own `headerBidding`
+  — the unit's, its break's while it borrows, `off` on a pasted URL — never `auto`; the break's own
+  resolved answer stays where it was. FAQ flag F names the new key.
+- **In the fold, not the glance.** `Header bidding` sits in the left column under `Ad unit
+  template`, and on the fact line it folds with the rest behind `+N more`, its served word in the
+  cue's hover (`Prebid · custom` when the unit dissents). The glance was fixed at four the same
+  afternoon; a fifth fact on every row would have undone that call. If a dissenting unit should be
+  visible at a glance, that is a flag on the head row, not a fifth column — open.
+- Wire: `headerBidding` joined `RUNG_FACTS` (seven now), so the response shape, the snapshot, the
+  version diff (`Auto → Prebid` in words) and the JSON all carry it; `servedUnitHeaderBidding` in
+  `setups.js` is the one resolver, `suRungHbServedWord` its web mirror. The suite stands at 166.
+
+**THE PLAYER'S 25 LEVERS, PLACED — THREE SECTIONS AND A SIX-FACT FORK (11 Sep, user call).**
+The player team handed over its config block — `pref` · `playback` · `theme` · `controls` ·
+`analytics`, 25 keys — with the question asked the right way round: *"study them and segment them
+first so the IA is very intuitive and the user is not cognitively overloaded, and which of them
+should go inside custom config."* Placement first, fields second. `docs/PLAYER-LEVERS.xlsx` is the
+record: an inventory of all 29 rows (the 25 plus the 4 panel fields with no key in the block), the
+override policy, and 11 decisions the player team owns.
+
+- **THREE DRAFTS, AND THE THIRD IS THE ONE.** Draft 1 named the sections for the viewer's moment —
+  *It loads · It starts · While watching · It ends*. Reads well, names badly, and the user said so:
+  *"these are not how naming can be done."* Draft 2 renamed them as noun phrases, which also fixed
+  two real misplacements — the persistence switches are not part of startup, the scroll-away pair is
+  not part of the controls — and grew the count to eight. Draft 3 cut that to **three**, on the
+  user's call: *"we need maximum 3 sections, not these much — think meticulously here."*
+- **Why three is right and eight was not.** A SECTION IS NAVIGATION. Eight of them is eight
+  decisions before the first field: the card becomes its own table of contents, which is exactly the
+  load the whole exercise existed to remove. Draft 2's analysis was not wrong — it was at the wrong
+  ALTITUDE. Grouping is LAYOUT, so it moved down a level: eleven distinctions survive intact as
+  quiet row groups INSIDE the folds, where they cost a reader nothing until they are already in the
+  right section. Nothing was lost by cutting five sections; the finder just stopped paying for them.
+- **The three, and the test that settles every argument.** **Playback** · **Controls & appearance**
+  · **Analytics & measurement** — how does it play, what does it look like, what do we count. Every
+  one of the 25 answers exactly one, which is what makes the split defensible rather than tidy:
+  `pref.*` is playback (a viewer's remembered volume is how it plays, not how it looks), `theme.*`
+  is appearance, and measurement stands alone because it is the one group where a wrong answer is
+  invisible until a reporting argument months later. Row groups: Source · Start · Viewer memory ·
+  Out of view · Completion │ Controls · Appearance │ Reporting · Vendors.
+- **The card is THREE LINES.** The block grammar is the ad unit's, unchanged (7–8 Sep): no fill at
+  rest with a 4.5% inset hairline, fill on hover and while open, a fact line that IS the summary so
+  reading the card never needs a fold, and a 26×26 caret standing at rest. Three ways back out of a
+  fold — the caret, the head row, Escape — because the 7 Sep lesson (*"I still cannot find any way
+  to close it"*) was paid for once already. Written as its own `.pblk` rather than borrowed from
+  `.ad-unit`: that block carries a rail for a grip, a position and a switch, and a settings section
+  has none of the three.
+- **THE FIELDS ARE THE PAGE'S FIELDS** (*"the UI of the fields look a bit different from the
+  other fields on the page"* — right, and the diagnosis is precise). The folds were drawn on
+  `.up-r`, the ad unit's COMPACT SUB-PANEL grammar: 28px rows, 11.5px pale labels, 26px controls,
+  a bespoke 12px text box. Correct inside a rung's fold; wrong for a top-level card sitting beside
+  Ad behaviour. They are `.lr.rule` now — the page's own settings row — so row height (38), label
+  (12.5px/500/`--ink`), dividers, `.seg`, `.num-wrap` (96px) and `.rule-text` all arrive with it,
+  MEASURED equal to an Ad behaviour row rather than eyeballed. The chips follow `.pchip`. The
+  `.pblk-panel` block now says only what genuinely differs: a 176px label measure, because
+  `Remember audio language` is longer than anything Ad behaviour has to fit. A control that is
+  NEARLY the house style is worse than one that simply is it.
+- **NOTHING WAS INVENTED.** The card carries 29 fields: the 25 the player's config block defines,
+  plus the 4 the panel already had and already serves (Player type, its Redirect URL, Fallback
+  media, Expand MiniTV for ads). Those four are Q4 — they are live today with no key in the block,
+  so they are shown in grey on the inventory sheet and the player team owes them a home. Zero
+  fields were added beyond the two sources.
+- **AND THEN PLAYBACK WAS DECLUTTERED** (*"the playback section looks too cluttered — can we
+  organize them better"*). Sixteen rows in five groups was a wall, and two of the five were paying
+  rent they could not afford. **Three `Remember` switches were one decision** — what a returning
+  viewer keeps — so they are one chip row under `Start`, where a remembered preference is actually
+  applied; the `Viewer memory` heading went with them. **The Redirect URL rides its own answer**
+  again (its behaviour in Details before the card existed): a permanently dashed dead box on the
+  two player types out of three that never redirect is noise, and the house grey-in-place rule is
+  about an OPTION the platform would refuse, not a sub-field belonging to one answer of the control
+  beside it. **13 rows in 4 groups**, and the fold is 431px where it was ~530.
+- **A FOLD IS TWO STACKS, NOT A GRID.** Auto-flowing groups into a grid aligned their ROWS, so a
+  short group beside a tall one left a hole in the middle of the fold — with five groups Playback
+  had two. Each fold now holds exactly two children: the LEADING group on the left (the one anyone
+  opened the section for), the rest stacked on the right. Stacks end where they end, so no hole is
+  possible, and one rule balances all three sections as they stand — 6│7, 4│3, 3│3.
+- **A section of sixteen fields cannot print sixteen facts**, so each line carries its HEADLINE
+  facts — the four or five anyone actually scans for (Playback says autoplay, volume, mode, loop,
+  end screen; the source fields and the memory switches are set once and never scanned). The fold
+  carries everything. A fact nobody changes does not earn a place on the line.
+- **Details went back to being IDENTITY.** The player's fields had lodged there since the 25 Aug
+  trim left them homeless; 25 levers of them could not stay. The page is four cards now —
+  Details · Player behaviour · Player configs · Ad behaviour. `.prow2` retired with the move.
+- **THE FORK RULE, written down at last.** A lever may fork only where two placements on ONE
+  surface can legitimately disagree, AND the disagreement belongs to the placement rather than to
+  the property, the brand or the measurement. That takes a config from three facts to **six** —
+  `loop`, `endScreen` and `controlsMode` join: a shorts feed loops, shows no end screen and carries
+  minimal controls, while the same surface's article player does the opposite. The other nineteen
+  are refused BY NAME with the reason (`CONFIG_REFUSED`), the 7 Sep volume refusal generalised.
+  **Measurement is the one that matters**: a fork that changed what is counted would split every
+  reported number silently, and nobody would find it until a reporting argument months later.
+- **Six facts made the fork a FOLD, and killed row zero.** Three facts fitted as three columns; six
+  do not at the card's width — the wall the bulk sheet hit on 3 Sep, answered the same way. A fork
+  row now shows its key and **a chip per DIFFERENCE** (four words when there is none), and opens
+  into the card's own rows under the card's own section names (two of the three — a fork touches
+  Playback and Controls & appearance, never measurement), each with `follow the player` beside
+  it. *Difference is measured by VALUE, not by storage* — which matters, because a fork resolves
+  its absent facts from the player at normalize time and therefore SNAPSHOTS them on the next write
+  (the model the original three have had since 2 Sep, inherited unchanged). So moving a lever on
+  the card makes every fork that held the old value light up as differing, which is the truth: they
+  really do disagree now, and the player really will honour the fork. **Q12 for the player team:
+  should a fork instead stay sparse and inherit LIVE?** Live inheritance is the more useful model
+  and a bigger change — it is not being made quietly as a side effect of this one. The heading row went with the columns and **the Default row went with it**: the card above IS
+  the default, and printing it twice was the 7 Sep problem in new clothes. *(Supersedes "the default
+  player config became row zero, literally", 7 Sep — same reasoning, opposite conclusion, because
+  the field count moved.)*
+- **ONE LIST, DRAWN IN THREE PLACES.** `pcFields()` feeds the integration page, the master-detail
+  bulk sheet and the Default-player bulk sheet; the seam holds the same list as `CONFIG_FORKABLE`.
+  The master-detail sheet's own promise — *"a new player-config fact is one more form row here and
+  nowhere else"* — only holds if it reads the list rather than repeating it, and it had already
+  drifted to a hard-coded three in four separate places.
+- **ONE SERIALIZATION BOUNDARY** (`playerBlock` in store/publish.js). The panel holds the levers
+  FLAT — one object, one normalizer, one diff, so the change review can name any of them without
+  walking a tree — and the player reads them NESTED. `player` is untouched, so nothing the player
+  parses today moves; the three keys that appear in both are derived from one internal field each
+  and cannot disagree. They collapse into one node once Q1 and Q4 land.
+- **Four encodings honoured rather than argued with**: `0` means off for every timing (drawn as a
+  switch, kept as 0 on the wire), `pip` is the empty string when docking is off, milliseconds
+  travel and seconds are shown, and `pref.*` is 0/1 rather than a boolean.
+- **Two of the eleven questions were answerable here and are answered**: Q10 — `pip` mixed four
+  corners with a bare top/bottom, which cannot be one control, so the panel offers corners + Off;
+  Q11 — `autoPause` documented 0 or 10–100, so 1–9 is refused by name (*"below 10% the player
+  cannot tell — pick 10 or more, or switch it off"*). Q1 is answered AT THE BOUNDARY only
+  (`auto` → `mutedOnScroll`): changing the panel's own vocabulary is the player team's call. The
+  workbook's eleven grew to twelve with Q12 above, found by building it.
+- **Presets stamp the whole card.** A new integration landing on raw defaults would wear a red
+  brand colour and full controls on a feed, and the first act would be correcting three sections by
+  hand. MiniTV is a feed (passive, loops, minimal chrome, docks); ArticleShow is quiet with full
+  chrome and related at the end; VideoShow is a destination.
+- **One test was strengthened, not weakened.** `10-player-configs` asserted the absence rule
+  (*"every player saved before the field existed runs active"*) through key_2's seeded player — so
+  the moment a preset said what an ArticleShow surface actually IS (passive), a product decision
+  read as a rule break. The case now sends absence, which is what the rule is about. **166 cases**;
+  `15-player-levers.spec.js` adds nine.
+- **This reverses the 25 Aug trim, deliberately.** Controls, end screens and docking went then as
+  *"the publisher's own player"*. The 3 Sep rename to **Player Console** already undid that
+  reasoning; this is the panel finishing the job its name started.
+
+**ONE CONTROL, THREE ANSWERS, ONE CONFIRM — THE BREAK'S SOURCE, FOURTH AND FINAL CUT (11 Sep,
+user call).** *"The switch, the CTA for switch enable/disable, on/off — everything is not getting
+connected in a clean user journey; it is too disjointed, it feels everything is just placed with no
+thought of a UX."* And: *"the modal for confirmation is too immature and too cluttered."*
+
+- **The fault was real.** A break's fall has exactly three answers — nothing, its own units, the
+  shared ladder — and they had been split across two controls a thousand pixels apart: a switch at
+  the left of the row for one, a text link at the far right for the other two. Nothing tied them
+  together, so there was no journey: you had to already know the model to know they were one
+  question. Each earlier shape (floating band → switch + two-tab seg → switch + stated fact + CTA)
+  answered the last complaint and kept the split.
+- **Now the three answers stand together in one seg**, directly under the WATERFALL header and on
+  its own left edge — the same x the header and the blocks use: `[ Off │ Custom │ Global ]`. It
+  carries NO byline (user call, same review — *"3 units · 2 breaks follow it — remove this
+  byline"*, the call the waterfall's own foot took on 7 Sep): what an answer serves is drawn
+  under it — its own rows, or the global's levers and the door to its ladder — so a count beside
+  the control said twice what the section shows once. The one exception is not a count of
+  anything visible: a fall switched OFF keeps `N units kept`, the only trace of units nobody can
+  see and the only hint that the way back returns something. It reads identically to the
+  `Header bidding [ Auto │ Off │ Custom ]` row a few centimetres below, so the page now has ONE
+  grammar for "where does this setting come from".
+- **A refused answer greys where it sits, with its own reason** — `Custom` while there is no primary
+  to fall through from, `Global` while the shared ladder is empty, `Off` while a live break would go
+  dark. That is strictly more capable than the held switch it replaces: a break with no primary can
+  still follow the global waterfall, which is a legal arrangement the switch blocked outright.
+- **The confirm is the house's SMALL 440, and its body is the move** (same review, one more
+  pointer — *"a small confirmation modal with not much text, just convey do you really want to
+  switch, and show the switch in a clean manner down, with two CTAs — yes or cancel"*):
+
+      Switch this break’s waterfall?
+      DEFAULT · POST-ROLL
+      Custom waterfall  →  Global waterfall
+                              [ Cancel ]  [ Yes, switch ]
+
+  Two shapes were tried before it in one hour — a hand-written prose paragraph (*"immature,
+  cluttered"*), then THE CHANGE REVIEW itself. The review is the right screen for a save or a
+  publish, which carry dozens of changes under section labels; for ONE answer moving it was a
+  section header, a change count and two counted rows to say a thing an arrow says. What stays
+  from it is the from → to spine, at the size of one decision. The break is named quietly above
+  the move, because a page of twenty breaks must never leave you wondering which one you changed.
+- **Splice discipline, again:** the rewrite's range swallowed `suSrcDarkWhy` (the live-break
+  darkness refusal). Caught by a render, restored, and now checked by a sweep — every `su*` callee
+  and every inline `onclick` handler in `web/js` resolves to a definition.
+
+**"WORTH A LOOK" IS GONE, AND PUBLISH *IS* THE VERSION SHEET (11 Sep, user call, same
+review).** *"Remove this Worth a look section — and can this be similar to the version
+switching modal design, can we use the same modal in fact."*
+
+- **It already is the same modal.** Publish, the version sheet, Restore, Save, bulk Apply
+  and every read-back all run through `reviewChanges` — one component, one frame, one row
+  grammar. What made publish *look* like a different object was the amber block sitting
+  between its list and its act: the only thing on that screen that was not a change.
+- **So the block went.** A save's soft flags (*"Default pre-roll: up to 10.5s before an
+  ad"*) moved onto THE CHANGE REVIEW on 7 Sep to get them out of a two-second pill. Four
+  days of use says the cure cost more than the disease: they are levers nobody acts on at
+  the moment of publishing, and they bought that irrelevance with a coloured box in the
+  one place a person is reading what is about to move. `pubFlagsHtml` and the whole
+  `saveWarnings` capture are deleted. The API still returns `warnings` and the savers
+  still hand them back; nothing reads them.
+- **One aside remains, and it is the destructive one** — *"4 unpublished draft changes will
+  be discarded"*, on restore. It is red, it is counted, and it renders through
+  `reviewBodyHtml` itself, so the work about to be destroyed is sectioned and columned
+  exactly like the work about to go out. `reviewAsideHtml` lost its `tone` and its `lines`
+  branch with the amber twin; `.rvw-aside.soft` / `.rvw-al` went with them.
+- **What the three doors now differ by is only their words.** Head (title · lede · the
+  author's quote) → caption (total · scope) → the list → the acts. Publish and Restore add
+  one note line; the version sheet puts Restore beside Close. Nothing else.
+
+**WORDS AT A GLANCE, SECONDS ON CLICK (11 Sep, user call — the same afternoon).** *"Move
+Content pause to the right column and the left column fields to the left … identify some 3-4 keys
+that should be shown in read-only mode and the rest can only be seen by clicking on it — a see-more
+like intuitive text on hover or something else — this will remove the clutter a bit at a glance."*
+
+- **The fold's columns swapped.** Left is now the column that never moves — `Request delay · Ad unit
+  template · Auto-hide` — so the block is anchored on its left edge; right is `Content pause` with
+  its children indented beneath it, the one column that grows and shrinks with the answer. A
+  rotation keeps the same sides (template left, placement right).
+- **The fact line carries the unit's four DECISIONS and folds its three CLOCKS.** At a glance:
+  `Content pause · Ad unit template`, and while content plays `Ad placement · Mute`. Behind one
+  counted cue, `+3 more` in the label's own voice: `Request delay · Close button · Auto-hide`, whose
+  exact values ride the cue's hover (the one hover the panel keeps — an exact value), and which the
+  click opens like the rest of the line. The rule is one sentence: a decision is a WORD you chose, a
+  clock is a NUMBER you tuned, and a ladder is read for its words. This retires the 4 Sep promise
+  that "reading a ladder never needs a fold opened" for exactly the clocks — the user's call, made
+  for exactly the reason the promise was: what the eye has to skip.
+- A default video unit's row reads `Content pause Yes · Ad unit template Standard · +1 more`; a banner
+  over content, the fullest row, went from seven facts to four and a cue. Columns keep their measured
+  widths; the `delay`/`hide`/`close` columns are gone from the line, so their CSS went too.
+
+**THE WATERFALL'S SOURCE IS A STATED FACT AND ONE CONFIRMED ACT — THE `CUSTOM │ GLOBAL` SEG IS
+GONE (11 Sep, user call).** *"The waterfall custom and global is a decision tab, is not the clear
+way of communicating it — and a dialog confirmation should always show while switching."*
+
+- **A seg says "pick a view"; this decides what SERVES.** The same objection retired a seg here once
+  before (7 Sep); behind a switch it read better for three days, but it was still two tabs standing
+  for one fact plus one decision, and it let the source change on a click that named no consequence.
+- **The row now states the source, counted, with the one act that changes it at the far end** —
+  where every other act in this zone sits:
+  `⬤ Custom waterfall · 2 of 2 active … Use the global waterfall` ·
+  `⬤ Global waterfall · 2 breaks follow it … Use a custom waterfall` ·
+  `○ No waterfall · 2 units kept`. The global's NAME is the door up to it, because the thing to
+  look at is the thing being named.
+- **Every source change confirms first, and the confirm is counted, not prose** — where it lands,
+  what starts serving, what is kept: *"Default · Post-roll. Its 3 units serve under this break's
+  primary, and this break's own 2 units are kept, switched off."* All four transitions have one
+  (on, off, custom, global), each naming its own numbers; Cancel and the veil leave the break
+  exactly as it stood.
+- **This is not the 8 Sep dialog returning.** That one EXPLAINED three states in cards — prose
+  standing in for controls — and was opened by a button that was itself a second control for the
+  same question. This one is a plain confirm on a named act, in the same `ask()` grammar as Clear,
+  Remove placement and Take off air, under the 19 Aug house rule that every state-changing act
+  confirms with its counted consequence.
+
+**THE CHANGE REVIEW, REDRAWN (11 Sep, user call).** *"The modal opened on publish of
+integration and ad setup is too ugly immature and visually cluttered with too much text and no
+clean IA — redesign it completely."*
+
+- **It had three visual languages for one kind of fact.** The list wore bordered cards with
+  filled header bands; a caution wore the version rail's `.vc` prose lines; the note wore a
+  text field wedged between Cancel and Publish. A 21-change publish was a stack of six nested
+  boxes, and `Restore — on air as v4` left the note half a field wide.
+- **Nothing lined up.** `from`, the arrow and `to` flowed inline inside ONE cell, so
+  `immediate → immediate` and `7s → 3s` started at different x. A diff you cannot sweep with
+  your eye is a diff nobody checks. And a value over 28 characters silently dropped its
+  `from` and printed only where the change landed — the one row you most need both halves of.
+- **Now: four zones, in the order a person decides.** THE HEAD (act · consequence · the
+  author's quote, three lines at three weights, not three facts on one baseline) · THE CAPTION
+  (`21 changes` — the total the screen never used to state — and, opposite it, what they were
+  counted against, which used to sit in the FOOT beside the buttons) · THE EVIDENCE · THE ACT
+  (the note on its own line, then the two doors, alone; no note at all when there is nothing
+  to publish).
+- **One row grammar, and a spine.** A change is WHAT · WAS → NOW on a four-column grid shared
+  by the whole dialog, so the arrow column is a seam the eye follows from the first change to
+  the last. Both sides are always shown — a long value is clipped to its column with the exact
+  string on hover — so every row says the same three things in the same three places.
+- **A caution is that same grammar.** `.rvw-warn` and its `.vc` lines are gone: a restore's
+  discarded draft changes are CHANGES, so they render through `reviewBodyHtml` itself, sections
+  and all (`Pre-roll` · `Mid-roll` · `Player` — the where the old block kept but the new one
+  would have lost). A save's flags stay words, because that is what they are.
+- **No cards.** A section is a sticky label and some air. Six groups used to mean six nested
+  containers; the breaks now chunk by whitespace before a word is read. The per-group count is
+  gone with them — one total in the caption is the number being agreed to.
+- **THE SCOPE IS THE GROUP.** `Pre-roll`, `Pre-roll · TOI Mweb VideoShow Display`,
+  `Default · Pre-roll` and `Shorts feed · Pre-roll` opened four top-level boxes side by side,
+  so *"what did I change on the mid-roll"* — the question this screen exists to answer — took
+  four looks. The known break/zone word is now the SECTION; whatever else the `where` carries
+  becomes a quiet sub-label inside it. A setup's publish reads: PRE-ROLL → Default, Shorts feed
+  → MID-ROLL → Default → DETAILS.
+- A list cut off mid-row now says so on purpose (a scroll-local white cap over a pinned
+  shadow), `pubChangeLine` went with the prose lines it drew, and the standalone 620 frame and
+  both `.steady` journey frames are untouched — step 2 still measures the same as step 1.
+  156 cases pass; the 69-screen walk is clean.
+
+**A BREAK IS TWO NAMED SECTIONS, AND THE WATERFALL'S SWITCH IS ITS SECTION RULE (11 Sep,
+user call).** *"In a newly created placement, in every slot, primary should always show it is on
+top of waterfall — currently it only shows if the waterfall switch is enabled. Also the waterfall
+switch is non symmetrical and not aligned with other switches, plus it is not cleanly discoverable
+— too much cognition."* Then: *"There is no clear demarcation of primary and the waterfall section,
+it is not getting communicated correctly."*
+
+- **The zone drew what happened to exist.** An empty break showed a bare switch and an `+ Add ad
+  unit` button, so the anatomy every break has — ONE first ask, then a fall — was invisible until
+  you had already built it: learned by accident rather than read. A filled break showed three
+  floating rows between its blocks (the `Primary` rule, the source switch at its own x, then
+  `WATERFALL ORDER · N active`) — two headers for one section, and a control aligned to nothing.
+- **Now: `PRIMARY` and `WATERFALL`, always both, in the order they are asked.** The primary section
+  holds the block or, when there is none yet, its own `+ Add ad unit`. The waterfall section holds
+  its own rows, the global's levers, or nothing — and its rule carries the switch, `Custom │ Global`
+  and the counted note (`2 of 2 active` · `2 breaks follow it` · `2 kept`).
+- **The header is a header; the controls are the row under it** (same review, third pointer —
+  *"the primary and waterfall header are not communicating as a header"*). For an hour the word and
+  the switch shared one line, which made the word a LABEL FOR THE SWITCH rather than a heading, and
+  pushed it 90px off the left edge of everything it heads — at 9.5px faint, *smaller and paler than
+  the `AD SOURCES` gutter label beside it*. That is the exact fault the head sections fixed on
+  4 Sep (*"the 10px eyebrow sat visually below the + Add template button"* → `.pl-head`), so it takes
+  the same cure one notch down: **11px / 700 / `--ink-soft`, on the section's own left edge (x=149,
+  where its blocks and its add button start), hairline to the right**. A stale `.fall-w` rule later
+  in the sheet had been quietly overriding the first attempt — the reason the type looked unchanged.
+- **The waterfall's controls take the row beneath, wearing the UNIT RAIL** — the same grip /
+  position / switch cells its blocks wear, from the same markup, so the columns cannot drift.
+  Measured: the switch moved from x=194 to **x=202, the exact column every unit switch stands in**.
+  A section switch sitting over its items' switches is the oldest pattern in list UI (a parent
+  checkbox over its children) and the one that makes "this governs those" readable without a word.
+  The row carries no word of its own: the header above already named the section, and a section
+  wearing its name twice was the shape this replaced. The primary needs no such row at all —
+  its first ask always serves.
+- **The fall begins at rung 2.** `suSrcState` now reads `own` only when something sits under the
+  primary, so a break with just a first ask correctly reads "no fall". Switching the waterfall on
+  opens one empty FALL row and never touches the primary; with no filled primary to fall from the
+  switch is **held** (greyed, reason on hover: *Add the primary ad unit first — a waterfall is what
+  it falls through to*) instead of accepting a click that would visibly do nothing. The exotic
+  legal case — a break serving the global waterfall with no primary of its own — is still reachable
+  from `Apply on ad slots` upstairs, and still renders.
+- A connected break's levers lost their own `Global waterfall` header: the section rule above names
+  the section, carries its switch and counts its followers, so the second header was one break
+  wearing two.
+
+**CONTENT PAUSE IS THE PARENT OF THE FACTS THAT ONLY EXIST WHILE CONTENT PLAYS (11 Sep, user
+call).** *"In each ad unit there is a settings field named Content pause … if No then the Ad placement
+one will become active … so don't show the Ad placement key-value in the read-only preview [while
+content pauses]; similarly if Content pause is No another field will come — since we will be rendering
+both content and ad, which one to mute: Content mute or Ad mute. Think on the IA cleanly and
+accommodate these settings in a clean and decluttered way across ad units in ad setup."*
+
+- **One parent, three children.** `Yes` takes the whole player, so nothing sits over the content.
+  `No` and `Auto` (the player may not pause) leave two things rendering, and THAT is when three
+  questions exist: where the ad sits (`Ad placement`), whose sound is quiet (`Mute` — Ad · Content,
+  Ad by default: the viewer came for the content) and when the viewer may close it (`Close button`,
+  a banner's). `Request delay`, `Ad unit template` and `Auto-hide` are true whatever the answer.
+- **Shown, not dimmed — and only while they apply.** This reverses the 4 Sep "type-based, never
+  value-based" rule for exactly these three (the Close button used to dim with "Content pauses —
+  no close button"). A dim row with a reason is for a pick the platform would REFUSE; a fact with
+  no meaning right now is clutter. A default video unit shows three facts; flip it to No and the
+  children appear directly under the switch you just moved, indented beneath it.
+- **The settings are two columns by MEANING now, not by count**: left, `Content pause` with its
+  children stepped in under it; right, the three that hold regardless — so the right column never
+  moves when the answer changes. The 7 Sep grid paired rows by position, and a row that comes and
+  goes would have re-shuffled every pair.
+- **The fact line keeps its columns.** The facts every unit always has come first (`Content pause ·
+  Request delay · Ad unit template · Auto-hide`), so each lands on one x down the ladder whatever
+  its neighbours answer; the over-content facts ride as a tail (`Ad placement · Mute · Close
+  button`) that exists only while content plays — a Yes row is simply shorter, with no hole. The
+  fold orders by meaning, the line by stability; same words, same values either way. Column widths
+  are measured, not rounded, so the fullest row (a banner over content, seven facts) stays one line.
+- **Wire.** `mute` (`ad` · `content`) is a break unit's own fact like `pause` — kept while content
+  pauses, so the answer returns when the switch flips back; a rotation refuses it by name (an idle
+  player has nothing playing to mute against). It rides the response shape, the snapshot, the
+  player's JSON and the version diff through one `RUNG_FACTS` list in `state.js`, which also
+  replaced the four hand-copied lists that had carried the other five. `/panel/meta` gains
+  `muteModes` / `muteWords`. FAQ: the per-unit table names it (flag E). 156 cases.
+
+**HEADER BIDDING LEADS DELIVERY SETTINGS, INLINE: `Auto │ Off │ Custom`, THEN THE PARTNERS (11 Sep,
+user call — the dialog reversed within the hour).** *"Move header bidding to the top in delivery
+settings; there should be 3 options upfront — auto, off, customize — if clicked on customize then
+ask for Amazon+Prebid, Amazon or Prebid. No need of the modal or dialog box here."*
+
+- **First row of every break's Delivery settings**, its own cluster above the pacing rows: who else
+  is in the auction is decided before how the break is paced.
+- **Three states upfront** — `Auto` (the setup's answer, named in a quiet note beside the seg so
+  nobody scrolls up to learn what Auto means today), `Off`, `Custom` — and **while Custom stands, a
+  second seg under it** with `Amazon+Prebid │ Amazon │ Prebid`, on the same left edge. Choosing
+  Custom starts from the setup's own partners when it has some, so "make it mine" is one click.
+- **`Custom`, not "Customize"**: the page already says `Custom │ Global` about every break's
+  waterfall; a slot's own answer wears one word everywhere, and a seg of states reads better
+  without a verb among them.
+- **The dialog is gone.** The row-as-fact + decision-dialog cut lasted an hour: the user's read was
+  that two segs are the decision, and two segs belong on the row. Nothing underneath moved — the
+  stored answer, the resolved value the player gets, the differs dot, the tint, `Apply to all
+  placements` and the version diff all read as before. The second seg appearing on Custom is the
+  one deliberate exception to "nothing appears" in this grid: it is asked for by a click on the
+  very control it appears under, and it is a whole seg, not a field worth parking greyed on every
+  break that will never use it.
+
+**THE SLOT'S HEADER BIDDING IS A FACT ON THE ROW AND A DECISION IN A DIALOG (11 Sep, user
+call).** *"In each ad slot of every ad section we need an option to either switch on/off header
+bidding; if on, use the global one configured above or custom, i.e. select the value here — such a
+thing was done for the waterfall too. Switching should be a confirmation activity, via a dialog, and
+the switch should be in the dialog. See how mature platforms do the UX for this."*
+
+- **The row at rest is the effective answer and where it comes from** — `Amazon+Prebid GLOBAL`,
+  `Prebid CUSTOM`, `Off` — with a chevron. That is the settings-row idiom every mature
+  inherit-or-override surface uses (Workspace Admin's per-OU overrides, GAM's ad-unit overrides,
+  Chrome's per-site settings, a phone's settings rows): the value you would actually run is always
+  on screen, and so is whether it is yours or borrowed. The day-old five-answer seg put an inherited
+  answer and three concrete ones in one row and left "on or off?" implicit.
+- **The chevron opens ONE dialog where the whole decision is made**, in the grammar every break on
+  the page already teaches for its waterfall: `⬤ Header bidding` switch → `Custom │ Global` → the
+  partners. A step that does not apply greys where it sits with its reason on hover — off greys both
+  segs; Global greys the partners and shows the setup's current answer pressed-but-dim in them, so
+  the borrowed value is visible without a word of prose. **Apply names the outcome**
+  (`Apply — Global · Amazon+Prebid`) and stays unavailable until something changed; Cancel and the
+  veil leave the slot untouched.
+- **Why a dialog is right here and was wrong for the waterfall's source (8 Sep).** The waterfall's
+  dialog EXPLAINED three states in cards — prose standing in for controls — while the row itself
+  stayed inline and stateful. This dialog holds no prose: it IS the controls, and the row it comes
+  from holds only a fact. The user's word "confirmation" is honoured as *the decision is committed
+  in one place*, not as a second "are you sure?" — the platform's real gate is still Save → Publish
+  through THE CHANGE REVIEW, and the dialog writes the draft form like every other control.
+- Stored answer unchanged (`behaviour.headerBidding`: `off` · `auto` · a partner); the resolved
+  value the player is handed is unchanged; `Apply to all placements`, the differs dot, the version
+  diff and the Global settings grid all read exactly what they read before.
+
+**HEADER BIDDING: ONE ANSWER AT THE SETUP'S HEAD, BORROWED BY EVERY AD SLOT (10 Sep, user
+call).** *"In the ad setup we need another option which is a header bidding option which could
+have 4 values — Off, Amazon+Prebid, Amazon, Prebid; this will be available in every ad section at
+every ad slot as well, wherein the user can either choose auto — which means borrowed from the
+above global one — or on it with custom, or off it. It has to have somewhat like the global
+waterfall journey, not exactly, but the user intuition is this."*
+
+- **The journey is the global waterfall's; the control deliberately is not.** What it takes from
+  the waterfall: a global answer folded at the setup's head (`HEADER BIDDING`, beside
+  `GLOBAL WATERFALL`), a counted line saying how many ad slots follow it (*6 of 8 ad slots follow
+  it*), one bulk act over the same ad-section × ad-slot grid, and a `View` door from any slot up to
+  the head. What it does **not** take is the waterfall's two-step `Waterfall` switch +
+  `Custom │ Global` seg: there, the custom answer is a whole LADDER, which cannot fit in a seg and
+  so needs a mode control above it. Here the custom answer is ONE value out of three, so the
+  borrowed answer sits in the SAME seg as the concrete ones — the grammar `Content pause` has used
+  since 5 Sep for `Auto · Yes · No`, where Auto means "each unit's own". A switch on top would have
+  dressed one question as two, and made `Auto` while the global is Off read as "on, bidding nobody".
+- **The slot's control is the global's control with `Auto` prepended**:
+  `Auto │ Off │ Amazon+Prebid │ Amazon │ Prebid`, in the user's own order and spelling. Five
+  answers, 332px of the 404px control column — no wrap, no reveal, nothing that moves under the
+  cursor.
+- **It lives with DELIVERY SETTINGS, not in Ad sources.** Bidders are asked alongside the ad
+  server, not tried in turn: header bidding has no order, no depth and no place in a ladder, so it
+  is not a rung and not a lever on the waterfall. As a slot behaviour field it also inherits, for
+  free, the label edge and rhythm of the rows around it, the unsaved-change tint, the
+  "set differently on another placement" dot, `Apply to all placements`, per-pod addressing, and
+  the field-by-field version diff. It opens the *how hard we fill it* cluster — who else is asked,
+  before how long each try waits.
+- **The borrow is a LINK, never a copy** (the waterfall's own promise, made about one value):
+  a slot on `Auto` stores `auto`, so moving the global moves every borrowing slot with it, and a
+  slot that dissents keeps its answer. `auto` is **refused at the global by name** — the thing
+  being borrowed cannot borrow.
+- **The player is handed it resolved.** `servedHeaderBidding` (one rule, mirrored web-side as
+  `suHbServed`) turns `auto` into the setup's answer at the live boundary, so the JSON never
+  carries a panel-side inheritance for the client to join up itself. It is on the setup's publish
+  snapshot, so it moves only on Publish, like everything else.
+- **Counted, never claimed.** *Bidding* is counted where a slot *actually bids* — an
+  `Amazon+Prebid` answer on a slot with no ad units is asking nobody — so an answer no slot takes
+  says so as a warning (*no ad slot takes it*) rather than sitting there looking placed. The
+  folded line is the answer badge alone (11 Sep, user call — the break chips it first wore belong
+  to Placements, one line down); followers and who is bidding ride its hover.
+- **ONE SECTION, `GLOBAL SETTINGS`** (11 Sep, user call — *"can we make one section which is global
+  settings and move header bidding and global waterfall there only?"*). The two setup-wide answers
+  share one folded head; each is a zone row down its left rail — `Header bidding`, then
+  `Waterfall` (the one-line answer above the ladder; user call, same day) — the exact anatomy
+  every break row has (Special · Ad sources · Delivery settings), one page up. Two sibling sections for two facts were two heads, two hairlines and two
+  chevrons saying "shared plumbing" twice. The head's glimpse is the two facts as marks in the zones'
+  order — the answer badge, a hairline, the walk — and `View` from a break or a slot lands on the zone it names and
+  flashes that zone, not the whole section. The head-open key is `globals`; a refused save in
+  either zone forces it open.
+- **ONE LINE when open** (11 Sep, user call — *"we only have this tab and apply on ad slots; keep
+  it clean while retaining the symmetry of the page"*): `PARTNERS` on the rail, the seg at the
+  zone's left edge, `Apply on ad slots` at the right edge the waterfall foot's act ends on. The
+  routine *6 of 8 ad slots follow it* line went the way the waterfall's own count went on 7 Sep —
+  the grid names every follower, and the count rides the folded line's hover; only the warning
+  stays.
+- **Off by default, everywhere.** A new setup starts `Off` with every slot on `Auto`, so switching
+  a surface on is one act at the head; the out-stream is in (a banner slot is what Prebid was built
+  for) where the waterfall's grid leaves rotations out. 9 new cases (155 in the suite).
+
 **THE IN-PAGE AD SETUP PICKER RESTS AT SIX AND SEARCHES ALL OF THEM (8 Sep, user call).**
 *"While we create a new integration, in case of mapping an ad setup in the Ad behaviour section we
 should have a search there, since we only show 6 recent ad setups there — but what if there are

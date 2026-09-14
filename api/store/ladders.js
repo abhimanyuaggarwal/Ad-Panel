@@ -1,7 +1,7 @@
 // store/ladders.js — how a break BEHAVES and what it ASKS: slot behaviour fields and
 // their normalization, the drive fields, cue points, rung normalization, and the walks
 // (the setup's own walk, the walk after the drive decision, per pod).
-import { DISPLAY_SLOTS, DISPLAY_SLOT_WORD, MAX_RUNGS, MIDROLL_MODES, PAUSE_MODES, POD_NEXT_AD, PREROLL_TIMING, PREROLL_WAIT, PROVIDER_WORD, ROTATION_MAX, SLOT_KIND, TAG_PROVIDERS, state } from './state.js';
+import { DISPLAY_SLOTS, DISPLAY_SLOT_WORD, MAX_RUNGS, MIDROLL_MODES, MUTE_MODES, PAUSE_MODES, POD_NEXT_AD, PREROLL_TIMING, PREROLL_WAIT, PROVIDER_WORD, ROTATION_MAX, SLOT_HEADER_BIDDING, SLOT_KIND, TAG_PROVIDERS, URL_PROVIDERS, state } from './state.js';
 import { fmtSecs, intIn, oneOf, str } from './validate.js';
 
 
@@ -54,20 +54,24 @@ export function normalizeCuepoints(input, errors, field = 'cuepoints') {
 // length) and Max waterfall depth (how deep a walk goes is the SURFACE's Waterfall
 // depth, in Ad delivery — one concept, one control). Removed, not hidden — see
 // DEAD_BEHAVIOUR_FIELDS.
+// `headerBidding` (10 Sep, user call) is on EVERY slot, breaks and rotation alike: a
+// banner slot is exactly what Prebid was built for, and Amazon answers for both. It is
+// the one behaviour field whose default is an INHERITANCE (`auto` — the setup's own
+// answer, at its head), so nothing about it is invented per slot.
 export const SLOT_BEHAVIOUR_FIELDS = {
   // `minContentSec` (31 Aug, user call — the JSON's minPreRenderTime): the PRE-ROLL's
   // own head start — at least this much video plays before the ad may render. A fact
   // about one break, so it lives on that break, not on the player.
-  preroll: ['start', 'deferSec', 'wait', 'waitMs', 'minContentSec', 'podAds', 'nextAd', 'tagTimeoutMs', 'fillTimeoutSec'],
+  preroll: ['start', 'deferSec', 'wait', 'waitMs', 'minContentSec', 'podAds', 'nextAd', 'headerBidding', 'tagTimeoutMs', 'fillTimeoutSec'],
   // `prefetchSec` (same call): how early a COMING break's first ad is fetched — only a
   // break that arrives mid-playback has a "before" to fetch in, so mid- and post-roll.
-  midroll: ['mode', 'cuepoints', 'firstAt', 'every', 'prefetchSec', 'podAds', 'nextAd', 'tagTimeoutMs', 'fillTimeoutSec'],
-  postroll: ['prefetchSec', 'podAds', 'nextAd', 'tagTimeoutMs', 'fillTimeoutSec'],
+  midroll: ['mode', 'cuepoints', 'firstAt', 'every', 'prefetchSec', 'podAds', 'nextAd', 'headerBidding', 'tagTimeoutMs', 'fillTimeoutSec'],
+  postroll: ['prefetchSec', 'podAds', 'nextAd', 'headerBidding', 'tagTimeoutMs', 'fillTimeoutSec'],
   // Out-stream: banners while nothing plays — its show times are its own repeat
   // schedule, so it has no rotation refresh, and since 8 Sep no in-stream switch
   // either. What is left is when it shows, how long it holds, how many it is aiming
-  // for, and how long one request waits.
-  outstream: ['times', 'hold', 'perSession', 'tagTimeoutMs'],
+  // for, who bids for it, and how long one request waits.
+  outstream: ['times', 'hold', 'perSession', 'headerBidding', 'tagTimeoutMs'],
 };
 
 // A cut field is refused BY NAME, with where the answer lives now (house rule).
@@ -101,17 +105,28 @@ export const DEAD_BEHAVIOUR_FIELDS = {
 // Stored as INTENT, sparse, and resolved against whatever the setup holds today — ad
 // ops adding a tag next week joins the walk the decision already describes. A
 // squeeze-back takes turns, so it has nothing to decide beyond its switch.
+// HEADER BIDDING JOINS THE DRIVE (11 Sep, user call — *"in the integration screen, in the
+// ad behaviour section, give this header bidding switch too, as well as in the bulk
+// integration editing while changing ad behaviour"*). It was ops policy only: the setup's
+// own answer, dissented from per slot. A surface may now answer it too — sparse like every
+// other drive decision, so absence means "whatever the ad setup resolves to", and the
+// answer is resolved over the setup at read time rather than copied into it.
+//
+// THE OUT-STREAM GETS ITS FIRST DRIVE FIELD with it, reversing "a rotation takes turns —
+// nothing to decide beyond its switch" (26 Aug) ONLY for this one: what that line refused
+// was pod, walk and order semantics, which a rotation genuinely has none of. Who bids for a
+// banner slot is not one of those — it is exactly what Prebid was built for.
 export const DRIVE_FIELDS = {
-  preroll: ['direct', 'ask', 'tries', 'start', 'deferSec', 'podAds'],
+  preroll: ['direct', 'ask', 'tries', 'start', 'deferSec', 'podAds', 'headerBidding'],
   // WHERE THE BREAKS FALL (3 Sep, user call) joins the drive. The cadence was the ad
   // setup's alone; with the 1:1 promise a setup IS one integration's, so "this surface
   // breaks at 2:00 and 8:00" is a surface decision — stored sparse like the rest and
   // resolved over whatever the placement holds. It is refused where the mid-roll runs
   // MORE THAN ONE break group: several cadences are an arrangement, and one answer
   // cannot stand for all of them.
-  midroll: ['direct', 'ask', 'tries', 'podAds', 'mode', 'cuepoints', 'every'],
-  postroll: ['direct', 'ask', 'tries', 'podAds'],
-  outstream: [], // takes turns — nothing to decide beyond its switch
+  midroll: ['direct', 'ask', 'tries', 'podAds', 'mode', 'cuepoints', 'every', 'headerBidding'],
+  postroll: ['direct', 'ask', 'tries', 'podAds', 'headerBidding'],
+  outstream: ['headerBidding'], // takes turns — but bidders are asked for a banner slot too
 };
 
 // WHO IS ASKED, AND IN WHAT ORDER (27 Aug, user call). `ask` is an ordered list of the
@@ -139,7 +154,7 @@ export function driveAsk(ask) {
 // timing answers on top. `driveKeys` is what the decision set — the UI marks those.
 export function effectiveBehaviour(type, base, drive) {
   if (!base) return { values: null, driveKeys: [] };
-  const keys = drive ? Object.keys(drive).filter(f => ['start', 'deferSec', 'podAds', 'mode', 'cuepoints', 'every'].includes(f)) : [];
+  const keys = drive ? Object.keys(drive).filter(f => ['start', 'deferSec', 'podAds', 'mode', 'cuepoints', 'every', 'headerBidding'].includes(f)) : [];
   if (!keys.length) return { values: base, driveKeys: [] };
   const values = { ...base };
   for (const f of keys) values[f] = drive[f];
@@ -203,6 +218,12 @@ export function normalizeSlotBehaviour(type, input, errors, warnings, prefix = '
     b.podAds = intIn(inp.podAds ?? 1, 'podAds', 1, 3, errs);
     b.nextAd = oneOf(inp.nextAd ?? 'top', 'nextAd', POD_NEXT_AD, errs);
   }
+  // WHO ELSE BIDS, BEFORE THE LADDER IS WALKED (10 Sep, user call). `auto` — the answer
+  // said by absence — takes the setup's own, so one act at the head reaches every slot;
+  // any other value is this slot dissenting, including `off`. Resolved at the boundary
+  // (servedHeaderBidding in setups.js), never stored resolved: the borrowed answer has
+  // to move when the global moves, which is the whole point of borrowing it.
+  b.headerBidding = oneOf(inp.headerBidding ?? 'auto', 'headerBidding', SLOT_HEADER_BIDDING, errs);
   // How long each rung of this slot's waterfall waits before falling through.
   b.tagTimeoutMs = intIn(inp.tagTimeoutMs ?? 2500, 'tagTimeoutMs', 500, 8000, errs);
   // THE BREAK'S OWN GIVING-UP POINT (31 Aug, AD-JSON-SCOPE — the JSON's totalTimeout):
@@ -323,6 +344,11 @@ export function normalizeRungs(raw, family, errors, field, where, alsoTakes = nu
     if (kind === 'ladder') {
       const rerrs = [];
       rung.pause = oneOf(r.pause ?? (tag.type === 'video' ? 'yes' : 'no'), 'pause', PAUSE_MODES, rerrs);
+      // WHICH SOUND IS MUTED (11 Sep, user call): while the content keeps playing under
+      // the ad, two things are rendering and one is quiet — the ad by default. The
+      // answer is kept while content pauses too (it returns when the answer flips
+      // back), so every ladder unit carries it, video or banner.
+      rung.mute = oneOf(r.mute ?? 'ad', 'mute', MUTE_MODES, rerrs);
       // REQUEST DELAY on EVERY ladder rung (2 Sep, user call — was the banner-only
       // "render delay"): how long after its turn comes the unit's request fires. A
       // banner defaults to 1s as it always did; a video rung is sparse — absent fires
@@ -340,6 +366,25 @@ export function normalizeRungs(raw, family, errors, field, where, alsoTakes = nu
       if (r.displaySlot !== undefined && !DISPLAY_SLOTS.includes(r.displaySlot)) {
         errors.push({ field, message: `${where}: “${r.displaySlot}” is not an ad placement the player offers — ${DISPLAY_SLOTS.map(x => DISPLAY_SLOT_WORD[x]).join(', ')}` });
       }
+    }
+    // HEADER BIDDING PER UNIT (11 Sep, user call), in the slot's own grammar: `auto`
+    // borrows the break's served answer (the default, said by absence), `off` refuses
+    // bidders, a partner is this unit's own. Every unit, breaks and rotation alike. A
+    // PASTED URL HAS NO BIDDERS TO ASK — header bidding decorates a GAM request, and a
+    // CAN unit makes none — so it carries no answer, and a named one is refused.
+    if (URL_PROVIDERS.includes(tag.provider)) {
+      if (r.headerBidding != null && r.headerBidding !== 'auto') {
+        errors.push({ field, message: `${where}: “${tag.name}” is a pasted URL — header bidding decorates a GAM request, so there are no bidders to ask` });
+      }
+    } else {
+      const herrs = [];
+      rung.headerBidding = oneOf(r.headerBidding ?? 'auto', 'headerBidding', SLOT_HEADER_BIDDING, herrs);
+      for (const e of herrs) errors.push({ field, message: `${where}: “${tag.name}” — ${e.message}` });
+    }
+    // A ROTATION HAS NO SOUND QUESTION: its banners take turns in an idle player, so
+    // there is no content playing to mute against — the answer is refused by name.
+    if (kind !== 'ladder' && r.mute !== undefined) {
+      errors.push({ field, message: `${where}: “${tag.name}” takes turns in an idle player — nothing is playing, so there is no sound to mute` });
     }
     if (tag.type === 'display') {
       if (kind === 'ladder') {

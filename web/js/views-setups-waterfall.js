@@ -38,12 +38,10 @@
 // not just an emptied ladder.
 //
 // AND EVERY BREAK ANSWERS IT IN TWO STEPS (8 Sep, user call). Each ladder break is in one
-// of three states — no ads, its own custom waterfall, or this global one — and it says so
-// with two controls and no words (suWfStateHtml, under the primary where there is one): a
-// `Waterfall` switch, and, only while it is on, `Custom │ Global`. Three shapes were tried
-// in one day to get here — a switch plus an add-button (two controls, one question, and
-// the third state unreachable), then a stated band plus a three-card dialog (prose where
-// controls belonged). See the block above suWfStateHtml.
+// of three states — no fall, its own custom waterfall, or this global one — and it says so
+// with ONE control since 11 Sep: a three-answer seg — `Off │ Custom │ Global` — under the
+// break's own WATERFALL section header, where every change confirms on THE CHANGE REVIEW
+// first. See the block above `suSrcPick`.
 //
 // The ladder is addressed as the pseudo-slot 'shared' (suSlot in views-setups-editor.js), so
 // every rung helper — add, toggle, remove, drag, the tag search, the fact line, the
@@ -138,8 +136,8 @@ function suWfFollowers() {
 // this break's custom waterfall, `setup` connects it to the waterfall, `none` switches
 // its ads off. NO ROAD DELETES ANYTHING: the break's own rungs stay exactly where they
 // are whichever answer serves, which is what makes every direction worth having. The
-// The answer is chosen by the two controls on the break (suSrcToggle / suSrcPick) — this
-// stays the plain writer; nothing here confirms.
+// The answer is chosen by the break's one source seg (suSrcPick), which confirms before it
+// calls this — this stays the plain writer; nothing here confirms.
 function suWfUse(t, source) {
   const slot = suSlot(t);
   if (!slot) return;
@@ -185,43 +183,71 @@ function suWfUse(t, source) {
 // `Global` while the global waterfall is empty, and the switch's OFF direction while a
 // live integration plays this break (the store refuses that save — fail closed).
 
-// SWITCHING BACK ON RETURNS THE ANSWER YOU LEFT (session-scoped, per break). Nothing is
-// stored for it — the server has one answer per break, and inventing a second field to
-// remember a discarded one would be a lie in the payload. But inside one editing session
-// an off is very often a slip, so the answer that was serving is remembered here and
-// restored, and a fresh load simply lands on its own units.
+// ---------- ONE CONTROL, THREE ANSWERS, ONE CONFIRM (11 Sep, user call — fourth cut) ----------
+// *"The switch, the CTA for switch enable/disable, on/off — everything is not getting connected
+// in a clean user journey; it is too disjointed, it feels everything is just placed with no
+// thought of a UX."* And: *"the modal for confirmation is too immature and too cluttered."*
+//
+// THE FAULT WAS REAL AND IT WAS MINE. A break's fall has exactly THREE answers — nothing, its
+// own units, the shared ladder — and they had been split across two controls a thousand pixels
+// apart: a switch at the left of the row for one of them, a text link at the far right for the
+// other two. Nothing tied them together, so there was no journey to follow: you had to know the
+// model to know they were one question. (The shapes before that were a two-tab seg behind the
+// switch, and before that a floating band — each fixed the last complaint and kept the split.)
+//
+// NOW: the three answers stand together in one seg, directly under the section header they
+// govern and on its own left edge, with the counted fact of whichever is chosen beside them.
+//
+//        WATERFALL ────────────────────────────────
+//        [ Off │ Custom │ Global ]   2 of 2 active
+//    ⠿ 1 ⬤  [CAN] TOI Video Backfill
+//
+// No switch, no CTA, no second step: one control, three answers, always all visible. An answer
+// the platform would refuse greys WHERE IT SITS with its own reason (the house rule) instead of
+// disabling the whole control — `Custom` while there is no primary to fall through from,
+// `Global` while the shared ladder is empty, `Off` while a live break would go dark — which is
+// strictly more capable than the old held switch: a break with no primary can still follow the
+// global, which is a legal arrangement the switch used to block outright.
+//
+// AND EVERY CHANGE CONFIRMS FIRST, in the house's small 440 confirm: the question, the break it
+// lands on, and the MOVE — this answer, becoming that one — and nothing else. See suSrcPick.
+
+// SWITCHING BACK ON RETURNS THE ANSWER YOU LEFT (session-scoped, per break). Nothing is stored
+// for it — the server has one answer per break, and inventing a second field to remember a
+// discarded one would be a lie in the payload — but inside one editing session an off is very
+// often a slip, so the answer that was serving is remembered here.
 const SU_SRC_BACK = new Map();
 
-// Step one. Off parks everything (`none` keeps `ownRungs`, so nothing is deleted); on
-// restores the answer this break left, or its own units, and opens a first empty row when
-// there is nothing at all to come back to — the answer was "give this break a waterfall",
-// and landing on an empty zone would be a second step nobody asked for.
-function suSrcToggle(t) {
+// WHY AN ANSWER MAY NOT BE TAKEN — one reason per answer, each greying only itself.
+// `own`: rung 1 IS the primary, so a custom fall cannot exist before it.
+function suSrcWhyOwn(t) {
   const slot = suSlot(t);
-  if (!slot) return;
-  const key = `${SU_SEC}:${t}`;
-  if (suSrcState(t) === 'none') {
-    const back = SU_SRC_BACK.get(key);
-    suWfUse(t, back === 'setup' && suWfHasUnits() ? 'setup' : 'own');
-    if (!((suSlot(t) || {}).rungs || []).length) suAddRung(t);
-    return;
-  }
-  if (suSrcDarkWhy(t)) return; // refused where it sits, on the switch's own title
-  SU_SRC_BACK.set(key, suSrcOf(slot));
-  suWfUse(t, 'none');
+  if (!slot) return '';
+  const rungs = slot.rungs || [];
+  if (rungs.length > 1) return '';
+  if (!rungs.length) return 'Add the primary ad unit first — a custom waterfall falls through from it';
+  // A row started but not filled is not a first ask yet, and the ladder refuses to add under it.
+  if (!rungs[0].tagId) return 'Pick the primary ad unit first — a custom waterfall falls through from it';
+  return '';
+}
+// `setup`: there is nothing in the shared ladder to serve.
+function suSrcWhyGlobal() {
+  return suWfHasUnits() ? '' : `The ${WF_WORD.toLowerCase()} is empty — give it a unit at the top of this page first`;
+}
+// `none`: a live break with no primary of its own would have nothing left to ask (suSrcDarkWhy).
+function suSrcWhyOff(t) { return suSrcDarkWhy(t); }
+
+function suSrcWhy(t, which) {
+  if (which === 'own') return suSrcWhyOwn(t);
+  if (which === 'setup') return suSrcWhyGlobal();
+  return suSrcWhyOff(t);
 }
 
-// Step two, which exists only while step one says yes.
-function suSrcPick(t, which) {
-  if (which === 'setup' && !suWfHasUnits()) return;
-  suWfUse(t, which);
-}
-
-// WHY THE SWITCH MAY NOT GO OFF. A break a live integration plays must have a walk: the
-// store refuses the save that would darken it (`“Default” post-roll would go dark — …`),
-// so the OFF direction greys here rather than being taken and bounced at Save. Counted
-// from the setup's own live counts, in the same words the server uses. Mid-roll pods are
-// covered too — one dark pod is one dark break.
+// WHY THE BREAK MAY NOT BE SWITCHED OFF. A break a live integration plays must have a walk:
+// the store refuses the save that would darken it (`“Default” post-roll would go dark — …`),
+// so `Off` greys here rather than being taken and bounced at Save. Counted from the setup's
+// own live counts, in the same words the server uses. Mid-roll pods are covered too — one
+// dark pod is one dark break.
 function suSrcDarkWhy(t) {
   if (!SETUP_ORIGINAL || !SETUP_ORIGINAL.usedByLive) return '';
   const sec = suSection();
@@ -240,6 +266,56 @@ function suSrcDarkWhy(t) {
   return `${who} — with no primary ad unit serving, it would have nothing left to ask`;
 }
 
+// Where the act lands, in the page's own words — and in the review's own `where` grammar, so
+// it groups under the break it belongs to exactly as a save's own changes do.
+function suSrcWhere(t) {
+  const sec = suSection();
+  const pod = baseSlot(t) === 'midroll' && suMidGroups().length > 1 ? ` · pod ${SU_MID_G + 1}` : '';
+  return `${sec.name || 'Untitled'} · ${label('slotType', baseSlot(t))}${pod}`;
+}
+
+const SU_SRC_WORD = { own: 'Custom waterfall', setup: WF_WORD, none: 'No waterfall' };
+
+
+// THE ONE ACT, AND ONE SMALL CONFIRM (11 Sep, user call — *"the confirmation modal should be a
+// small confirmation modal with not much text, just convey do you really want to switch, and
+// show the switch in a clean manner down, with two CTAs — yes or cancel"*).
+//
+// The confirm before this one ran on THE CHANGE REVIEW — the right screen for a save or a
+// publish, which carry dozens of changes under section labels, and far too much screen for ONE
+// answer moving. What a person needs here is the question and the move: this, becoming that.
+// So the dialog is the house's small 440 confirm, and its body is the move itself — the answer
+// you are leaving, an arrow, the answer you are taking — with the break named quietly above it
+// so a page of twenty breaks can never leave you wondering which one you just changed.
+async function suSrcPick(t, which) {
+  const slot = suSlot(t);
+  if (!slot) return;
+  const from = suSrcState(t) === 'wf' ? 'setup' : suSrcState(t) === 'own' ? 'own' : 'none';
+  if (from === which) return;
+  if (suSrcWhy(t, which)) return; // refused where it sits; the seg already says why
+  const ok = await ask({
+    title: 'Switch this break’s waterfall?',
+    body: `
+      <div class="src-cfm">
+        <div class="src-cfm-where">${esc(suSrcWhere(t))}</div>
+        <div class="src-cfm-move">
+          <span class="from">${esc(SU_SRC_WORD[from])}</span>
+          <i class="arw" aria-hidden="true">→</i>
+          <span class="to">${esc(SU_SRC_WORD[which])}</span>
+        </div>
+      </div>`,
+    okLabel: 'Yes, switch',
+    cancelLabel: 'Cancel',
+  });
+  if (!ok) return;
+  if (which === 'none') SU_SRC_BACK.set(`${SU_SEC}:${t}`, suSrcOf(slot));
+  suWfUse(t, which);
+  // Its own fall, chosen with nothing in it yet, opens ONE empty row — the answer was "give this
+  // break a waterfall", and landing on an empty section would be a second step nobody asked for.
+  // Rung 1 onward: the primary is never touched.
+  if (which === 'own' && ((suSlot(t) || {}).rungs || []).length < 2) suAddRung(t);
+}
+
 // THE LEVERS — one set of global answers, edited where the waterfall is consumed.
 // Depth: how many units deep every follower tries; Full (null) walks the whole ladder.
 function suWfDepthSet(v) {
@@ -256,15 +332,16 @@ function suWfPauseSet(v) {
   FORM.rerender();
 }
 
-// `View the waterfall` from a connected break: open the folded head section, walk the
-// scroll to it, and flash it once — found, not hunted for.
+// `View the waterfall` from a connected break: open the folded GLOBAL SETTINGS head, walk
+// the scroll to the waterfall's own zone in it, and flash that zone once — found, not
+// hunted for.
 function suWfJump() {
-  if (!SU_HEAD_OPEN.has('waterfall')) {
-    SU_HEAD_OPEN.add('waterfall');
+  if (!SU_HEAD_OPEN.has('globals')) {
+    SU_HEAD_OPEN.add('globals');
     FORM.rerender();
   }
   requestAnimationFrame(() => {
-    const el = document.querySelector('.wf-sec');
+    const el = document.querySelector('.wf-zone');
     if (!el) return;
     // 'center', not 'start' — the sticky editor header would sit over the section's head.
     el.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -303,10 +380,13 @@ function suWfJump() {
 
 // The columns, in the page's own order: every ladder break, the mid-roll opened out
 // into its pods. The family band above the names is what tells you a pod is a mid-roll.
-function suWfApplyCols() {
+// A rotation has no waterfall to follow, so it is not a column HERE — but the grid itself
+// is not about waterfalls, so `withRotations` opens it to every ad slot for the callers
+// whose question the out-stream can answer (header bidding's, 10 Sep).
+function suWfApplyCols(withRotations = false) {
   const out = [];
   for (const t of KL_META.slotTypes) {
-    if (isRotation(t)) continue;
+    if (isRotation(t) && !withRotations) continue;
     const pods = t === 'midroll' ? (KL_META.maxMidrollGroups || 3) : 1;
     for (let gi = 0; gi < pods; gi++) {
       out.push({
@@ -480,29 +560,34 @@ function suWfApplyFootHtml() {
         : 'disabled title="This waterfall is empty — give it a unit first"'}>Apply on ad slots</button>`;
 }
 
-// ---------- the section (the setup's head): the ladder, and nothing else ----------
+// ---------- the zone (inside GLOBAL SETTINGS since 11 Sep): the ladder, and nothing else ----------
+// THE SECTION BECAME A ZONE (11 Sep, user call — *"can we make one section which is global
+// settings and move header bidding and global waterfall there"*). The two setup-wide answers
+// share ONE folded head, `Global settings`, and each is a zone row down its left rail —
+// `Header bidding`, then `Waterfall` — which is the exact anatomy every break row has
+// (Special · Ad sources · Delivery settings), one page up. This file draws the waterfall's
+// zone and the glimpse it lends the folded head; `suGlobalsHtml` (views-setups-editor.js)
+// draws the head and stacks the zones.
 
-function suWaterfallHtml(meta) {
+// The folded head's glimpse for this zone (re-cut 7 Sep, user call — the counted prose
+// distracted and said little): the walk in badges, an off or depth-cut unit dimmed in
+// place. ONLY the order — who follows it is each break's own story. Nothing when empty.
+function suWfGlimpseHtml() {
+  const wf = suWf();
+  const filled = (wf.rungs || []).filter(r => r.tagId);
+  if (!filled.length) return '';
+  let gAt = 0;
+  return `<span class="glimpse-walk">${filled.map(r => {
+    const off = r.on === false;
+    const cut = !off && wf.depth && ++gAt > wf.depth;
+    const tag = SU_TAGS.find(x => x.id === r.tagId);
+    return `<span class="wfg${off || cut ? ' dim' : ''}">${tag ? providerBadge(tag.provider) : ''}</span>`;
+  }).join('<i class="gsep">›</i>')}</span>`;
+}
+
+function suWaterfallZoneHtml(meta) {
   const wf = suWf();
   const t = 'shared';
-  // FOLDED AT REST (glimpse re-cut 7 Sep, user call — the counted prose distracted and
-  // said little): the closed line SHOWS the waterfall instead — the provider walk in
-  // badges, an off or depth-cut unit dimmed in place. ONLY the order (7 Sep, user
-  // call): the breaks-count chip left the line — who asks it is each break's own story.
-  // Nothing when empty. A refused save forces the section open.
-  const open = SU_HEAD_OPEN.has('waterfall') || !!FORM.errors.waterfall;
-  const total = (wf.rungs || []).filter(r => r.tagId).length;
-  let gAt = 0;
-  const glimpse = total
-    ? `<span class="glimpse-walk">${(wf.rungs || []).filter(r => r.tagId).map(r => {
-        const off = r.on === false;
-        const cut = !off && wf.depth && ++gAt > wf.depth;
-        const tag = SU_TAGS.find(x => x.id === r.tagId);
-        return `<span class="wfg${off || cut ? ' dim' : ''}">${tag ? providerBadge(tag.provider) : ''}</span>`;
-      }).join('<i class="gsep">›</i>')}</span>`
-    : '';
-  const head = suHeadRowHtml('waterfall', WF_WORD, glimpse, open);
-  if (!open) return `<div class="wf-sec closed">${head}</div>`;
   // NO PRIMARY HERE (7 Sep, user call): the thing every break shares IS a waterfall, so
   // its rungs are plain positions 1…N — no lead row, no primary vocabulary in it.
   const ctx = {
@@ -527,14 +612,14 @@ function suWaterfallHtml(meta) {
     FORM.rerender();
   });
   const atMax = chainCount(wf.rungs) >= meta.maxRungs;
-
+  // The zone's word is `Waterfall`: under a head that already says `Global settings`, the
+  // qualifier would say it twice. `WF_WORD` (Global waterfall) stays the name the breaks
+  // and every message use for it from anywhere else on the page.
   return `
-    <div class="wf-sec">
-      ${head}
-      ${FORM.errors.waterfall ? `<div class="banner bad" data-err-for="waterfall">${esc(FORM.errors.waterfall)}</div>` : ''}
       <div class="zone-row wf-zone">
-        <span class="zone-l">Units</span>
+        <span class="zone-l">Waterfall</span>
         <div class="zone-c">
+          ${FORM.errors.waterfall ? `<div class="banner bad" data-err-for="waterfall">${esc(FORM.errors.waterfall)}</div>` : ''}
           ${wf.rungs.length ? suLadderHtml(t, ctx) : ''}
           <div class="slot-multi-foot wf-foot">
             ${/* NO "10 of 10" (7 Sep, user call): a cap is not a fact the section needs to
@@ -547,40 +632,36 @@ function suWaterfallHtml(meta) {
           </div>
         </div>
         <span class="slot-menu-ph"></span>
-      </div>
-    </div>`;
+      </div>`;
 }
 
-// ---------- THE SOURCE: TWO STEPS, NO WORDS (8 Sep, user call — three cuts) ----------
-// *"In the ad setup, in every slot there is not a clear demarcation of three state — no
-// waterfall, custom waterfall and the global waterfall connected. It is very unclear; it
-// should be very clear the journey to a layman user."* Then: *"There are too many switches
-// and CTAs here… when I come on an ad slot I have the option — do I want a waterfall or
-// no? If yes, custom or global."* Then: *"It has to be more simplified, in 2 steps and no
-// text or byline."*
+// ---------- THE SOURCE, ON THE SECTION IT GOVERNS (8 Sep; re-seated 11 Sep) ----------
+// *"In every slot there is not a clear demarcation of three state — no waterfall, custom
+// waterfall and the global waterfall connected."* (8 Sep) → two controls and no prose: a
+// `Waterfall` switch, then `Custom │ Global`. Then, 11 Sep: *"there is no clear demarcation
+// of primary and the waterfall section, it is not getting communicated correctly"* and
+// *"the waterfall switch is non symmetrical and not aligned with other switches, plus it is
+// not cleanly discoverable — too much cognition"*.
 //
-// What was here first drew only the ACT, twice: a `Follow the waterfall` switch (bare over
-// the words `No tags`, or dropped mid-ladder) plus a `+ Add custom waterfall` button — two
-// controls for one question — while switching a break's ads off meant Clear, which
-// deletes. Nothing said where the break stood.
+// THE CONTROLS WERE RIGHT AND HOMELESS. They floated between the primary block and the fall
+// rows, in a row of their own, at their own x — the switch sat at the zone's left edge while
+// every unit's switch sat 53px to its right, so the one control governing a whole SECTION
+// was the only switch on the page aligned to nothing. And the fall already had a second row
+// naming it (`WATERFALL ORDER · 2 of 2 active`), so one section wore two headers.
 //
-// The second cut said where it stood in WORDS: a band with a coloured dot, a state name,
-// a counted fact, and a button opening a three-card dialog that explained each answer's
-// consequence. It was clear and it was too much: prose and a modal standing in for two
-// yes/no facts.
+// They live IN the section rule now (`suBreakLadderHtml`, views-setups-rungs.js): a break's
+// Ad sources zone is two named sections, `PRIMARY` and `WATERFALL`, and each rule wears the
+// unit rail — so the waterfall's switch lands in the same column as every unit switch under
+// it, the way a parent checkbox sits over its children's in any list UI. One row, one
+// header, one column of switches:
 //
-// This is the third and the shape that holds. THE QUESTION IS TWO QUESTIONS, AND EACH IS
-// ITS OWN CONTROL:
+//        PRIMARY ──────────────────────────────────
+//   ⠿  ⬤  [IMA] TOI Mweb VideoShow Post-roll
+//      ⬤  WATERFALL   Custom │ Global   2 of 2 active ──
+//   ⠿ 1 ⬤  [CAN] TOI Video Backfill
 //
-//     ○ Waterfall                                  → no fall: the primary is the whole walk
-//     ⬤ Waterfall   [ Custom │ Global ]  View      → step two only exists while step one says yes
-//
-// No state name, no byline, no dialog — the state is the LADDER under the controls, which
-// is already on screen, and the closed break row carries the walk. What the words used to
-// carry is carried by the shape instead: the act is instantly reversible (flip it back and
-// the units return), the unsaved-change rail marks it like any edit, and the one hover the
-// tooltip policy still allows names the count before you click.
-//
+// These two render the rule's controls; nothing here draws a row of its own any more.
+
 // Which of the three the break is in — the reads every count and control here go
 // through. A break with rows started but nothing picked yet is already `own`: it has a
 // waterfall, it just has nothing in it, so the controls do not flip under the seller's
@@ -591,44 +672,46 @@ function suSrcState(t) {
   const src = suSrcOf(slot);
   if (src === 'setup') return 'wf';
   if (src === 'none') return 'none';
-  return (slot.rungs || []).length ? 'own' : 'none';
+  // `own` with nothing under the primary is a break with NO FALL (11 Sep, with the two
+  // sections): rung 1 is the primary's own row, so a custom waterfall begins at rung 2.
+  // Before the sections were drawn apart, one row meant "a waterfall with something in
+  // it" — the primary and the fall shared a list, so they shared a state.
+  return (slot.rungs || []).length > 1 ? 'own' : 'none';
 }
 
 // THE TWO CONTROLS, AND NOTHING ELSE (8 Sep, user call — *"2 steps and no text or
 // byline"*). The switch, then the answer it unlocks, then the one door up to the global
 // ladder. Every fact this row used to state in words is on screen anyway: the units are
 // the ladder below it, and the closed break row carries the walk.
-function suWfStateHtml(t) {
-  const slot = suSlot(t);
+
+// The section's one control: three answers and, while the shared ladder is serving, the door up
+// to it. No byline — what an answer serves is drawn under it (see the block inside).
+function suWfRuleSourceHtml(t) {
   const st = suSrcState(t);
-  const on = st !== 'none';
-  const has = suWfHasUnits();
-  const chg = FORM.saved && suSrcOf(slot) !== suSrcOf(suSavedSlot(t));
-  // The only two refusals on this row, each greying the direction it refuses. The switch
-  // is only ever blocked ONE way — a fall can always be switched on; it is switching OFF
-  // that a live break with no primary refuses — so it is drawn HELD, not dead.
-  const dark = on ? suSrcDarkWhy(t) : '';
-  const noGlobal = has ? '' : `The ${WF_WORD.toLowerCase()} is empty — give it a unit at the top of this page first`;
-  // The one hover the tooltip policy still allows here: what switching off would park.
-  // The primary is not in that count — it keeps serving.
-  const parked = (slot.rungs || []).slice(1).filter(r => r.tagId).length;
-  const offWhy = dark || (st === 'own' && parked
-    ? `${parked} unit${parked === 1 ? '' : 's'} are kept, switched off` : '');
-  const why = on ? offWhy : '';
+  const cur = st === 'wf' ? 'setup' : st === 'own' ? 'own' : 'none';
+  const slot = suSlot(t);
+  const own = (slot.rungs || []).slice(1).filter(r => r.tagId).length;
+  const answers = [['none', 'Off'], ['own', 'Custom'], ['setup', 'Global']];
+  const seg = `<div class="seg small wf-src-seg">${answers.map(([v, l]) => {
+    const why = v === cur ? '' : suSrcWhy(t, v);
+    return `<button type="button" class="${v === cur ? 'on' : ''}${why ? ' dead' : ''}"${
+      why ? ` title="${esc(why)}"` : ''}${why ? '' : ` onclick="suSrcPick('${t}', '${v}')"`}>${l}</button>`;
+  }).join('')}</div>`;
+  // NO BYLINE BESIDE THE ANSWER (11 Sep, user call — *"3 units · 2 breaks follow it — remove
+  // this byline"*), the same call the waterfall's own foot took on 7 Sep (*"6 ad slots
+  // connected — remove this text"*): what the answer serves is ON SCREEN under it — its own
+  // rows, or the global's levers and the door to its ladder — so a count beside the control
+  // was the page saying twice what it shows once.
+  //
+  // ONE EXCEPTION, and it is not a count of anything visible: a fall switched OFF is holding
+  // units nobody can see. That is the only trace of them and the only hint that the way back
+  // returns something, so it stays — and it goes the moment there is nothing parked.
+  const kept = cur === 'none' && own ? `${own} unit${own === 1 ? '' : 's'} kept` : '';
   return `
-    <div class="wf-src src-${st}${chgIf(chg)}">
-      <span class="toggle tiny wf-src-sw ${on ? 'on' : ''}${dark ? ' held' : ''}"${
-        why ? ` title="${esc(why)}"` : ''}${dark ? '' : ` onclick="suSrcToggle('${t}')"`
-      }><span class="track"></span>Waterfall</span>
-      ${on ? `
-        <div class="seg small src-seg">
-          <button type="button" class="${st === 'own' ? 'on' : ''}" onclick="suSrcPick('${t}', 'own')">Custom</button>
-          <button type="button" class="${st === 'wf' ? 'on' : ''}${noGlobal ? ' dead' : ''}"${
-            noGlobal ? ` title="${esc(noGlobal)}"` : ''} onclick="suSrcPick('${t}', 'setup')">Global</button>
-        </div>
-        ${st === 'wf' ? `<button type="button" class="zlink wf-src-view" onclick="suWfJump()"
-          title="Open the ${WF_WORD.toLowerCase()} at the top of this page">View</button>` : ''}` : ''}
-    </div>`;
+    ${seg}
+    ${kept ? `<span class="fall-n">${esc(kept)}</span>` : ''}
+    ${cur === 'setup' ? `<button type="button" class="zlink wf-act" onclick="suWfJump()"
+      title="Open the ${WF_WORD.toLowerCase()} at the top of this page">View</button>` : ''}`;
 }
 
 // THE ORDER IS A LEVER, NOT THE ROWS (re-cut 7 Sep, user call — a connected slot's
@@ -701,7 +784,7 @@ function suWfOrderChipsHtml() {
 //
 // They stay GLOBAL — this is the bulk edit, so setting one here sets it for every break
 // connected to the waterfall, which is the whole point. The door up to the ladder itself
-// rides the source band above (see suWfStateHtml); the read-only mirror of every rung
+// rides the section's own control row above (see suWfRuleSourceHtml); the mirror of every rung
 // went with the earlier cut — it retold the waterfall's own story on every connected
 // break, four times over, where none of it could be changed.
 //
@@ -723,13 +806,11 @@ function suWfMirrorHtml(t) {
       <span class="lr-l">${esc(l)}</span>
       <span class="lr-ctl form">${ctl}</span>
     </div>`;
-  const f = suWfFollowers();
+  // NO HEADER OF ITS OWN (11 Sep): the WATERFALL section rule above already names this
+  // section, carries its switch and counts its followers. A second rule here made a
+  // connected break the one break with two headers over one set of rows.
   return `
     <div class="wf-mirror">
-      <div class="fall-rule lead-rule">
-        <span class="fall-w">${esc(WF_WORD)}</span>
-        <span class="fall-n">${f === 1 ? 'this break only' : `${f} breaks follow it`}</span>
-      </div>
       <div class="wf-levers bhv-grid">
         ${row(FORM.saved && (wf.rungs || []).map(r => r.tagId).join() !== savedOrder,
           'Waterfall order', suWfOrderChipsHtml())}

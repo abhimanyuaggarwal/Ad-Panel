@@ -46,6 +46,30 @@ function suHeadRowHtml(k, title, glimpse, open) {
     </div>`;
 }
 
+// GLOBAL SETTINGS (11 Sep, user call — *"can we make one section which is global settings
+// and move header bidding and global waterfall there only?"*). ONE folded head for the two
+// setup-wide answers, each a zone row down the left rail — `Header bidding`, then
+// `Waterfall` (the one-line answer first, the ladder under it; user call, same day) — which
+// is the anatomy every break row already has, one page up: a head line, then zones beside
+// what they name. Two sibling sections for two one-row facts were two heads, two hairlines
+// and two chevrons saying "shared plumbing" twice. The glimpse is the two facts as marks in
+// the zones' own order: the header bidding answer, then the waterfall's walk. A refused save
+// in either forces the head open — fail visible, never fail hidden.
+function suGlobalsHtml(meta) {
+  const open = SU_HEAD_OPEN.has('globals') || !!FORM.errors.waterfall || !!FORM.errors.headerBidding;
+  const wf = suWfGlimpseHtml();
+  const hb = suHbGlimpseHtml();
+  const glimpse = `${hb}${wf && hb ? '<span class="gs-sep"></span>' : ''}${wf}`;
+  const head = suHeadRowHtml('globals', 'Global settings', glimpse, open);
+  if (!open) return `<div class="gs-sec closed">${head}</div>`;
+  return `
+    <div class="gs-sec">
+      ${head}
+      ${suHeaderBiddingZoneHtml(meta)}
+      ${suWaterfallZoneHtml(meta)}
+    </div>`;
+}
+
 // ---------- editor ----------
 
 async function viewSetupForm(id) {
@@ -72,6 +96,8 @@ async function viewSetupForm(id) {
       name: setup.name, property: setup.property,
       // The waterfall (5 Sep): the setup-level ladder + its levers.
       waterfall: suWfClean(setup.waterfall),
+      // HEADER BIDDING (10 Sep): the setup's one answer, borrowed by every slot on Auto.
+      headerBidding: setup.headerBidding || 'off',
       // _orig ties a form section back to its saved self for the counted chips
       // (divergence, muted-on, live counts) — renames keep it, new placements lack it.
       sections: setup.sections.map((sec, i) => ({
@@ -115,6 +141,7 @@ async function viewSetupForm(id) {
       data = {
         name: `${seed.name} copy`, property: seed.property, copiedFrom: seed.name,
         waterfall: suWfClean(seed.waterfall),
+        headerBidding: seed.headerBidding || 'off',
         sections: setupSeedSections(seed, meta),
       };
     } else {
@@ -129,6 +156,9 @@ async function viewSetupForm(id) {
         name: prefill ? prefill.name : '', property: prefill ? prefill.property : '',
         presetName: meta.rulePresets[meta.rulePresets.length - 1].name,
         waterfall: suWfClean(null),
+        // Nobody bids until someone says so: a blank setup starts Off, and every slot on
+        // it starts on Auto, so one act at the head is all it takes to switch the surface on.
+        headerBidding: 'off',
         sections: [suBlankSection('Default', meta, meta.rulePresets[meta.rulePresets.length - 1].values)],
       };
     }
@@ -331,6 +361,10 @@ function suBhvAdapter(t) {
     numNull: f => `suBNumNull(this, '${t}', '${f}')`,
     text: f => `suBText(this, '${t}', '${f}')`,
     dirty: f => suBhvDirty(t, f),
+    // HEADER BIDDING (10 Sep), handed to the shared row renderer: what the slot actually
+    // RUNS — its `Auto` resolved through the setup's answer — the one fact the row states
+    // beside the seg, and the partner `Custom` starts from.
+    hbServed: () => suHbServed(t),
     rungCount: () => (suSlot(t).rungs || []).filter(r => r.tagId && r.on !== false).length,
     differs: f => suFieldDiffers(t, f),
     differsWord: 'Set differently on another placement',
@@ -526,65 +560,28 @@ function suSlotRowHtml(t, meta) {
   // was to hold an add link. The strip stands even at one pod, which is what makes
   // "everything is in pod 1" visible, and adding another is an act on the strip.
   const groupsZone = t !== 'midroll' ? '' : suMidTabsHtml();
-  // INDIRECT (1 Sep, user call): the open-market ladder wears the word that pairs with
-  // Direct. A rotation has no Direct, so the pair means nothing there — it keeps
-  // 'Ad sources'. GAM sync left this foot for the page header: one directory, one CTA.
-  // THE SOURCE IS ONE SWITCH, BOTH WAYS (6 Sep as a fork; re-cut 7 Sep, user call —
-  // "there should be an option to switch to a shared waterfall if a custom waterfall is
-  // configured while the vice versa is also needed"): switching costs NOTHING, because
-  // the answer you leave keeps every unit it had, parked and counted.
-  //
-  // AND THE ZONE SAYS WHICH OF THE THREE IT IS IN, IN TWO STEPS (8 Sep, user call —
-  // *"in every slot there is not a clear demarcation of three state ... it should be very
-  // clear the journey to a layman user"*, then *"2 steps and no text or byline: one switch
-  // on/off waterfall; if switched on, which one — custom or global waterfall"*). The row
-  // (suWfStateHtml) is those two controls and nothing else. What follows it is the
-  // answer's body: this break's own ladder, the global waterfall's shared settings and the
-  // door up to it, or — switched off — nothing at all.
-  //
-  // THE ROW RIDES UNDER THE PRIMARY (8 Sep, user call, asked twice — *"the follow
-  // waterfall should be moved down the primary one"*, *"this should be below the primary
-  // ad unit"*), and the PRIMARY IS DRAWN IN ALL THREE ANSWERS (8 Sep, same review —
-  // *"when switched to global why is primary ad unit being removed, it should stay"*).
-  // The break's own first ask opens the zone whatever serves the fall; the controls sit
-  // where the FALL begins, which is the part anyone comes here to swap; and what follows
-  // them is the fall itself, the global waterfall's shared settings, or nothing. A break
-  // with no primary yet has nothing to sit under, so the controls take the head.
-  const src = rot ? 'own' : suSrcState(t);
-  const band = rot ? '' : suWfStateHtml(t);
-  const hasPrimary = !rot && slot.rungs.length > 0;
-  ctx.midHtml = hasPrimary ? band : '';
-  // WHAT GOES WHERE THE FALL GOES. Its own rows (the default, `own`), the global
-  // waterfall's shared settings, or nothing at all — see `ctx.fallHtml` in suLadderHtml.
-  if (src === 'wf') ctx.fallHtml = suWfMirrorHtml(t);
-  else if (src === 'none') ctx.fallHtml = '';
-  // THE FOOT ADDS UNITS, IT NO LONGER CHOOSES A SOURCE (8 Sep). Its empty-ladder label
-  // was `+ Add custom waterfall` — a second control answering the switch's question, and
-  // the reason a break wore two CTAs for one decision. With nothing at all it adds the
-  // PRIMARY; with a primary and its own fall it adds the next fall rung; and a break
-  // whose fall is not its own has nothing here to add.
-  const addLabel = !hasPrimary ? '+ Add ad unit' : src === 'own' ? '+ Add waterfall tag' : '';
-  const ownLadder = `${suLadderHtml(t, ctx)}
-     ${rot || addLabel ? `<div class="slot-multi-foot">
-        ${rot ? `
-          ${!atMax
-            ? `<button class="slot-add" ${canAddRung(slot.rungs) ? '' : 'disabled title="Fill the one above first"'} onclick="suAddRung('${t}')">+ Add banner tag</button>`
-            : `<span class="slot-order-note">${meta.rotationMax} of ${meta.rotationMax}</span>`}`
-        : `
-          ${!atMax ? `<button class="slot-add" ${canAddRung(slot.rungs) ? '' : 'disabled title="Fill the tag above first"'} onclick="suAddRung('${t}')">${addLabel}</button>`
-            : `<span class="slot-order-note">${meta.maxRungs} of ${meta.maxRungs}</span>`}`}
-      </div>` : ''}`;
   // AD SOURCES, EVERYWHERE (7 Sep, user call — "rename Indirect to something relevant
   // since it will have both direct and indirect; something a layman understands that
-  // works in ads too"). `Indirect` named the demand's KIND, and the zone stopped being
-  // one kind the moment a direct deal could sit in the ladder. What it always is, is
-  // where the ads come from — which is the word a ROTATION's ladder has worn all along,
-  // so the rename unifies the two rather than adding a fourth zone word to the rail:
-  // Special · Ad sources · Delivery settings, on every break and every rotation.
-  // ONE BODY, THREE ANSWERS (8 Sep): the ladder always draws the primary and always puts
-  // the controls under it — what changes is only what sits where the fall goes, which
-  // `ctx.fallHtml` decided above. A break with no primary keeps the controls at the head.
-  const sourcesZone = zone('Ad sources', rot || hasPrimary ? ownLadder : `${band}${ownLadder}`);
+  // works in ads too"). `Indirect` named the demand's KIND, and the zone stopped being one
+  // kind the moment a direct deal could sit in the ladder. What it always is, is where the
+  // ads come from — which is the word a ROTATION's ladder has worn all along, so the rename
+  // unifies the two rather than adding a fourth zone word to the rail: Special · Ad
+  // sources · Delivery settings, on every break and every rotation.
+  //
+  // A BREAK IS TWO SECTIONS, ALWAYS BOTH (11 Sep, user call — *"primary should always show
+  // it is on top of waterfall; currently it only shows if the waterfall switch is
+  // enabled"*, *"there is no clear demarcation of primary and the waterfall section"*).
+  // `suBreakLadderHtml` draws PRIMARY and WATERFALL with their own rules and the source
+  // controls seated on the waterfall's rule, so the anatomy reads on an empty break exactly
+  // as it reads on a full one. A ROTATION is not a break — its banners take turns, so it has
+  // one flat list and one add button, and no sections to name.
+  const rotLadder = !rot ? '' : `${suLadderHtml(t, ctx)}
+     <div class="slot-multi-foot">
+       ${!atMax
+         ? `<button class="slot-add" ${canAddRung(slot.rungs) ? '' : 'disabled title="Fill the one above first"'} onclick="suAddRung('${t}')">+ Add banner tag</button>`
+         : `<span class="slot-order-note">${meta.rotationMax} of ${meta.rotationMax}</span>`}
+     </div>`;
+  const sourcesZone = zone('Ad sources', rot ? rotLadder : suBreakLadderHtml(t, ctx, meta));
   const deliveryZone = zone('Delivery settings',
     `<div class="bhv-grid">${behaviourRowsHtml(t, suBhvAdapter(t))}</div>
      ${FORM.data.sections.length > 1 ? `<div class="zrow bhv-foot">
@@ -657,7 +654,7 @@ function renderSetupForm(meta) {
           </div>` : ''}
         </div>
         ${editing ? suTemplatesRowHtml() : ''}
-        ${suWaterfallHtml(meta)}
+        ${suGlobalsHtml(meta)}
         ${suPlacementsSecHtml(meta)}
       </div>
 
@@ -696,6 +693,7 @@ function setupPayload(d) {
       depth: d.waterfall?.depth ?? null,
       pauseAll: d.waterfall?.pauseAll ?? null,
     },
+    headerBidding: d.headerBidding || 'off',
     sections: d.sections.map(sec => ({
       name: sec.name,
       slots: Object.fromEntries(Object.entries(sec.slots).map(([t, slot]) => {
@@ -758,9 +756,10 @@ async function saveSetupClicked(opts = {}) {
       FORM.saved = JSON.parse(JSON.stringify(FORM.data));
       await pubReload();
       PUB.name = SETUP_ORIGINAL.name;
-      // The pill says the act; the header chip counts what waits to publish, and the
-      // warnings are handed back to whoever asked for the save — Publish reads them on
-      // THE CHANGE REVIEW (7 Sep, user call: the receipt carries the act and nothing else).
+      // The pill says the act; the header chip counts what waits to publish. The API's
+      // soft `warnings` are still handed back to whoever asked for the save, but nothing
+      // reads them since 11 Sep — the amber block they filled on THE CHANGE REVIEW was
+      // removed (user call). They never belonged in the two-second pill either.
       if (!quiet) toast('Saved');
       return { warnings };
     } else {

@@ -136,50 +136,21 @@
 }
 .pl-x:hover { color: var(--bad); background: #fdf0f0; }
 
-/* ---------- CUSTOM CONFIGS AS A TABLE (3 Sep, user call — second cut) ---------- */
-/* The KEY is the row's identity, the three facts are its contents — said with geometry:
-   the key owns a fixed left column, mono on a quiet tint, a vertical rule dividing it
-   from the facts; the facts sit under ONE heading row, so labels never repeat per row
-   and a bare key can never read as an unlabelled fourth control. */
-.pcfg-t { --pcfg-cols: 176px minmax(150px, 1fr) minmax(120px, 1fr) minmax(160px, 1fr) 68px; }
-.pcfg-h {
-  display: grid; grid-template-columns: var(--pcfg-cols); gap: 18px; align-items: end;
-  padding: 0 0 6px; border-bottom: 1px solid var(--line); margin-bottom: 2px;
-  font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-  color: var(--ink-faint);
-}
-.pcfg-r {
-  display: grid; grid-template-columns: var(--pcfg-cols); gap: 18px; align-items: center;
-  padding: 7px 0;
-}
-.pcfg-r + .pcfg-r { border-top: 1px solid #eef0f5; }
-/* A row waiting for its key: the ladder's own "this one is yours to fill" mark. */
-.pcfg-r.wants .pcfg-key { border-color: var(--accent); background: #fff; }
-/* The add sits at the FOOT, where the row it makes will appear — a real button in the
-   ladder's add-row grammar, not a pale link floating up in the section title. */
+/* ---------- PLAYER CONFIGS AS FOLDS (11 Sep, user call) ---------- */
+/* RETIRED 13 Sep (third cut): the custom-config ROWS — `.pcfg-t/-row/-head/-chips/-chip/
+   -same/-more/-id/-key/-msg`, the chip-per-override row with its Edit door. A config is a
+   COLUMN of the player grid now (THE PLAYER CONFIG GRID, at the foot of this file), so
+   nothing here draws one. What stays is what the templates table borrowed: the row's
+   right edge (`.pcfg-acts`) and the add-row foot (`.pcc-*`). */
+.pcfg-acts { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+.pcfg-acts .btn.small { padding: 4px 10px; font-size: 11.5px; }
+.pcfg-acts .btn.small[disabled] { opacity: .45; cursor: not-allowed; }
+.tpl-r .row-kebab { opacity: 0; transition: opacity .12s; }
+.tpl-r:hover .row-kebab, .row-kebab:focus-visible, .rmenu.open .row-kebab { opacity: 1; }
 .pcc-foot { display: flex; padding-top: 12px; }
-.pcc-add { padding: 6px 14px; font-size: 12px; }
+.slot-add.pcc-add { padding: 6px 14px; font-size: 12px; }
 .pcc-add[disabled] { opacity: .45; cursor: not-allowed; }
-.pcc-add[disabled]:hover { color: var(--ink-soft); border-color: #d5dae4; }
-/* The identity column: its right rule runs through header and rows alike. */
-.pcfg-id { border-right: 1px solid var(--line); padding-right: 18px; min-width: 0; display: flex; }
-.pcfg-h .pcfg-id { border-right-color: transparent; }
-.pcfg-key {
-  width: 100%; min-width: 0;
-  border: 1px solid var(--line); border-radius: 8px; background: var(--bg-soft, #f7f8fb);
-  padding: 7px 10px; font-size: 12.5px;
-}
-.pcfg-key:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px var(--ring); outline: 0; }
-.pcfg-c { display: flex; align-items: center; min-width: 0; }
-/* THE ROW'S RIGHT EDGE (4 Sep): the switch is STATE, so it never hides; the ⋯ carries
-   the rare act (Remove) and reveals itself the way the gear does — hover, focus, open. */
-.pcfg-acts { display: inline-flex; align-items: center; gap: 4px; justify-self: end; }
-.pcfg-r .row-kebab, .tpl-r .row-kebab { opacity: 0; transition: opacity .12s; }
-.pcfg-r:hover .row-kebab, .pcfg-r:focus-within .row-kebab, .tpl-r:hover .row-kebab,
-.row-kebab:focus-visible, .rmenu.open .row-kebab { opacity: 1; }
-/* A switched-off config keeps its row — key, facts and all — dimmed in place; the
-   switch and the ⋯ stay at full strength, or there is no way back. */
-.pcfg-r.off .pcfg-c, .pcfg-r.off .pcfg-id { opacity: .45; }
+.slot-add.pcc-add[disabled]:hover { color: var(--ink-soft); border-color: #d5dae4; }
 
 /* PLACEMENTS is the structure: it names the strip from above, and the first tab starts
    on the card's own left edge. SECTION HEADERS READ AS HEADERS (4 Sep, user call — the
@@ -347,12 +318,15 @@
 .ad-unit.open .ad-unit-panel { display: grid; }
 .ad-unit.open .ad-unit-facts { display: none; }
 
-/* THE FACT LINE: every fact of the unit's TYPE, fixed order, defaults included — so
-   reading a ladder never needs a fold opened per unit. Two things went with the re-cut:
-   the tinted PILLS (they were chips on a tint — two grounds saying one thing) and the
-   ragged flow. Each fact now holds a COLUMN of its own (`data-f`), so `Content pause`
-   sits at one x down the whole ladder and the repeated labels read as a column the eye
-   learns once. A fact that cannot apply right now dims in place, reason on hover. */
+/* THE FACT LINE: the unit's DECISIONS at a glance, defaults included, its clocks folded
+   behind one counted cue (11 Sep, user call — "3-4 keys, the rest on click"). Two
+   things went with the 7 Sep re-cut: the tinted PILLS (they were chips on a tint — two
+   grounds saying one thing) and the ragged flow. Each fact holds a COLUMN of its own
+   (`data-f`), so `Content pause` sits at one x down the whole ladder and the repeated
+   labels read as a column the eye learns once. The facts every unit always has come
+   FIRST — the over-content pair (Ad placement · Mute) exists only while the content
+   keeps playing, so its absence on a Yes row leaves no hole. A fact the waterfall
+   answers for dims in place, reason on hover. */
 .ad-unit-facts {
   display: flex; align-items: center; flex-wrap: wrap; gap: 2px 10px;
   padding: 0 12px 8px 0; cursor: pointer;
@@ -365,14 +339,18 @@
 .ad-unit-facts .uf b { font-weight: 500; color: var(--ink-soft, #5a6272); }
 .ad-unit-facts:hover .uf b { color: var(--ink); }
 .ad-unit-facts .uf.na { opacity: .5; }
-/* The columns, in the order the line emits them: the four facts every unit has, then
-   the banner-only pair. Widths are the longest label + value each fact can hold. */
-.ad-unit-facts .uf[data-f="pause"] { min-width: 104px; }
-.ad-unit-facts .uf[data-f="delay"] { min-width: 106px; }
+/* The columns, in the order the line emits them: the two facts every unit has, then the
+   over-content pair. Widths are the longest label + value each fact holds, MEASURED (11
+   Sep) — a unit's fullest glance is four facts and a cue, well inside the 792px line. */
+.ad-unit-facts .uf[data-f="pause"] { min-width: 98px; }
+.ad-unit-facts .uf[data-f="tpl"]   { min-width: 140px; }
 .ad-unit-facts .uf[data-f="slot"]  { min-width: 148px; }
-.ad-unit-facts .uf[data-f="tpl"]   { min-width: 156px; }
-.ad-unit-facts .uf[data-f="close"] { min-width: 92px; }
-.ad-unit-facts .uf[data-f="hide"]  { min-width: 0; }
+.ad-unit-facts .uf[data-f="mute"]  { min-width: 72px; }
+/* THE CUE: `+3 more`, in the label's own voice — a count, not a sentence — with the
+   folded clocks' exact values on hover (the one hover the panel keeps: an exact value).
+   It lifts with the values when the line is hovered, because it opens the same fold. */
+.ad-unit-facts .uf-more { font-size: 10.5px; color: #98a1b3; white-space: nowrap; }
+.ad-unit-facts:hover .uf-more { color: var(--ink-soft, #5a6272); }
 
 /* THE SETTINGS: the Delivery-settings rows' own language — a label column, one control,
    one height — hanging off the unit's name. It describes ONE unit, so the label column
@@ -380,18 +358,24 @@
    TWO COLUMNS (7 Sep, user call — "easy on the eyes"): six one-per-line rows made the
    open block 440px tall against a 100px closed one, and the whole right two-thirds of
    it was empty — the fold shoved the rest of the ladder off screen to show six short
-   answers. Paired, it is ~250px and the pairs fall out honestly row-major: the two
-   clocks that decide WHEN, the two facts that decide WHERE and THROUGH WHAT, and (on a
-   banner) the two that decide how it leaves. The row grammar is untouched — there are
-   simply two of them per line, and one per line again when the width is not there. */
+   answers. BY MEANING, NOT BY COUNT (11 Sep): the 7 Sep grid paired rows by position,
+   so a row that comes and goes would have re-shuffled every pair. Now each column is a
+   `.up-col` — left, Content pause with its children indented beneath it (the facts
+   that exist only while content keeps playing); right, the facts that hold whatever it
+   answers. The row grammar is untouched; the two columns stack when the width is not
+   there. */
 /* `display` is set by the open/closed pair above (which outranks this rule), so the
    grid's shape lives here and its `display: grid` lives there — together, not split. */
 .ad-unit-panel {
   padding: 0 12px 9px 0;
   grid-template-columns: repeat(auto-fit, minmax(316px, 372px)); column-gap: 22px;
 }
+.up-col { display: flex; flex-direction: column; align-items: stretch; }
 .up-r { display: flex; align-items: center; gap: 12px; min-height: 28px; }
 .up-r.off { opacity: .45; }
+/* A child of Content pause: the label steps in, the control stays on the parent's x. */
+.up-r.sub { padding-left: 14px; }
+.up-r.sub .up-l { flex-basis: 110px; }
 /* Labels not bold (4 Sep, user review) — the value and its control carry the weight. */
 .up-l { flex: 0 0 124px; font-size: 11.5px; font-weight: 400; color: var(--ink-soft); }
 .ad-unit-panel .select { padding: 4px 10px; min-width: 178px; font-size: 12px; }
@@ -456,29 +440,11 @@
 .bqf-r.open:hover .bqs-x.on { opacity: 1; }
 
 
-/* ---------- DETAILS SHORT-ANSWER ROW + THE FILLS-FROM STRIP (3 Sep, user calls) ---------- */
-/* Playback, Fallback media and Passive volume at their natural widths, side by side. */
-.prow2 .field { flex: 0 0 auto; }
-.prow2 .field input[type=text] { width: 300px; }
-.prow2 .rule-text { flex: 0 0 280px; }
-.prow2 .num-wrap { flex: 0 0 auto; width: 96px; height: 38px; }
-.prow2 .num-wrap input { padding-left: 10px; height: 36px; }
-
-/* THE DEFAULT IS ROW ZERO OF THE CONFIGS (4 Sep, user call). The Details card's last row
-   rides the config table's own grid (`--pcfg-cols`), so its three facts sit in the EXACT
-   columns their forks take in the card below — the identity label where the table keeps
-   its keys, the same divider rule through both cards. The label bottom-aligns with the
-   controls (each fact carries its own label above), and the rule spans the row so it
-   reads as the table's rule, not a tick. */
-/* ROW ZERO (7 Sep, user call — the Details strip that half-aligned with this table is
-   gone; the default is a row IN it now). It reads as the row the others fork from: the
-   identity is a word, not a typed key, and the row sits on the quietest tint so the eye
-   finds it first without it shouting. */
-.pcfg-r.pcfg-dflt { background: #fbfcfe; }
-/* The identity column is a flex COLUMN (it stacks a key with its error), so the default's
-   one word needs the cross axis to line up with the key inputs under it, not centre. */
-.pcfg-dflt .pcfg-id { justify-content: center; align-items: flex-start; }
-.pcfg-dname { font-size: 12.5px; font-weight: 700; color: var(--ink); padding-left: 2px; }
+/* ---------- THE FILLS-FROM STRIP (3 Sep, user call) ---------- */
+/* RETIRED 11 Sep: `.prow2` (the Details short-answer row) and `.pcfg-dflt` (row zero).
+   The player's fields lodged in Details from the 25 Aug trim until they grew to eight
+   sections and earned their own card; the default's row-zero trick went with them,
+   because the card above the configs IS the default and does not need repeating. */
 
 /* The mapped ad setup is the page's headline relationship, so it rides the TITLE ROW at
    the right edge — an eyebrow, the setup as a PROMINENT chip that opens it, the meta
@@ -589,8 +555,8 @@
    waterfall's own blue so "follows the head of the page" needs no sentence. */
 .pl-glimpse { display: inline-flex; align-items: center; gap: 8px; vertical-align: middle; }
 .pl-glimpse .uchip.linked { background: #eef3fe; color: var(--accent); border-color: #c7d6f8; }
-.tpl-sec.closed, .wf-sec.closed, .pl-sec.closed { padding-bottom: 6px; }
-.tpl-sec .shead, .wf-sec .shead, .pl-sec .shead { margin-bottom: 2px; }
+.tpl-sec.closed, .gs-sec.closed, .pl-sec.closed { padding-bottom: 6px; }
+.tpl-sec .shead, .gs-sec .shead, .pl-sec .shead { margin-bottom: 2px; }
 /* Placements is the card's last section — same fold anatomy, no rule under it. */
 .pl-sec { padding: 2px 0 4px; }
 
@@ -708,10 +674,6 @@
    placement name already here — goes red with the reason on hover. */
 .stab.err, .stab.on.err { color: var(--bad); border-bottom-color: var(--bad); }
 .pl-name.err { color: var(--bad); }
-/* A bad config key: red field, reason under it, what was typed still there. */
-.pcfg-key.err { border-color: var(--bad) !important; color: var(--bad); }
-.pcfg-id { display: flex; flex-direction: column; gap: 3px; }
-.pcfg-msg { font-size: 11.5px; line-height: 1.3; }
 /* Pickers past a handful search in place; the create card never hides. */
 .dlg-search { width: 100%; margin: 0 0 10px; box-sizing: border-box; }
 /* THE AD SETUP DOORS' ONE BAR (8 Sep, user call — always drawn, field at the top right).
@@ -777,3 +739,229 @@ tr.pinned td { background: #fffdf4; }
 tbody tr.pinned:hover td { background: #fdf6e2; }
 tr.grp-more td { padding: 7px 14px 8px 43px; background: #fffdf4; border-bottom: 1px solid var(--line); }
 tbody tr.grp-more:hover td { background: #fdf6e2; }
+
+/* ---------- THE PLAYER CONFIG GRID (13 Sep, third cut) ---------- */
+/* ONE GRID for the default and every custom config (user call — *"less cluttered … how
+   does a user think … more fluid like Google Sheets … the custom config is sounding
+   disjointed from the default"*). Rows are the player's settings, the first column is
+   the DEFAULT, and a config is one more column beside it. Three rules keep it calm:
+     VALUES AT REST. A cell is a word until it is clicked; only a switch is drawn, because
+       a switch is its own value. Twenty-nine words are read; twenty-nine drawn controls
+       are decoded one by one.
+     PROVENANCE IS INK. A config's cell that follows the default is faded read-through
+       and comes back under the pointer (it is live — touching it is how the config makes
+       it its own); a cell the config sets is full weight in the accent's ink. The
+       default's column is plain ink. Nothing else says "override" — the contrast IS the
+       concept, and it needs no sentence.
+     ONE MARK PER MEANING. The amber leading rule = unsaved (the whole panel's mark), on
+       the cell that moved. The accent ring = the cell being edited (a sheet's selected
+       cell). Nothing is boxed, tinted or banded for any other reason.
+   Every row is its own grid on the card's one template (`--pg-tpl`, set inline from the
+   column count), so head rows, group labels and folds align without a thousand-cell grid. */
+.pg-card .fieldset-title-row { margin-bottom: 2px; }
+.pg-lede { font-size: 11.5px; line-height: 1.45; color: var(--ink-faint); margin: 0 0 12px; max-width: 760px; }
+.pg-row { display: grid; grid-template-columns: var(--pg-tpl); column-gap: 4px; align-items: center; }
+
+/* THE HEADER ROW sticks under the page's fixed header while the card is in view, so a
+   person deep in a fold always knows which column is which — the frozen row a sheet
+   gives you for the same reason. Opaque, or the rows would read through it. */
+.pg-head {
+  position: sticky; top: 122px; z-index: 6; background: var(--panel);
+  border-bottom: 1px solid var(--line); padding: 2px 0 6px;
+}
+.pg-hl, .pg-hd {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-faint); padding: 0 10px; line-height: 26px;
+}
+/* THE WAY BACK FROM A FOCUSED COLUMN (14 Sep) stands in the header's own leading cell —
+   the row that names the columns is where "which columns" belongs. It is drawn ONLY while
+   a column is focused, and it says what it returns to, counted. Nothing narrates what is
+   already visible: that only one config is showing is plain from the header itself. */
+.pg-hl { display: flex; align-items: center; padding: 0 6px; }
+.pg-back {
+  border: 1px solid var(--line); background: #fff; border-radius: 7px; padding: 3px 9px;
+  font-family: inherit; font-size: 11px; font-weight: 600; letter-spacing: 0; text-transform: none;
+  color: var(--accent); cursor: pointer; white-space: nowrap; line-height: 1.5;
+}
+.pg-back:hover { border-color: #ccd9f4; background: var(--accent-soft); }
+/* `Default` is a column head like the keys beside it — a word at their size, not an eyebrow. */
+.pg-hd { font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ink-soft); }
+/* A config's head: its key, typeable in place; its switch; its ⋯ (hover-revealed, the
+   templates rows' grammar). A head waiting for its key wears the "yours to fill" mark. */
+.pg-hc { position: relative; display: flex; align-items: center; gap: 6px; min-width: 0; padding: 0 2px 0 6px; }
+.pg-key {
+  flex: 0 1 auto; width: 100%; max-width: 150px; min-width: 36px; height: 26px; border: 1px solid transparent; border-radius: 6px;
+  background: var(--bg-soft, #f7f8fb); padding: 0 8px; font-family: ui-monospace, Menlo, monospace;
+  font-size: 12px; font-weight: 600; color: var(--ink); outline: 0;
+}
+.pg-key:hover { border-color: var(--line); }
+.pg-key:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px var(--ring); }
+.pg-key.err { border-color: var(--bad) !important; color: var(--bad); }
+.pg-hc.wants .pg-key { border-color: var(--accent); background: #fff; }
+.pg-hc.off .pg-key { color: var(--ink-faint); }
+/* THE ⋯ COSTS NO WIDTH (14 Sep). At the six-config maximum a column head is ~103px, and a
+   kebab that holds 34px of it is what pushed the grid past the card. It is absent until the
+   head is pointed at, so it rides ABOVE the head's right edge rather than inside its flow,
+   over a short fade so the key beneath it never collides with the glyph. The switch keeps
+   its place in the flow — it is state, and state never moves. */
+.pg-hc .rmenu {
+  position: absolute; right: 0; top: 0; height: 100%; flex: none;
+  display: flex; align-items: center; padding-left: 14px; opacity: 0; transition: opacity .12s;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), var(--panel) 45%);
+}
+.pg-hc .row-kebab { opacity: 1; }
+.pg-hc:hover .rmenu, .pg-hc:focus-within .rmenu, .pg-hc .rmenu.open { opacity: 1; }
+.pg-kmsg {
+  position: absolute; left: 6px; top: calc(100% + 2px); z-index: 1; white-space: nowrap;
+  font-size: 11px; background: var(--panel); padding: 1px 4px; border-radius: 4px;
+}
+.pg-hc.chg::before { left: 0; top: 3px; bottom: 3px; }
+
+/* A SECTION: one row at rest — the ad unit's own grammar (no fill and an inset hairline;
+   fill on hover and while open; a 26×26 caret standing at rest as the way back). */
+.pg-sec {
+  border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(19, 27, 46, .045); margin-top: 6px;
+  transition: background .12s, box-shadow .12s;
+}
+.pg-sec:not(.open):hover { background: rgba(19, 27, 46, .03); }
+.pg-sec.open { background: rgba(19, 27, 46, .024); box-shadow: inset 0 0 0 1px rgba(19, 27, 46, .075); }
+.pg-sec.bad { box-shadow: inset 0 0 0 1px var(--bad); }
+.pg-srow { min-height: 40px; cursor: pointer; padding: 3px 0; }
+.pg-sname { display: flex; align-items: center; gap: 4px; padding-left: 4px; font-size: 12.5px; font-weight: 600; color: var(--ink); min-width: 0; }
+.pg-sname span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pg-sec.open .unit-chev { transform: rotate(90deg); background: #fff; color: var(--accent); box-shadow: 0 1px 2px rgba(21, 32, 54, .07); }
+/* THE FACT LINE in the default's column: the section's headline values, one colour and
+   one weight; a fact the section cannot apply right now dims in place with its reason. */
+.pg-facts { position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: 2px 14px; padding: 0 10px; min-width: 0; }
+.pg-facts .uf { display: inline-flex; align-items: baseline; gap: 5px; white-space: nowrap; font-size: 10.5px; min-width: 0; }
+.pg-facts .uf i { font-style: normal; font-size: 10px; font-weight: 400; color: #98a1b3; }
+.pg-facts .uf b { font-weight: 500; color: var(--ink-soft, #5a6272); }
+.pg-srow:hover .uf b { color: var(--ink); }
+.pg-facts .uf.na { opacity: .45; }
+/* In a config's column the head row says how many cells of this section it sets — so the
+   columns are real before any fold is opened, and "how is shorts different" is one look. */
+/* The COUNT is a door — it shows that config beside the default with this section open,
+   which is the question the count raises. The door is the words, not the cell: the cell is
+   mostly empty and belongs to the row, whose click opens the fold. Quiet until pointed at. */
+.pg-sdiff { position: relative; padding: 0 10px; font-size: 11px; }
+.pg-diff, .pg-same { cursor: pointer; border-radius: 5px; padding: 2px 4px; margin-left: -4px; }
+.pg-diff:hover, .pg-same:hover { background: var(--accent-soft); color: var(--accent); }
+.pg-diff { font-weight: 600; color: var(--accent-ink, #1e47ad); }
+.pg-same { color: var(--ink-faint); }
+.pg-sdiff.coff { opacity: .45; }
+.pg-facts.chg::before, .pg-sdiff.chg::before { left: 2px; top: -3px; bottom: -3px; }
+
+/* THE FOLD: quiet group labels over rows; a faint gridline so a row reads across. */
+.pg-body { padding: 0 0 8px; }
+.pg-g { font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); padding: 12px 10px 3px 12px; }
+.pg-r { min-height: 34px; border-top: 1px solid rgba(19, 27, 46, .05); }
+.pg-g + .pg-r { border-top: 0; }
+.pg-l { font-size: 12.5px; font-weight: 500; color: var(--ink); padding-left: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pg-r.dim .pg-l { color: var(--ink-faint); }
+.pg-r.bad .pg-l { color: var(--bad); }
+.pg-err { font-size: 11.5px; color: var(--bad); padding: 0 12px 6px; }
+
+/* THE CELL. Room on the right for the ×; the whole cell is the hit area. */
+.pg-c {
+  position: relative; display: flex; align-items: center; min-height: 30px; min-width: 0;
+  padding: 0 24px 0 10px; border-radius: 6px; font-size: 12.5px; color: var(--ink); outline: 0;
+  cursor: pointer; transition: background .1s;
+}
+.pg-c:hover { background: rgba(19, 27, 46, .05); }
+.pg-c:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+.pg-c.editing { box-shadow: inset 0 0 0 2px var(--accent); background: #fff; z-index: 7; }
+.pg-c.na { cursor: help; }
+.pg-c.na:hover { background: transparent; }
+.pg-v { display: inline-flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.pg-v > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pg-v .mono { font-size: 12px; }
+.pg-empty { color: var(--ink-faint); font-weight: 400; }
+.pg-c.inh .pg-v { opacity: .42; transition: opacity .12s; }
+.pg-c.inh:hover .pg-v, .pg-c.inh:focus-visible .pg-v { opacity: .85; }
+.pg-c.own .pg-v { color: var(--accent-ink, #1e47ad); font-weight: 600; }
+.pg-c.own .pg-v .pg-empty { color: var(--accent-ink, #1e47ad); opacity: .7; }
+.pg-c.na .pg-v { opacity: .35; }
+.pg-c.coff .pg-v { opacity: .3; }
+.pg-c.chg::before { left: 2px; top: 6px; bottom: 6px; }
+.pg-c .toggle.tiny { margin: 0; }
+/* The way back, on the cell: × under the pointer and on focus, never at rest. */
+.pg-x {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px;
+  border: 0; border-radius: 5px; background: transparent; color: var(--ink-faint);
+  font-size: 14px; line-height: 1; cursor: pointer; opacity: 0; transition: opacity .1s;
+}
+.pg-c:hover .pg-x, .pg-c:focus-visible .pg-x, .pg-c.editing .pg-x { opacity: 1; }
+.pg-x:hover { background: var(--accent-soft); color: var(--accent); }
+
+/* THE INLINE BOX — the cell itself, typeable. No border of its own: the cell's ring is
+   the frame, exactly as a sheet's selected cell is. */
+.pg-in { display: inline-flex; align-items: center; gap: 4px; width: 100%; min-width: 0; }
+.pg-in input {
+  border: 0; outline: 0; background: transparent; padding: 0; width: 100%; min-width: 0;
+  font-family: inherit; font-size: 12.5px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.pg-in input.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.pg-in .unit { font-size: 10.5px; color: var(--ink-faint); letter-spacing: .3px; flex: none; }
+.pg-c.editing .pg-v { overflow: visible; opacity: 1; width: 100%; }
+
+/* THE POPOVER — a menu or a set of chips under the cell, in the house select's own look.
+   In a config's column a menu leads with the default's answer, and a chip set ends with
+   `Use the default`: letting go is always one act away from taking hold. */
+.pg-pop {
+  position: absolute; top: calc(100% + 4px); left: 0; min-width: 100%; z-index: 40;
+  background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-2); padding: 5px;
+}
+.pg-pop.r { left: auto; right: 0; }
+.pg-opt { padding: 7px 10px; border-radius: 7px; font-size: 12.5px; font-weight: 500; color: var(--ink); cursor: pointer; white-space: nowrap; outline: 0; }
+.pg-opt:hover, .pg-opt:focus { background: var(--accent-soft); }
+.pg-opt.on { font-weight: 700; color: var(--accent); }
+.pg-opt.dflt { color: var(--ink-soft); }
+.pg-opt.dflt b { font-weight: 600; color: var(--ink); margin-left: 4px; }
+.pg-opt.dflt.on, .pg-opt.dflt.on b { color: var(--accent); }
+.pg-opt.sep { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 9px; border-radius: 0 0 7px 7px; }
+.pg-opt.dead { color: var(--ink-faint); cursor: not-allowed; }
+.pg-opt.dead:hover { background: transparent; }
+.pg-pop.chips { display: flex; flex-wrap: wrap; gap: 5px; padding: 8px; min-width: 240px; max-width: 340px; }
+.pg-pop-foot { flex-basis: 100%; display: flex; justify-content: flex-end; padding-top: 4px; }
+.pg-dflt-btn {
+  border: 1px solid transparent; background: transparent; cursor: pointer; padding: 3px 8px; border-radius: 6px;
+  font-family: inherit; font-size: 11px; font-weight: 600; color: var(--accent); white-space: nowrap;
+}
+.pg-dflt-btn:hover:not([disabled]) { background: var(--accent-soft); }
+.pg-dflt-btn[disabled] { color: var(--ink-faint); cursor: default; }
+
+/* A SET, toggled a chip at a time — sized to `.pchip`, the page's own chip (11.5px on
+   white with a hairline and a 7px radius). On is the figure, off is the ground; the one
+   member that may never leave (1×) says so on hover rather than refusing silently. */
+.pb-chip {
+  border: 1px solid var(--line); background: #fff; border-radius: 7px;
+  padding: 3px 9px; font-family: inherit; font-size: 11.5px; color: var(--ink-soft); cursor: pointer;
+  white-space: nowrap; transition: background .12s, color .12s, border-color .12s;
+}
+.pb-chip:hover { border-color: #ccd9f4; color: var(--ink); }
+.pb-chip:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--ring); }
+.pb-chip.on { border-color: #ccd9f4; background: #f6f9ff; color: var(--ink); font-weight: 650; }
+.pb-chip.lock { cursor: default; }
+.pb-chip.lock:hover { border-color: #ccd9f4; }
+
+/* COLOUR: a dot at rest; while editing, the swatch (a native colour input at zero opacity
+   over it — the one place the panel takes the platform's control) and the typeable hex;
+   beside the text colour, the pair previewed as "Aa" — text on brand, one decision seen
+   once, with a contrast that fails visible where it is chosen. */
+.pb-dot { display: inline-block; width: 12px; height: 12px; border-radius: 4px; flex: none; box-shadow: inset 0 0 0 1px rgba(19, 27, 46, .15); }
+.pg-facts .pb-dot { width: 9px; height: 9px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.pg-sw {
+  position: relative; width: 20px; height: 20px; border-radius: 5px; flex: none;
+  box-shadow: inset 0 0 0 1px rgba(19, 27, 46, .15); overflow: hidden; cursor: pointer;
+}
+.pg-sw input[type=color] { position: absolute; inset: -4px; width: 140%; height: 140%; border: 0; padding: 0; opacity: 0; cursor: pointer; }
+.pg-aa {
+  display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 18px; flex: none;
+  border-radius: 4px; font-size: 10.5px; font-weight: 700; letter-spacing: .2px;
+  box-shadow: inset 0 0 0 1px rgba(19, 27, 46, .15); cursor: help;
+}
+.pg-aa.low { box-shadow: inset 0 0 0 1.5px var(--warn, #d97706); }
+/* The logo is shown where it is typed — a dead URL is then visible at the moment it is
+   entered, rather than on a player somewhere at a publisher. */
+.pg-thumb { height: 16px; max-width: 48px; border-radius: 3px; flex: none; }
+.pg-thumb.dead { display: none; }

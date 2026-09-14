@@ -188,6 +188,44 @@ export default async function run({ test, req, eq, assert, freshSetup, patchSlot
     eq(lb.pause, 'size', 'and whether content pauses — the player\'s own size decides');
   });
 
+  await test('Mute is a break unit\u2019s own answer while content plays: Ad by default, Content by choice, a third refused by name, none on a rotation', async () => {
+    // WHICH SOUND IS MUTED (11 Sep, user call): while the content keeps playing under the
+    // ad two things render, so one is quiet. Every ladder unit carries the answer — a
+    // video unit too, for the day it plays over content — and the UI folds it away while
+    // content pauses; the store keeps it underneath, like the pause answer itself.
+    const meta = (await req('GET', '/panel/meta')).body;
+    eq(meta.muteModes, ['ad', 'content'], 'two answers: the one that is quiet');
+    eq(meta.muteWords.content, 'Content', 'in the seller\u2019s words');
+    const s = (await req('GET', '/panel/setups/as_1')).body.setup;
+    const view = s.sections[0].slots.preroll.rungView;
+    eq(view.find(r => r.tagType === 'display').mute, 'ad', 'a banner over content mutes the ad by default');
+    eq(view.find(r => r.tagType === 'video').mute, 'ad', 'a video unit carries the answer too');
+    const rungs = s.sections[0].slots.preroll.rungs.map(r => ({ ...r }));
+    const bIdx = view.findIndex(r => r.tagType === 'display');
+    rungs[bIdx] = { ...rungs[bIdx], mute: 'content' };
+    eq((await req('PATCH', '/panel/setups/as_1', { slots: { preroll: { rungs } } })).status, 200, 'the content may be the quiet one');
+    rungs[bIdx] = { ...rungs[bIdx], mute: 'both' };
+    const bad = await req('PATCH', '/panel/setups/as_1', { slots: { preroll: { rungs } } });
+    eq(bad.status, 400, 'a third answer is refused');
+    assert(bad.body.errors.some(e => e.message.includes('which sound is muted')), 'by name');
+    // A rotation takes turns in an idle player — nothing is playing to mute against.
+    const o = (await req('GET', '/panel/setups/as_2')).body.setup;
+    const orungs = o.sections[0].slots.outstream.rungs.map((r, i) => (i === 0 ? { ...r, mute: 'ad' } : r));
+    const rot = await req('PATCH', '/panel/setups/as_2', { slots: { outstream: { rungs: orungs } } });
+    eq(rot.status, 400, 'refused on a rotation');
+    assert(rot.body.errors.some(e => e.message.includes('idle player')), 'by name');
+    eq((await req('GET', '/panel/setups/as_2')).body.setup.sections[0].slots.outstream.rungView[0].mute, undefined, 'and a rotation unit never carries one');
+    // The kept answer rides the published walk to the player.
+    eq((await req('POST', '/panel/setups/as_1/publish')).status, 200, 'published');
+    const k = (await req('GET', '/panel/keys/key_1')).body.key;
+    const live = (await req('GET', `/panel/live/${k.key}`)).body.sections[0].slots.preroll;
+    eq(live.walk.find(x => x.type === 'display').mute, 'content', 'the player is told which sound is quiet');
+    // And moving it is a change the version rail can say, in words.
+    const vs = (await req('GET', '/panel/setups/as_1/versions')).body;
+    const notes = JSON.stringify(vs);
+    assert(notes.includes('"field":"mute"') && notes.includes('"to":"Content"'), `the diff names it: ${notes.slice(0, 200)}`);
+  });
+
   await test('out-stream is a fifth slot: a rotation outside playback, switch only', async () => {
     const meta = (await req('GET', '/panel/meta')).body;
     eq(meta.slotTypes.includes('outstream'), true, 'a slot type');
@@ -200,7 +238,10 @@ export default async function run({ test, req, eq, assert, freshSetup, patchSlot
     // Nothing to decide beyond its switch.
     const r = await patchDrive('key_3', 'outstream', { tries: 1 });
     eq(r.status, 400, 'refused');
-    assert(r.body.errors.some(e => e.message.includes('takes turns')), 'says why');
+    // See 07-bulk: the out-stream carries exactly one drive field since 10 Sep, so the
+    // refusal names it instead of claiming there is nothing to decide at all.
+    assert(r.body.errors.some(e => e.message.includes('header bidding')),
+      `says what a rotation does carry (got ${JSON.stringify(r.body.errors)})`);
     // Direct never reaches it: direct is break demand, out-stream is not a break.
     const k = (await req('GET', '/panel/keys/key_3')).body.key;
     const live = (await req('GET', `/panel/live/${k.key}`)).body;

@@ -4,8 +4,8 @@
 import { DRIVE_FIELDS, askWord, driveAsk, driveWalkRungs, effectiveBehaviour, normalizeCuepoints, slotGroupDefs } from './ladders.js';
 import { isPublished } from './publish.js';
 import { duplicateSetup, setupSection } from './setups.js';
-import { AUTOPLAY, FIELD_WORDS, MAX_RUNGS, MAX_SECTIONS, MIDROLL_MODES, PLATFORMS, PLAYBACK_KINDS, PLAYBACK_MODES, PREROLL_TIMING, PROPERTIES, PROVIDER_WORD, Refusal, SLOT_TYPES, SLOT_WORD, TAG_PROVIDERS, WEB_PLATFORMS, WORST_CASE_WARN_MS, fieldWord, keyString, state } from './state.js';
-import { DOMAIN_RE, PACKAGE_RE, bool, diff, fmtSecs, httpUrl, intIn, mustGet, oneOf, str, uniqueName } from './validate.js';
+import { ANALYTICS_LEVELS, AUTOPLAY, CONTROLS_MODES, DOCK_POSITIONS, END_SCREENS, FIELD_WORDS, HEADER_BIDDING, MAX_RUNGS, MAX_SECTIONS, MIDROLL_MODES, PLATFORMS, PLAYBACK_RATES, PLAYER_CONTROLS, PLAYER_FIELDS, PLAYBACK_KINDS, PLAYBACK_MODES, PREROLL_TIMING, PROPERTIES, PROVIDER_WORD, Refusal, SLOT_TYPES, SLOT_WORD, TAG_PROVIDERS, WEB_PLATFORMS, WORST_CASE_WARN_MS, fieldWord, keyString, state } from './state.js';
+import { DOMAIN_RE, PACKAGE_RE, bool, diff, fmtSecs, hexColor, httpUrl, intIn, mustGet, oneOf, str, uniqueName } from './validate.js';
 
 
 // ---------- player fields (inline — no identity) ----------
@@ -17,10 +17,62 @@ import { DOMAIN_RE, PACKAGE_RE, bool, diff, fmtSecs, httpUrl, intIn, mustGet, on
 // integration's Identity carries them (see panel/PRODUCT-LOG.md). Key-level, not per
 // placement: what genuinely varied per placement was AD SOUND, and that is a slot field
 // now, which is more precise than a whole forked player ever was.
+// A list of names held to a fixed vocabulary the PLAYER TEAM owns — the tag-macro rule,
+// applied to control names: an unknown one is refused by name rather than saved as a
+// setting that silently does nothing (Q6 — the list itself is provisional).
+function nameList(input, allowed, field, why, errs) {
+  if (input === undefined || input === null) return [];
+  if (!Array.isArray(input)) {
+    errs.push({ field, message: `${fieldWord(field)} must be a list` });
+    return [];
+  }
+  const out = [];
+  for (const v of input) {
+    const n = str(v);
+    if (!n) continue;
+    if (!allowed.includes(n)) { errs.push({ field, message: `“${n}” ${why} — ${allowed.join(', ')}` }); continue; }
+    if (!out.includes(n)) out.push(n);
+  }
+  return out;
+}
+
+// The speeds offered, as a SET in the player's own order. 1x is never removable: a
+// player a viewer cannot return to normal speed on is a defect, not a configuration.
+function rateList(input, errs) {
+  if (input === undefined || input === null) return [...PLAYBACK_RATES];
+  if (!Array.isArray(input)) {
+    errs.push({ field: 'playbackRates', message: 'Speeds must be a list' });
+    return [...PLAYBACK_RATES];
+  }
+  const out = [];
+  for (const v of input) {
+    const n = Number(v);
+    if (!PLAYBACK_RATES.includes(n)) { errs.push({ field: 'playbackRates', message: `${n}× is not a speed the player offers — ${PLAYBACK_RATES.join(', ')}` }); continue; }
+    if (!out.includes(n)) out.push(n);
+  }
+  if (!out.includes(1)) out.push(1);
+  return PLAYBACK_RATES.filter(r => out.includes(r));
+}
+
+// Q11, answered: 0 is off, 10–100 is a real threshold, and 1–9 is refused BY NAME —
+// below 10% the player cannot tell, so a value it silently ignores never gets saved.
+function pausePct(v, errs) {
+  const n = Number(v ?? 0);
+  if (!Number.isInteger(n) || n < 0 || n > 100) {
+    errs.push({ field: 'autoPausePct', message: `Pause below visibility must be 0 (off) or 10–100 (got ${v})` });
+    return 0;
+  }
+  if (n > 0 && n < 10) {
+    errs.push({ field: 'autoPausePct', message: `Below 10% the player cannot tell — pick 10 or more, or switch it off (got ${n})` });
+    return 0;
+  }
+  return n;
+}
+
 export function normalizePlayer(input, errors, prefix = '') {
   const errs = [];
   if (input.startVolume !== undefined) {
-    errs.push({ field: 'player', message: 'startVolume is gone — the player carries one Passive volume (JSON: passiveVolume), set in Details' });
+    errs.push({ field: 'player', message: 'startVolume is gone — the player carries one Passive volume (JSON: passiveVolume), set on the Player config card' });
   }
   const b = {
     autoplay: oneOf(input.autoplay ?? 'auto', 'autoplay', AUTOPLAY, errs),
@@ -35,7 +87,53 @@ export function normalizePlayer(input, errors, prefix = '') {
     // Active is the default; absent reads 'active' so every player saved before the
     // field existed keeps behaving exactly as it did.
     playback: oneOf(input.playback ?? 'active', 'playback', PLAYBACK_KINDS, errs),
+
+    // ---------- the Player behaviour card (11 Sep, docs/PLAYER-LEVERS.xlsx) ----------
+    // Every field below defaults to what the player's own config block defaults to, so
+    // an integration saved before they existed reads exactly as the player already
+    // behaves. PLAYBACK SOURCE:
+    quality: str(input.quality) || 'auto',
+    // STARTUP BEHAVIOUR. Q2 is open — three settings can silence a video and the
+    // precedence is not written down anywhere yet.
+    muted: input.muted === undefined ? false : bool(input.muted),
+    // VIEWER PREFERENCES — the viewer's own choices, remembered between sessions.
+    rememberVolume: input.rememberVolume === undefined ? true : bool(input.rememberVolume),
+    rememberAudioLang: input.rememberAudioLang === undefined ? true : bool(input.rememberAudioLang),
+    rememberCaptions: input.rememberCaptions === undefined ? true : bool(input.rememberCaptions),
+    // PLAYBACK CONTROLS. The three below the mode are subordinate to it: they are kept
+    // whatever it says (nothing is lost by switching to None and back) and the UI greys
+    // them where they sit, the house rule everywhere else on the page.
+    controlsMode: oneOf(input.controlsMode ?? 'full', 'controlsMode', CONTROLS_MODES, errs),
+    hiddenControls: nameList(input.hiddenControls, PLAYER_CONTROLS, 'hiddenControls',
+      'is not a control the player draws', errs),
+    playbackRates: rateList(input.playbackRates, errs),
+    // 0 = never hide. On screen that is the switch's Off; on the wire it stays 0.
+    controlsAutoHideMs: intIn(input.controlsAutoHideMs ?? 5000, 'controlsAutoHideMs', 0, 60000, errs),
+    // OUT-OF-VIEW BEHAVIOUR.
+    dock: oneOf(input.dock ?? 'lb', 'dock', DOCK_POSITIONS, errs),
+    autoPausePct: pausePct(input.autoPausePct, errs),
+    // COMPLETION BEHAVIOUR — the two facts a fork may legitimately disagree about.
+    loop: input.loop === undefined ? false : bool(input.loop),
+    endScreen: oneOf(input.endScreen ?? 'none', 'endScreen', END_SCREENS, errs),
+    // BRANDING & APPEARANCE — the property's, never a placement's.
+    brandColor: str(input.brandColor) || '#ff0000',
+    textColor: str(input.textColor) || '#ffffff',
+    logoUrl: str(input.logoUrl),
+    // ANALYTICS & MEASUREMENT — never forkable, or every reported number splits.
+    analyticsLevel: intIn(input.analyticsLevel ?? 3, 'analyticsLevel', 1, 3, errs),
+    viewAfterMs: intIn(input.viewAfterMs ?? 3000, 'viewAfterMs', 0, 60000, errs),
+    heartbeatMs: intIn(input.heartbeatMs ?? 10000, 'heartbeatMs', 0, 600000, errs),
+    comscoreId: str(input.comscoreId),
+    nielsenId: str(input.nielsenId),
+    gaId: str(input.gaId),
   };
+  for (const [f, word] of [['brandColor', 'Brand colour'], ['textColor', 'Text colour']]) {
+    if (!hexColor(b[f])) errs.push({ field: f, message: `${word} must be a hex colour like #1a2b3c (got ${b[f]})` });
+    else b[f] = b[f].toLowerCase();
+  }
+  if (b.logoUrl && !httpUrl(b.logoUrl)) {
+    errs.push({ field: 'logoUrl', message: 'The logo needs a full URL (https://…) — the player loads it as an image' });
+  }
   if (b.playbackMode === 'inline_redirect' && !httpUrl(b.redirectUrl)) {
     errs.push({ field: 'redirectUrl', message: 'Inline + custom redirect needs a full redirect URL (https://…)' });
   }
@@ -44,13 +142,18 @@ export function normalizePlayer(input, errors, prefix = '') {
   return b;
 }
 
-// ---------- custom player configs (2 Sep, user call; fields re-cut same day) ----------
-// ONE default player per integration stays the rule — but a surface may carry a few
-// NAMED forks of the three facts that genuinely vary per placement: the playback mode
-// (active / passive), whether the MiniTV expands for ads, and the autoplay behaviour
-// (with its volume when it starts unmuted). A player asks for a config by name;
-// everything it doesn't carry follows the default. Nothing here switches ads on or
-// off — that stays the Ad delivery card's.
+// ---------- custom player configs: DEFAULT + SPARSE OVERRIDES (13 Sep, user call) ----------
+// ONE default player per integration stays the rule — the Default player config card.
+// A surface may carry a few NAMED custom configs a player asks for by key, and a custom
+// config may override ANY of the player's fields. It carries ONLY what it overrides:
+// absent means "follow the default", resolved LIVE at read time (see liveConfig), so
+// moving a lever on the default moves every config that never spoke about it. Each
+// override is validated by the SAME normalizer the default runs through — the config's
+// overrides are laid over the default, checked whole, and only the override keys are
+// kept — so there is exactly one set of rules and no second copy to drift.
+// This supersedes the 11 Sep six-field fork rule and the 7 Sep one-volume refusal: what
+// a fork may not do is no longer a refusal list, it is VISIBILITY — every override is
+// named on the row, in the editor and in the change review.
 export const MAX_PLAYER_CONFIGS = 6;
 export function normalizePlayerConfigs(input, player, errors) {
   if (input === undefined || input === null) return [];
@@ -81,22 +184,34 @@ export function normalizePlayerConfigs(input, player, errors) {
       id = `pc_${n}`;
       used.add(id);
     }
-    // A fork carries the three behaviour facts only — volume is the player's one
-    // Passive volume, set in Details, never per config.
-    if (c.startVolume !== undefined || c.passiveVolume !== undefined) {
-      errs.push({ message: 'a custom config carries playback, MiniTV and autoplay — volume is the player’s one Passive volume in Details' });
+    // The one legacy key still refused by name: it was retired with the 3 Sep volume
+    // rework and a payload carrying it is a payload built against a dead contract.
+    if (c.startVolume !== undefined) {
+      errs.push({ message: 'startVolume is gone — the volume is passiveVolume (Passive volume)' });
     }
+    // THE OVERRIDES, validated as one player. Laying them over the default and running
+    // the whole through normalizePlayer means a config obeys every rule the default does
+    // — hex colours, the visibility floor, the control vocabulary — with no second list.
+    const ov = {};
+    for (const f of PLAYER_FIELDS) if (c[f] !== undefined) ov[f] = c[f];
+    const whole = normalizePlayer({ ...player, ...ov }, errs, '');
     const out = {
       id, name,
       // The row's own switch (4 Sep, user call) — a rung's grammar: absence is on, so
       // every config saved before the switch existed keeps serving. Off keeps the row,
-      // its key and its facts; players asking for it follow the default player, and the
-      // emitted JSON never carries it (see liveConfig).
+      // its key and its overrides; players asking for it follow the default player, and
+      // the emitted JSON never carries it (see liveConfig).
       on: c.on === undefined ? true : bool(c.on),
-      playback: oneOf(c.playback ?? player.playback ?? 'active', 'playback', PLAYBACK_KINDS, errs),
-      expandInMini: c.expandInMini === undefined ? true : bool(c.expandInMini),
-      autoplay: oneOf(c.autoplay ?? player.autoplay ?? 'auto', 'autoplay', AUTOPLAY, errs),
     };
+    // WHAT WAS SENT IS WHAT IS HELD — an override equal to today's default is still an
+    // override, because it says "this config stays here when the default moves", which
+    // is intent the equality would erase. The editor's own `Follow default` is the one
+    // way an override leaves. The single exception is the redirect URL the normalizer
+    // itself blanks when the (possibly inherited) player type is not a redirect.
+    for (const f of Object.keys(ov)) {
+      if (f === 'redirectUrl' && whole.playbackMode !== 'inline_redirect') continue;
+      out[f] = whole[f];
+    }
     for (const e of errs) {
       errors.push({ field: 'playerConfigs', message: name ? `“${name}”: ${e.message}` : e.message });
     }
@@ -161,9 +276,14 @@ export function normalizeDrive(input, errors) {
           : `A ${SLOT_WORD[t].toLowerCase()} takes turns — nothing to decide beyond its switch` });
         continue;
       }
+      // `setup` IS THE CLEAR, FOR EVERY FIELD (generalised 11 Sep). It was read only inside
+      // `ask`, so the bulk sheet's own "follow the ad setup" answer — which it sends for any
+      // lever, `Waterfall depth · Full` included — came back 400 *"must be a whole number
+      // between 1 and 10 (got setup)"*. Absence is how this object says "follow the setup",
+      // so the word that means that is dropped here, once, for all of them.
+      if (v === 'setup') continue;
       const errs = [];
       if (f === 'ask') {
-        if (v === 'setup') continue; // the default, stored as absence
         if (!Array.isArray(v)) {
           errs.push({ field: 'drive', message: 'the ad partners are a list, in the order they are asked' });
         } else {
@@ -194,6 +314,16 @@ export function normalizeDrive(input, errors) {
         } else if (!errs.length) out.cuepoints = cps;
       } else if (f === 'every') {
         out.every = intIn(v, 'every', 60, 3600, errs);
+      } else if (f === 'headerBidding') {
+        // The surface names the partners, or says nobody. `auto` is the AD SETUP's word for
+        // "borrow the global" and means nothing here: absence already says "follow the
+        // setup", whatever it resolves to — so it is refused by name rather than stored as
+        // a second way of saying the same thing.
+        if (v === 'auto') {
+          errs.push({ field: 'drive', message: 'Auto is the ad setup’s own answer — a surface either names the partners, switches them off, or leaves this to the setup' });
+        } else {
+          out.headerBidding = oneOf(v, 'headerBidding', HEADER_BIDDING, errs);
+        }
       }
       for (const e of errs) errors.push({ field: 'drive', message: `${SLOT_WORD[t].toLowerCase()}: ${e.message}` });
     }

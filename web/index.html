@@ -48,8 +48,9 @@
      ARCHITECTURE.md §5). Everything is a global. Order matters only for top-level reads,
      which these files avoid: every cross-file call happens at runtime, after all load.
      util → api → controls → publish/review → tag lookup → setups (list, waterfall,
-     rungs, placements, editor) → keys (list, bulk ads, bulk player, editor load, editor
-     ad behaviour, editor player, editor frame) → main (the router; runs last). -->
+     header bidding, rungs, placements, editor) → keys (list, bulk ads, bulk player,
+     editor load, editor ad behaviour, editor player, editor frame) → main (the router;
+     runs last). -->
 <script src="js/util.js"></script>
 <script src="js/api.js"></script>
 <script src="js/controls.js"></script>
@@ -58,6 +59,7 @@
 <script src="js/views-tag-lookup.js"></script>
 <script src="js/views-setups-list.js"></script>
 <script src="js/views-setups-waterfall.js"></script>
+<script src="js/views-setups-headerbidding.js"></script>
 <script src="js/views-setups-rungs.js"></script>
 <script src="js/views-setups-placements.js"></script>
 <script src="js/views-setups-editor.js"></script>

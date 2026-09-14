@@ -244,19 +244,56 @@
 /* Numbers, not nine repetitions of the word "Waterfall". */
 .rung-list.fall .rung-n { font-variant-numeric: tabular-nums; font-size: 11px; }
 
-/* What the rows below the primary are FOR, said once instead of nine times. */
+/* ---------- A BREAK IS TWO NAMED SECTIONS (11 Sep, user call) ---------- */
+/* THE HEADER READS AS A HEADER (11 Sep, second pointer — *"the primary and waterfall header
+   are not communicating as a header"*). It was 9.5px faint and indented 90px, because it
+   shared its line with the switch: smaller and paler than the `AD SOURCES` gutter label
+   beside it, and floating off the left edge of everything it heads. That is the same fault
+   the head sections fixed on 4 Sep — see `.pl-head` in 10-surfaces.css — so it takes the
+   same cure and one notch of that type: on the section's own left edge, a step up in size
+   and ink, so PRIMARY and WATERFALL outrank the rows under them. */
 .fall-rule {
-  display: flex; align-items: center; gap: 8px;
-  margin: 12px 0 7px; padding-left: 2px;
+  display: flex; align-items: center; gap: 10px;
+  margin: 18px 0 8px;
+  font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-soft);
 }
-/* The primary's rule is the first thing in the zone, so it needs no air above it. */
-.fall-rule.lead-rule { margin-top: 1px; }
+/* The primary's header is the first thing in the zone, so it needs no air above it. */
+.fall-rule:first-child { margin-top: 1px; }
 .fall-rule::after { content: ''; flex: 1; height: 1px; background: var(--line); }
-.fall-w {
-  font-size: 9.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
-  color: var(--ink-faint); white-space: nowrap;
+.fall-w { font: inherit; color: inherit; letter-spacing: inherit; white-space: nowrap; }
+/* THE WATERFALL'S CONTROLS, one row under its header: the rail, then the source, then the
+   counted note. The rail is the columns and none of the affordances — no handle (a section
+   does not drag) and no position (it holds no place in the walk) — so the switch lands in
+   the column every unit switch under it stands in. */
+/* THE SECTION'S ONE CONTROL (11 Sep, fourth cut — the switch and its far-right CTA were one
+   question split across a thousand pixels). Three answers in one seg on the section's own left
+   edge, directly under its header and directly above the blocks they govern, with the chosen
+   answer's counted fact beside them. An answer the platform would refuse greys where it sits
+   with its own reason, rather than the whole control going dark. */
+.wf-ctl { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; min-height: 26px; }
+.wf-src-seg { flex: 0 0 auto; }
+.wf-src-seg button.dead, .wf-src-seg button.dead:hover {
+  color: var(--ink-faint); opacity: .5; cursor: default; background: transparent;
 }
-.fall-n { font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
+.wf-act { font-size: 11.5px; white-space: nowrap; }
+/* THE SMALL CONFIRM'S BODY (11 Sep, user call — *"a small confirmation modal with not much
+   text … show the switch in a clean manner down, with two CTAs"*). The move is the content:
+   the answer being left, an arrow, the answer being taken, with the break named quietly
+   above it. The same from → to spine the change review uses, at the size of one decision. */
+.src-cfm { padding: 2px 0 2px; }
+.src-cfm-where {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+  color: var(--ink-faint); margin-bottom: 10px;
+}
+.src-cfm-move { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+.src-cfm-move .from { color: var(--ink-faint); }
+.src-cfm-move .arw { font-style: normal; color: var(--ink-faint); font-size: 13px; }
+.src-cfm-move .to { color: var(--ink); font-weight: 600; }
+.slot-multi-foot.sec-foot { margin-top: 8px; }
+/* The counted note beside the waterfall's controls — a fact, so it stays quiet where the
+   header above it is loud. */
+.fall-n { font-size: 11px; color: var(--ink-faint); white-space: nowrap; text-transform: none; letter-spacing: 0; font-weight: 400; }
 .ladder-empty { font-size: 12.5px; color: var(--ink-faint); padding: 2px 0 6px; }
 
 
@@ -271,65 +308,42 @@
 .stab.copy:hover { color: var(--accent); text-decoration: underline; }
 
 
-/* ---------- THE WATERFALL (5 Sep, user call; one word 7 Sep) ---------- */
-/* The setup-head section: the templates section's own bounds (hairline close), the
-   zone grid inside so its rung rows land on the exact left edge the breaks' do. */
-.wf-sec { padding: 2px 0 10px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
-.wf-sec .zone-row { padding: 6px 0 2px; }
+/* ---------- GLOBAL SETTINGS (11 Sep, user call): the waterfall and header bidding, one head ---------- */
+/* The setup-head section: the templates section's own bounds (hairline close), the zone
+   grid inside so its rung rows land on the exact left edge the breaks' do. Its two zone
+   rows are parted by the dashed rule every break parts its own zones with (`.zone-row +
+   .zone-row` in 04-ladders.css) — the same anatomy, one page up. */
+.gs-sec { padding: 2px 0 10px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+.gs-sec .zone-row { padding: 8px 0 4px; }
+.gs-sec .shead { margin-bottom: 2px; }
+/* The folded head carries two facts as marks — the answer, then the walk, the zones' own order — parted by a hairline. */
+.gs-sep { display: inline-block; width: 1px; height: 12px; margin: 0 10px; background: var(--line); vertical-align: middle; }
 /* A waterfall through and through (7 Sep, user call): no primary rung — its positions
    are the plain numbers the custom ladders' fall rows wear. */
-.wf-sec .rung-n { font-variant-numeric: tabular-nums; font-size: 11px; }
-/* `View the waterfall` lands here: the section flashes once — found, not hunted for. */
-.wf-sec.flash { animation: wf-flash 1.6s ease-out 1; border-radius: 10px; }
+.gs-sec .rung-n { font-variant-numeric: tabular-nums; font-size: 11px; }
+/* `View` from a break or a slot lands on the ZONE it names, not the whole section: that
+   zone flashes once — found, not hunted for. */
+.gs-sec .zone-row.flash { animation: wf-flash 1.6s ease-out 1; border-radius: 10px; }
 @keyframes wf-flash {
   0% { background: #eef3fe; box-shadow: 0 0 0 6px #eef3fe; }
   100% { background: transparent; box-shadow: 0 0 0 6px transparent; }
 }
 
-/* ---------- THE SOURCE SWITCH (7 Sep, user call) ---------- */
-/* Every ladder break opens its Indirect zone with two answers — Waterfall or Custom —
-   the unlit one's stash counted beside them, and (when the waterfall is serving) the one
-   door up to it at the far end. It replaced an empty-break-only fork of two CTAs and a
-   confirmed `remove`, because switching now costs nothing: the answer you leave keeps
-   every unit it had. The row shares the settings column's width so its right edge lands
-   where the DELIVERY SETTINGS controls end — one edge down the whole break. */
-/* ---------- THE SOURCE: TWO CONTROLS, NO PROSE (8 Sep, user call, third round) ---------- */
-/* *"It has to be more simplified, in 2 steps and no text or byline: one switch on/off
-   waterfall; if switched on, which one — custom or global waterfall."* The row spent the
-   morning stating the state in words (a dot, a name, a counted fact, three tinted skins)
-   and the afternoon explaining consequences in a dialog. What is left is the two
-   questions themselves: a switch, and — only while it is on — the answer it unlocks. No
-   frame, no fill, no state skins: this row is CONTROLS, and a tinted card around a switch
-   and a seg dresses two controls as a panel.
-   It rides under the primary inside the ladder, so it takes the ladder's own rhythm — the
-   air a fall rule would have had above it — and its right edge is wherever its controls
-   end, stretched to nothing it does not need. */
-.wf-src { display: flex; align-items: center; gap: 14px; min-height: 30px; }
-.rung-list.lead + .wf-src { margin: 11px 0 3px; }
-
-/* STEP TWO IS A SEG, AND ONLY EXISTS WHILE STEP ONE SAYS YES. A seg was refused for this
-   decision on 7 Sep, when it stood ALONE and had to carry the whole source question —
-   "pick a view" is what a seg says, and the source decides what serves. Behind a switch
-   it is not the whole question any more: the switch answers WHETHER, the seg answers
-   WHICH, and answering which-of-two is exactly what a seg is for.
-   `Global` greys where it sits while there is nothing in it to serve, reason on hover. */
-.src-seg button.dead, .src-seg button.dead:hover {
-  color: var(--ink-faint); opacity: .5; cursor: default; background: transparent;
-}
-
-/* THE SOURCE WEARS A LABEL (7 Sep, user call — the seg read as a view picker). The house
-   toggle already carried `gap: 9px` for a label nobody had yet; `tiny` closes it, so the
-   one variant that speaks re-opens it. The label is the switch's own hit area, not a
-   neighbour: the whole thing is one control. */
-.toggle.tiny.wf-src-sw { gap: 8px; font-size: 12.5px; color: var(--ink); white-space: nowrap; }
-/* HELD ON, NOT DEAD (8 Sep). A live integration playing this break refuses the OFF
-   direction — the store refuses that save outright — but the switch is not broken, it is
-   settled. So it keeps the paint that says ON and gives up only a little of it — draining
-   the track's accent instead made an on switch read as off, which is worse than either —
-   and it gives up the cursor, so the row never promises a click it would refuse. The
-   reason rides the hover, the one thing the tooltip policy still keeps a title= for. */
-.toggle.tiny.wf-src-sw.held { cursor: default; opacity: .72; }
-.wf-src-view { font-size: 11px; }
+/* ---------- THE SOURCE, ON THE SECTION RULE (8 Sep; re-seated 11 Sep) ---------- */
+/* The two controls that answer where a break's FALL comes from — a switch, then
+   `Custom │ Global` — used to float in a row of their own between the primary block and
+   the fall rows, at their own x. They ride the WATERFALL section's rule now (see
+   `.fall-rule` above), which is what aligns the switch with every unit switch under it and
+   leaves the section one header instead of two.
+   The seg that answered `Custom │ Global` for three days is gone with it (11 Sep): a seg
+   says "pick a view", and this decides what serves — it is a stated fact and one named act
+   now, and the act confirms before it lands. */
+/* HELD, NOT DEAD (8 Sep; both directions since 11 Sep). A live break that would go dark
+   refuses the OFF direction, and a break with no primary refuses the ON direction — the
+   switch is not broken in either, it is settled, so it keeps its paint and gives up only
+   the cursor. The reason rides the hover, the one thing the tooltip policy still keeps a
+   title= for. */
+.fall-rule .toggle.held { cursor: default; opacity: .72; }
 
 /* A connected break's body (7 Sep, user call): the three settings, STACKED, on the page's
    own `.lr.rule` + `.bhv-grid` rows — same label edge, same control edge, same rhythm as
@@ -355,6 +369,35 @@
 .shead-glimpse .glimpse-walk { vertical-align: middle; }
 .wfg { display: inline-flex; }
 .wfg.dim { opacity: .35; }
+
+/* ---------- HEADER BIDDING (10 Sep, user call) ---------- */
+/* The second zone of GLOBAL SETTINGS (a section of its own for one day, 10 Sep). Not a
+   ladder, so no rung grammar in it: one seg, one act.
+   ONE LINE (11 Sep, user call): the seg at the zone's left edge, the act at the right edge
+   the waterfall foot's act ends on, the warning — when there is one — just before it. The
+   zone column is a stack everywhere else; here it is a row, because there is one thing in it. */
+.hb-line { flex-direction: row; align-items: center; gap: 12px; padding: 2px 0 4px; }
+/* One seg, shrunk to its own answers — a control that stretched the zone's whole width
+   read as a toolbar rather than as one question. */
+.hb-pick { display: flex; flex: 0 0 auto; }
+.hb-pick .seg { flex: 0 0 auto; }
+/* WHAT IT LENDS THE FOLDED HEAD: the answer, as one badge (the chips it first wore went
+   11 Sep — they are Placements' one line down). `Off` recedes: an answer nothing bids
+   under is a quiet fact, not news. */
+.hb-glimpse { display: inline-flex; align-items: center; vertical-align: middle; }
+.hbg-answer {
+  font-size: 11px; font-weight: 600; letter-spacing: .2px;
+  padding: 2px 7px; border-radius: 6px;
+  background: #eef3fe; color: var(--accent); border: 1px solid #c7d6f8;
+}
+.hbg-answer.off { background: var(--bg-soft, #f7f8fb); color: var(--ink-faint); border-color: var(--line); }
+/* THE SLOT'S OWN ROW, first in DELIVERY SETTINGS (11 Sep, user call): `Auto │ Off │ Custom`
+   with the borrowed answer as a quiet note beside Auto, and — only while Custom stands — the
+   partners on a second line under it, on the same left edge. The row grows by one seg for
+   the one answer that needs it; the label column and the control edge never move. */
+.hb-ctl { display: grid; gap: 6px; justify-items: start; }
+.hb-l1 { display: flex; align-items: center; gap: 8px; }
+.hb-ctl .seg { flex: 0 0 auto; }
 
 /* ---------- APPLY ON AD SLOTS: THE GRID (7 Sep, user call; re-cut on review) ---------- */
 /* Ad sections down the side, `Pre-roll │ Pod 1 · Pod 2 · Pod 3 │ Post-roll` across the

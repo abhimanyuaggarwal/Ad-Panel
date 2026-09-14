@@ -70,7 +70,7 @@ panel/
 │   │   ├── validate.js    intIn, oneOf, str, uniqueName, mustGet, diff — the refusal helpers
 │   │   ├── tags.js        ad tags + ad unit templates
 │   │   ├── ladders.js     slot behaviour fields, drive fields, rungs, the walks
-│   │   ├── setups.js      ad setups: placements, pods, direct deals, the waterfall, GAM dir
+│   │   ├── setups.js      ad setups: placements, pods, deals, waterfall, header bidding, GAM dir
 │   │   ├── keys.js        integrations: identity, player, custom configs, drive, the seam
 │   │   ├── session.js     the accounts the console knows, the session, the sign-in refusals
 │   │   ├── publish.js     THE PUBLISH PLANE: snapshots, versions, restore, liveConfig()
@@ -111,19 +111,20 @@ generated. Nothing in the app reads either.
 Four kinds of object live in `state` (see `api/store/state.js`):
 
 ```
- integration (key_N)  ──adSetupId──▶  ad setup (as_N)            ad tag (tag_N)
- ├─ name, property, platform          ├─ name, property           ├─ name, type video|display
- ├─ domains | packageName             ├─ waterfall (shared ladder)├─ provider ima|gpt|can
- ├─ key   "sak_toi_mweb_xxxxxx"       ├─ sections[] = placements  ├─ value  ad unit path | URL
- ├─ player {autoplay, passiveVolume,  │   ├─ name, isDefault      └─ tplId ─▶ ad unit template (tpl_N)
- │          playbackMode, playback,   │   └─ slots{preroll,midroll,postroll,outstream}
- │          expandInMini, …}          │        ├─ rungs[]   {tagId, on, pause, displaySlot, …}
- ├─ playerConfigs[] (named forks)     │        ├─ behaviour {start, podAds, tagTimeoutMs, …}
- ├─ sections[] overlays, by name      │        ├─ direct    {rungs:[one deal]}
- │   └─ slots{t: {on}}                │        ├─ waterfallSource own|setup|none, ownRungs
- └─ drive {t: {ask, tries, start,     │        └─ groups[]  (mid-roll pods: each a slot anatomy)
-            deferSec, podAds, …}}     └─ (an integration asks from ONE setup;
-                                              a setup may fill MANY integrations)
+ integration (key_N)  ──adSetupId──▶ ad setup (as_N)                ad tag (tag_N)
+ ├─ name, property, platform         ├─ name, property              ├─ name, type video|display
+ ├─ domains | packageName            ├─ waterfall (shared ladder)   ├─ provider ima|gpt|can
+ ├─ key   "sak_toi_mweb_xxxxxx"      ├─ headerBidding (one answer)  ├─ value  ad unit path | URL
+ ├─ player {autoplay, passiveVolume, ├─ sections[] = placements     └─ tplId ─▶ ad unit template (tpl_N)
+ │          playbackMode, playback,  │   ├─ name, isDefault
+ │          expandInMini, …}         │   └─ slots{preroll,midroll,postroll,outstream}
+ ├─ playerConfigs[] (named forks)    │        ├─ rungs[]   {tagId, on, pause, mute, displaySlot, …}
+ ├─ sections[] overlays, by name     │        ├─ behaviour {start, podAds, headerBidding, …}
+ │   └─ slots{t: {on}}               │        ├─ direct    {rungs:[one deal]}
+ └─ drive {t: {ask, tries, start,    │        ├─ waterfallSource own|setup|none, ownRungs
+            deferSec, podAds, …}}    │        └─ groups[]  (mid-roll pods: each a slot anatomy)
+                                     └─ (an integration asks from ONE setup;
+                                           a setup may fill MANY integrations)
 ```
 
 Vocabulary, so the code reads the same as the UI:
@@ -138,10 +139,12 @@ Vocabulary, so the code reads the same as the UI:
 | **ladder / waterfall** | rung 1 is the primary — the break's own first ask, asked before anything else and never replaced by a source answer; rungs 2…10 are the fall, tried in order |
 | **pod / break group** | a mid-roll may run up to three pods, each with its own cadence, ladder and direct deal |
 | **direct** | the one sold deal a break tries before its primary |
-| **global waterfall** | one ladder at the setup's head that any break may connect to instead of serving its own units; a break's own ladder is its **custom** waterfall. Named `Global waterfall` on screen since 8 Sep (`WF_WORD` in `web/js/util.js`, spelled once) — the wire key stays `waterfallSource: 'setup'` |
-| **the source row** | the two controls in every break's Ad sources zone, under the primary where there is one: a `Waterfall` on/off switch, and — only while it is on — `Custom │ Global`. They decide the FALL only; the primary above them always serves. No state name and no byline: the ladder around them is the state. Off parks the fall (`waterfallSource: 'none'`) |
+| **global waterfall** | one ladder at the setup's head that any break may connect to instead of serving its own units; a break's own ladder is its **custom** waterfall. Named `Global waterfall` since 8 Sep (`WF_WORD` in `web/js/util.js`, spelled once) — the word the breaks and every message use; on the page it is the `Waterfall` zone of the folded **Global settings** head (11 Sep), beside header bidding. The wire key stays `waterfallSource: 'setup'` |
+| **the two sections** | every ladder break's Ad sources zone is `PRIMARY` then `WATERFALL`, both always drawn (11 Sep) — so the anatomy reads on an empty break as it does on a full one. Each section is a HEADER (11px/700/`--ink-soft` on the section's own left edge, hairline right) and, for the waterfall, ONE control under it — a three-answer seg `[ Off │ Custom │ Global ]` on the same left edge as the header and the blocks, with no byline (what an answer serves is drawn under it); switched off, it keeps `N units kept`, the only trace of parked units. A refused answer greys where it sits with its own reason; every change confirms first in a small 440 whose body IS the move — `Custom waterfall → Global waterfall`, the break named above it, `Cancel` / `Yes, switch` (11 Sep). They decide the FALL only (rung 2 onward); the primary always serves. Off parks the fall (`waterfallSource: 'none'`) and the rule counts what is kept |
 | **`waterfallSource`** | where a ladder break's **fall** comes from: `own` (rungs 2…N of its own), `setup` (the global waterfall's served units), `none` (no fall). **The primary — rung 1 — is the break's own in every answer and always serves**, so served `rungs` are `own`, `[primary, …global]`, or `[primary]`. All three keep every own unit in `ownRungs`, so every answer is reversible. `own` is the answer said by absence, so payloads and snapshots written before each answer existed still read as they always did |
-| **drive** | the integration's per-break quick decisions, stored sparse as intent and resolved against the setup at read time |
+| **header bidding** | who else bids for a slot before the ad server is asked: `off` · `amazon_prebid` · `amazon` · `prebid`, answered ONCE at the setup's head (`headerBidding`). Not a ladder — no order, no depth, no rung — so it is the setup's own field beside the waterfall, not a lever inside it (10 Sep) |
+| **`behaviour.headerBidding`** | one slot's answer, on every slot including the out-stream: `auto` (the answer said by absence — borrow the setup's, so moving the global moves the slot) or one of the four above, `off` included. A LINK, never a copy: `auto` is stored, never resolved into the slot. `servedHeaderBidding(slot, global)` (store/setups.js, mirrored as `suHbServed` web-side) resolves it at the live boundary, so the player is never handed `auto`. `auto` is refused AT the global — the thing being borrowed cannot borrow |
+| **drive** | the integration's per-break quick decisions, stored sparse as intent and resolved against the setup at read time. Since 11 Sep it carries `headerBidding` too (`As set up` = absence; the out-stream's only drive field), and `setup` as a value CLEARS any lever back to the ad setup |
 | **the seam** | the check, in both rooms, that never lets a switched-on break end up with nothing to ask |
 | **Refusal** | a rule violation: HTTP 4xx with `{ error, message, errors:[{field, message}] }` that names the number found and the number required |
 
@@ -219,10 +222,11 @@ cross-file call happens later, at runtime, after all scripts have loaded.
 | `review.js` | THE CHANGE REVIEW — the one dialog every write (save, publish, bulk, restore) confirms on |
 | `views-tag-lookup.js` | the ad-tag lookup control and its search |
 | `views-setups-list.js` | Ad Setups list, the new-setup chooser, ad unit templates UI |
-| `views-setups-waterfall.js` | the waterfall section, the Apply-on-ad-slots grid, the per-break **source band** (its three states: no waterfall · custom waterfall · connected), and a connected break's shared levers |
+| `views-setups-waterfall.js` | the waterfall's zone of Global settings and its glimpse, the Apply-on-ad-slots grid, the per-break **source band** (its three states: no waterfall · custom waterfall · connected), and a connected break's shared levers |
+| `views-setups-headerbidding.js` | header bidding's zone of Global settings and its glimpse, and its Apply-on-ad-slots grid; each slot's own row (`Auto │ Off │ Custom`, then the partners) is the first row `behaviourRowsHtml` draws in that slot's delivery settings |
 | `views-setups-rungs.js` | one ad-unit block: the rung writers, walk positions, its head row, its facts tier, its settings tier, its collapsed off line |
 | `views-setups-placements.js` | placement tabs, mid-roll pods, Clear, the closed row's glimpse |
-| `views-setups-editor.js` | the ad setup editor itself: load, slot addressing, delivery settings, the slot row, save |
+| `views-setups-editor.js` | the ad setup editor itself: load, the head sections' fold and the **Global settings** head (`suGlobalsHtml`), slot addressing, delivery settings, the slot row, save |
 | `views-keys-list.js` | Integrations list, filters, paging, selection, bulk bar |
 | `views-keys-bulk-ads.js` | the bulk AD BEHAVIOUR sheet: levers per break, the queue, apply |
 | `views-keys-bulk-player.js` | the two bulk player sheets: custom configs, default player |
@@ -256,7 +260,12 @@ cross-file call happens later, at runtime, after all scripts have loaded.
   No engineering vocabulary reaches the screen.
 - **The change review is the confirm.** Anything that writes to a cohort or to the air goes
   through `reviewChanges({ changes })` with the same `{ where, field, from, to }` rows the
-  version rail shows.
+  version rail shows. Four zones (head · caption · evidence · act); one row grammar —
+  WHAT · WAS → NOW on a grid shared by the whole dialog, cautions included, so nothing on this
+  screen describes a change twice. A `where` splits into its known break/zone word (the
+  section) and the rest (a sub-label inside it), so one break reads in one place. Publish,
+  the version sheet and Restore differ only in their words and which buttons stand in the
+  foot; the single aside (`reviewAsideHtml`) is the restore's counted, destructive one.
 
 ### Shared client state (globals)
 `window.ME` (the signed-in person — from `/panel/session` since 8 Sep, not `meta.me`),

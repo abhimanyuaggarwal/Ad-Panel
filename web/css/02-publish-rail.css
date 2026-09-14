@@ -40,11 +40,10 @@
 .v-who { font-size: 11px; color: var(--ink-faint); margin-top: 1px; }
 .v-item.pending .v-t { color: #8a6d1f; }
 
-.vc { font-size: 11.5px; color: var(--ink-soft); line-height: 1.45; }
-.vc code { font-size: 11px; background: var(--bg-soft, #f4f5f9); border-radius: 3px; padding: 0 4px; }
-.vc-where { display: block; font-size: 9.5px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: var(--ink-faint); }
-.vc-to { font-weight: 600; color: var(--ink); }
-.dlg .cons .vc { padding: 3px 0; }
+/* `.vc` — the rail's inline change line (`.vc-where` / `.vc-to` / its `code` values) —
+   is gone with the last thing that drew one (11 Sep). Every change list in this panel,
+   the rail's sheets and both of the review's cautions included, is now THE CHANGE
+   REVIEW's own row: see `.rvw-row` in 09-chrome.css. */
 
 /* THE RESTORE DIALOG — a decision, so it says where you are, where you are going, what
    moves, and what you lose. In that order, because that is the order they are asked. */

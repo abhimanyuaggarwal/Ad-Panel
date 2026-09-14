@@ -159,6 +159,13 @@ async function capture(label) {
   await click('.brk-tabs .stab', 0);
   await click('.pchip.on', 1); await snap('key-ask-toggled');
   await click('.drive-reset'); await snap('key-drive-reset');
+  // The player grid (13 Sep): a fold open, then a config cell's menu — led by the default's answer
+  await click('.pg-srow', 0); await snap('key-player-playback');
+  await click('.pg-c[data-r="autoplay"][data-col="0"]'); await snap('key-player-cell-menu');
+  await page.keyboard.press('Escape'); await sleep(250); await click('.pg-srow', 0);
+  // One config beside the default (14 Sep): the count is the door, the header holds the way back
+  await click('.pg-sdiff .pg-diff', 0); await snap('key-player-one-config');
+  await click('.pg-back'); await click('.pg-srow', 0);
   await click('.pcc-add'); await snap('key-config-added');
   await click('.eh-more-btn'); await snap('key-more-menu'); await click('.eh-more-btn');
   // The chip IS the change door (8 Sep), and the journey is two steps in one frame.
@@ -202,8 +209,8 @@ async function capture(label) {
   // and on again (which restores the answer that was serving). `No ads` on a break a live
   // integration plays is refused ON the switch, so the off leg is walked on as_4 below.
   await snap('setup-source-custom');
-  await click('.src-seg button', 1); await snap('setup-source-global');
-  await click('.src-seg button', 0); await snap('setup-source-custom-again');
+  await click('.wf-src-seg button', 1); await snap('setup-source-global');
+  await click('.wf-src-seg button', 0); await snap('setup-source-custom-again');
   await click('.pl-tabs .stab.add'); await snap('setup-placement-added');
   await click('.slot-line', 0); await snap('setup-empty-break-source');
   await click('.eh-more-btn'); await snap('setup-more-menu');
@@ -216,9 +223,12 @@ async function capture(label) {
   await click('.slot-menu-ph .row-kebab', 0); await snap('setup-slot-menu');
   // THE SWITCH OFF, AND THE WAY BACK (8 Sep) — on a setup that has never gone on air,
   // because a break a live integration plays refuses the OFF direction where it sits
-  // (suSrcDarkWhy). Off parks every unit; on hands them all back.
-  await click('.wf-src-sw'); await snap('setup-source-off');
-  await click('.wf-src-sw'); await snap('setup-source-back-on');
+  // (suSrcDarkWhy). Off parks every unit; Custom hands them all back. The three answers are
+  // one seg on the WATERFALL section's own control row since 11 Sep, and every change asks a
+  // small confirm first (user call, same day) — so the walk presses the answer, then Yes.
+  await click('.wf-src-seg button', 0); await snap('setup-source-off-confirm');
+  await click('[data-act=yes]'); await snap('setup-source-off');
+  await click('.wf-src-seg button', 1); await click('[data-act=yes]'); await snap('setup-source-back-on');
   await go('setups/as_3'); await snap('setup-single-placement');
   await click('.slot-line', 3); await snap('setup-outstream');
 

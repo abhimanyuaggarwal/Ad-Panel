@@ -31,7 +31,18 @@ export const BULK_PLAYER_FIELDS = ['autoplay', 'passiveVolume', 'playbackMode', 
   'expandInMini',
   // The DEFAULT playback mode (2 Sep) — custom configs are edited per surface through
   // the Player behaviour sheet, never blanket-written by a cohort action.
-  'playback'];
+  'playback',
+  // THE WHOLE PLAYER BEHAVIOUR CARD (11 Sep). Everything the card holds can be set
+  // across a cohort, because every one of these is a decision a whole estate makes at
+  // once: a brand refresh, a measurement id, a controls policy. The SHEET still offers
+  // only the six a fork may also carry — a cohort act is a blunt instrument and the
+  // narrow sheet is the deliberate choice — but the capability is a row away rather
+  // than a release away, which is exactly the trade the 7 Sep volume note recorded.
+  'quality', 'muted', 'rememberVolume', 'rememberAudioLang', 'rememberCaptions',
+  'controlsMode', 'hiddenControls', 'playbackRates', 'controlsAutoHideMs',
+  'dock', 'autoPausePct', 'loop', 'endScreen',
+  'brandColor', 'textColor', 'logoUrl',
+  'analyticsLevel', 'viewAfterMs', 'heartbeatMs', 'comscoreId', 'nielsenId', 'gaId'];
 
 function bulkSlotType(value) {
   const t = typeof value === 'string' ? value : value?.slot;

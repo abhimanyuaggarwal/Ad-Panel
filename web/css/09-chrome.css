@@ -49,21 +49,32 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
   .tb-in { gap: 10px; padding: 0 14px; }
 }
 
-/* ---------- THE CHANGE REVIEW (2 Sep, user call) ---------- */
+/* ---------- THE CHANGE REVIEW (2 Sep, user call; redrawn 11 Sep) ---------- */
 /* One screen, three doors (bulk Apply, Save, Publish). A change is a WHAT and a
-   FROM→TO, grouped by WHERE, so "what did I change on the mid-roll" is answered by
+   FROM→TO, sectioned by WHERE, so "what did I change on the mid-roll" is answered by
    looking rather than by reading. Fixed width, body scrolls: a two-change review and a
    thirty-change review are the same object at two heights. */
-/* STEP 2 IS THE SAME OBJECT AS STEP 1 (2 Sep review): the review wears the bulk sheet's
-   exact footprint — same width, same body height — so confirming does not feel like a
-   different dialog arriving. The body holds its height whether it lists two changes or
-   thirty; only past that does it scroll. */
-/* TWO FOOTPRINTS, BECAUSE THE REVIEW IS USED TWO WAYS (7 Sep, user call). Following a
-   bulk sheet it is that sheet's step 2 and must measure the same from the outside —
-   `.steady` keeps the 860 width and the 411px floor. Reached STANDALONE from Save,
-   Publish, Restore or Delete it is the only screen there is, so it wears the `.sheet`
-   width and its own content's height: it was spending 860×529 on 251px of changes. */
-.dlg.rvw { width: 620px; max-height: calc(100vh - 80px); display: flex; flex-direction: column; }
+/* WHAT THE 11 SEP RE-CUT THREW OUT (user call — "ugly, immature, cluttered, no IA"):
+     · the CARDS. Every group was a bordered block with a filled header band, so six
+       groups meant six nested containers and the dialog read as a stack of boxes long
+       before a word of it was read. A section is now a label and some air.
+     · the RAGGED VALUE. `from`, the arrow and `to` flowed inline inside one cell, so
+       nothing lined up down the list and the eye could not sweep old against new.
+       The row is now a four-column grid shared by the WHOLE list — including a
+       caution's rows — and the arrow sits in a fixed column, forming a spine.
+     · the PILL on every field name. Twenty grey pills earning nothing the column
+       position did not already say.
+     · the per-group COUNT, replaced by one total in the caption — the number the
+       person is actually agreeing to.
+     · the NOTE wedged between Cancel and Publish, where it read as a third act and
+       lost half its width to a long button label.
+   The dialog's own padding moved off `.dlg` and onto its four zones, so the caption
+   can rule edge to edge, the list can scroll under sticky section labels, and the
+   foot can hold a hairline. */
+.dlg.rvw {
+  width: 620px; max-height: calc(100vh - 80px);
+  display: flex; flex-direction: column; padding: 0;
+}
 /* THE JOURNEY NAMES ITS FRAME (8 Sep — see the head of 06-bulk-sheet.css). The review
    used to carry the sheet's body floor plus 71px for the tab strip it does not have, a
    sum somebody had to redo by hand every time either dialog's head changed. Now step 1
@@ -74,54 +85,110 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
 .dlg.rvw.steady { width: 860px; --frame: 529px; min-height: min(var(--frame), calc(100vh - 80px)); }
 .dlg.rvw.steady-ads { --frame: 409px; }     /* step 2 of the ad sheet */
 .dlg.rvw.steady-player { --frame: 529px; }  /* step 2 of the player sheet */
+
+/* 1. THE HEAD — what act, on what, and what it costs. Three lines at three weights,
+   never three facts on one baseline: the title is the act, the lede is the
+   consequence (it used to ride the title as a grey `.dlg-kicker` afterthought), and
+   the quote is the person's own note when a version is being read back. */
+.rvw-head { padding: 19px 24px 0; }
+.dlg.rvw h3 { font-size: 17px; font-weight: 650; letter-spacing: -.3px; line-height: 1.3; margin: 0; }
+.rvw-lede { margin-top: 5px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.45; }
+/* Callers write the lede as a sentence fragment ("replaces v1 on air"), because until
+   now it hung off the title. On its own line it is a line, so it starts like one. */
+.rvw-lede::first-letter { text-transform: uppercase; }
+.rvw-quote { margin-top: 5px; font-size: 12.5px; font-style: italic; color: var(--ink-faint); }
+
+/* 2. THE CAPTION — how much am I agreeing to, measured against what. The total the
+   screen never used to state, and the scope that used to sit in the FOOT beside the
+   buttons, describing the evidence from the wrong end of the dialog. */
+.rvw-cap {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 18px;
+  padding: 14px 24px 9px; border-bottom: 1px solid var(--line);
+  font-size: 11px;
+}
+.rvw-n { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rvw-scope { color: var(--ink-faint); text-align: right; }
+
+/* 3. THE EVIDENCE — one list, sectioned. */
 .rvw-body {
-  flex: 0 1 auto; max-height: calc(100vh - 260px);
-  overflow-y: auto; margin-bottom: 10px !important; padding-right: 2px;
+  flex: 0 1 auto; max-height: calc(100vh - 300px);
+  overflow-y: auto; padding: 0 24px 6px; margin-bottom: 0 !important;
+  /* A list cut off mid-row says "there is more" by accident. The classic two-layer
+     trick says it on purpose: a white cap that scrolls WITH the content (local) over a
+     shadow pinned to the box (scroll), so the shadow shows only while there is
+     something below the fold. Top-side is left to the sticky section label, which
+     already paints over whatever runs under it. */
+  background:
+    linear-gradient(rgba(255,255,255,0), #fff 72%) bottom / 100% 16px no-repeat local,
+    radial-gradient(farthest-side at 50% 100%, rgba(16,24,43,.12), transparent) bottom / 100% 7px no-repeat scroll;
 }
 .dlg.rvw.steady .rvw-body { flex: 1; }
-/* EACH GROUP IS A BOUNDED OBJECT (2 Sep, UX pass): flat hairlines running edge to edge
-   made Pre-roll and Mid-roll one continuous grey mass — the eye had to read the
-   headings to find the seams. Now a group is a bordered block with a tinted header
-   band (standard table anatomy, far lighter than a filled card), so the breaks chunk
-   by shape before a single word is read. Row rules inside are a shade lighter than
-   the group's own border, keeping the hierarchy: group first, row second. */
-.rvw-g { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
-.rvw-gh {
-  display: flex; align-items: center; gap: 7px; padding: 6px 12px;
-  background: var(--bg-soft, #f7f8fb); border-bottom: 1px solid var(--line);
-  font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
-  color: var(--accent-ink);
+/* The section label rides the scroll — at ten changes the break you are reading would
+   otherwise leave the screen before its rows do. */
+.rvw-sh {
+  position: sticky; top: 0; z-index: 2; background: #fff;
+  margin: 0; padding: 14px 0 7px;
+  font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-faint);
 }
-.rvw-gn { font-weight: 600; letter-spacing: 0; color: var(--ink-faint); }
+.rvw-sec:first-child .rvw-sh { padding-top: 11px; }
+/* The sub-label: the placement, rung or config INSIDE the section a change landed on.
+   It used to open a section of its own beside its parent — `Pre-roll` and
+   `Pre-roll · …Display` as peers — which is how one break came to need three looks. */
+.rvw-sub {
+  display: flex; align-items: center; gap: 7px;
+  margin: 10px 0 1px; font-size: 11px; font-weight: 600; color: var(--ink-soft);
+}
+.rvw-sub::before { content: ''; flex: none; width: 3px; height: 3px; border-radius: 50%; background: #c4cbd9; }
+
+/* THE ROW, AND THE SPINE. Four columns, one grid, every row in the dialog — so `was`
+   ends and `now` begins at the same x from the first change to the last, and the
+   arrow column is the seam the eye follows down. */
 .rvw-row {
-  display: grid; grid-template-columns: minmax(140px, 220px) minmax(0, 1fr) auto;
-  gap: 10px; align-items: center; padding: 7px 12px;
-  border-bottom: 1px solid #eef0f5;
+  display: grid;
+  grid-template-columns: minmax(92px, 1.08fr) minmax(0, 1fr) 18px minmax(0, 1.32fr);
+  align-items: baseline; gap: 0 8px;
+  padding: 6px 0; border-top: 1px solid #f1f3f7;
+  font-size: 12.5px;
 }
-.rvw-g .rvw-row:last-child { border-bottom: 0; }
-/* The changed KEY wears a quiet tint (6 Sep, user call) — the fact-pill grammar, so
-   scanning what moved is figure-ground, never weight, and never a distraction. */
-.rvw-f {
-  font-size: 12px; font-weight: 600; color: var(--ink-soft);
-  background: var(--bg-soft, #f4f6fa); border-radius: 6px; padding: 2px 9px;
-  align-self: center; justify-self: start;
-}
-.rvw-v { font-size: 12.5px; color: var(--ink); min-width: 0; }
-.rvw-v code { font-family: inherit; font-size: 12.5px; color: var(--ink-faint); background: none; padding: 0; }
-.rvw-v b { font-weight: 650; }
+.rvw-sh + .rvw-row, .rvw-sub + .rvw-row { border-top: 0; }
+.rvw-what { font-weight: 600; color: var(--ink-soft); overflow-wrap: anywhere; }
+.rvw-was { text-align: right; color: var(--ink-faint); min-width: 0; overflow-wrap: anywhere; }
+/* The arrow glyph, shared with the bulk ad sheet's queued line (`.bqp-vc`), which is
+   the one other place a from→to is said outside this list. */
 .rvw-arr { font-style: normal; color: #c3c9d4; margin: 0 7px; }
-.rvw-m { font-size: 11px; color: var(--ink-faint); text-align: right; white-space: nowrap; }
-/* The count sits at the foot's left, opposite the two acts — the confirm dialog's own
-   "how much am I agreeing to" without a sentence to read. */
-.rvw-count { flex: none; font-size: 11.5px; font-weight: 600; color: var(--ink-faint); }
-/* Without a note field the count still pushes the acts to the right edge. */
-.dlg.rvw .dlg-foot { justify-content: flex-start; }
-.dlg.rvw .dlg-foot .btn:first-of-type { margin-left: auto; }
-/* The person's own line under the sheet's title — the note, quoted, nothing else.
-   The dialog's own 24px padding is the grid: no extra indent, it starts where the
-   title starts. */
-.rvw-sub { padding: 0 0 10px; margin-top: -6px; font-size: 12px; color: var(--ink-soft); }
-.dlg.rvw .dlg-foot { align-items: center; }
+.rvw-row .rvw-arr { font-size: 11px; color: #ccd2dd; text-align: center; margin: 0; }
+.rvw-now { font-weight: 650; color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
+/* A clipped value carries the exact string on hover — the tooltip policy's first case. */
+.rvw-was.cut, .rvw-now.cut { cursor: help; }
+/* The per-row note names a surface the change cannot reach. It is a footnote, so it
+   reads under the row rather than competing with the values for the right column. */
+.rvw-why { grid-column: 2 / -1; margin-top: 3px; font-size: 11px; color: var(--ink-faint); }
+.rvw-none { padding: 30px 0 34px; text-align: center; font-size: 12.5px; color: var(--ink-faint); }
+
+/* THE ASIDE — read last, before the act, and there is exactly ONE of them: work this act
+   would destroy. A destroyed draft change is a CHANGE, so it wears the list's own row and
+   this screen never describes one kind of fact two different ways.
+   The amber twin — a save's soft flags under a "Worth a look" heading — was removed
+   11 Sep (user call). It was the last thing here that was not a change, and it was what
+   made a publish read as a different object from the version sheet it IS. */
+.rvw-aside { margin: 15px 0 5px; padding: 10px 13px 11px; border-radius: 9px; border: 1px solid #f1d8d6; background: #fdf6f5; }
+.rvw-ah { font-size: 11.5px; font-weight: 700; margin-bottom: 6px; color: #b3261e; }
+.rvw-arows .rvw-row { padding: 4px 0; font-size: 12px; border-top-color: rgba(16,24,43,.08); }
+.rvw-arows .rvw-sec:first-child .rvw-sh { padding-top: 4px; }
+.rvw-arows .rvw-sh { position: static; background: none; padding: 8px 0 4px; }
+
+/* The counted foot of a step-1 sheet that ends on this review (the default-player
+   sheet): how much am I queuing, opposite its acts. It lives in a `.dlg.bulk` foot,
+   not this one — the review's own total moved up to the caption. */
+.rvw-count { flex: none; margin-right: auto; font-size: 11.5px; font-weight: 600; color: var(--ink-faint); }
+
+/* 4. THE ACT — the note on its own line, then the two doors, alone. */
+.dlg.rvw .dlg-foot {
+  display: flex; flex-direction: column; align-items: stretch; gap: 11px;
+  padding: 13px 24px 17px; border-top: 1px solid var(--line);
+}
+.rvw-acts { display: flex; justify-content: flex-end; gap: 10px; }
 
 /* ---------- ONE FIXED LIST, CHANGE-STATE IN PLACE (3 Sep, fifth cut) ---------- */
 /* The two-list era (Pending changes / Other settings) is over: a touched field used to
@@ -306,29 +373,29 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
   color: var(--accent-ink);
 }
 .pbd-gh .bdot { margin-left: auto; }
+/* The card's own section names inside the fork's form (11 Sep) — six rows need the
+   grouping the integration page gives them, or the sheet reads as a flat list of six
+   unrelated switches. */
+.pbd-sec {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-faint); padding: 9px 12px 2px;
+}
 .pbd-g .pbd-r { padding-left: 12px; padding-right: 12px; }
 .pbd-g .pbd-r:last-child { border-bottom: 0; }
 
 
 
 /* THE CHANGE REVIEW's note (6 Sep; moved INTO the foot the same day — floating above
-   it, it read as a stacked-on bar over a void): one line, count · note · acts. */
+   it, it read as a stacked-on bar over a void. Given its OWN LINE inside that foot
+   11 Sep: shoulder to shoulder with Cancel and Publish it read as a third control,
+   and `Restore — on air as v4` left it half a field wide). */
 .rvw-note {
-  flex: 1; min-width: 0; height: 32px; border: 1px solid var(--line); border-radius: 7px;
-  padding: 0 10px; margin: 0 2px 0 12px; font: inherit; font-size: 12px; color: var(--ink);
+  width: 100%; height: 34px; border: 1px solid var(--line); border-radius: 8px;
+  padding: 0 11px; font: inherit; font-size: 12.5px; color: var(--ink);
   background: var(--bg-soft, #f7f8fb);
 }
-.rvw-note:focus { outline: none; border-color: var(--accent); background: #fff; }
+.rvw-note:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px var(--ring); }
 .rvw-note::placeholder { color: var(--ink-faint); }
-/* A restore's counted caution — read last, before the act. */
-.rvw-warn {
-  margin-top: 10px; padding: 8px 10px; border: 1px solid #f0d8d6; background: #fdf6f5;
-  border-radius: 8px; font-size: 12px; color: var(--ink);
-}
-.rvw-warn > b { display: block; margin-bottom: 4px; color: #b3261e; font-size: 11.5px; }
-.rvw-warn .vc { font-size: 11px; color: var(--ink-soft); }
-/* …and its soft twin: the flags a save raised, read before the act instead of chasing
-   the receipt (7 Sep, user call — the pill carries the act and nothing else). Amber, not
-   red: these are levers, and the act above them is not in danger. */
-.rvw-warn.soft { border-color: #ecd9b4; background: var(--warn-soft); }
-.rvw-warn.soft > b { color: var(--warn); }
+/* `.rvw-warn` (the red and amber caution boxes with their own `.vc` prose lines) is
+   gone — see `.rvw-aside` in the review block above, which says the same two things in
+   the list's own row grammar. */

@@ -76,8 +76,8 @@
 .door-go:disabled { box-shadow: none; }
 
 /* ---------- OR CONTINUE WITH ---------- */
-/* The panel's micro-label — the group header's exact grammar (.rvw-gh), hung between two
-   hairlines instead of on a tinted band. */
+/* The panel's micro-label — the change review's section-label grammar (.rvw-sh), hung
+   between two hairlines. */
 .door-or {
   display: flex; align-items: center; gap: 12px; margin: 16px 0 15px;
   font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
