@@ -1,7 +1,7 @@
 // store/ladders.js — how a break BEHAVES and what it ASKS: slot behaviour fields and
 // their normalization, the drive fields, cue points, rung normalization, and the walks
 // (the setup's own walk, the walk after the drive decision, per pod).
-import { DISPLAY_SLOTS, DISPLAY_SLOT_WORD, MAX_RUNGS, MIDROLL_MODES, MUTE_MODES, PAUSE_MODES, POD_NEXT_AD, PREROLL_TIMING, PREROLL_WAIT, PROVIDER_WORD, ROTATION_MAX, SLOT_HEADER_BIDDING, SLOT_KIND, TAG_PROVIDERS, URL_PROVIDERS, state } from './state.js';
+import { DISPLAY_SLOTS, DISPLAY_SLOT_WORD, MAX_POD_ADS, MAX_RUNGS, MIDROLL_EVERY_MAX, MIDROLL_EVERY_MIN, MIDROLL_MODES, MUTE_MODES, PAUSE_MODES, POD_NEXT_AD, PREROLL_TIMING, PREROLL_WAIT, PROVIDER_WORD, ROTATION_MAX, SLOT_HEADER_BIDDING, SLOT_KIND, TAG_PROVIDERS, URL_PROVIDERS, state } from './state.js';
 import { fmtSecs, intIn, oneOf, str } from './validate.js';
 
 
@@ -85,7 +85,7 @@ export const DEAD_BEHAVIOUR_FIELDS = {
   stopAfter: ['Break cap', 'a cadence runs the length of the video — at set positions, the positions are the cap'],
   // Cut 2 Sep, user call: an ad's sound is how the PLAYER starts, and that answer
   // lives on the surface now — per placement, even.
-  adSound: ['Ad audio', 'whether a player autoplays is the integration\u2019s Player config (Autoplay behaviour); its loudness is the one Passive volume in Details'],
+  adSound: ['Ad audio', 'whether a player autoplays is the integration\u2019s Player behaviour (Autoplay); its loudness is its Passive volume, on the same card'],
   // Cut 8 Sep, user call: it said "position" about the POD while the ad unit's own
   // `Ad placement` says "position" about the SCREEN — two settings, one word, and the
   // pod one was the guessable half. A display unit settles the break, as it always did
@@ -205,7 +205,7 @@ export function normalizeSlotBehaviour(type, input, errors, warnings, prefix = '
       b.mode = oneOf(inp.mode ?? 'cuepoints', 'mode', MIDROLL_MODES, errs);
       b.cuepoints = inp.cuepoints === undefined ? [300] : normalizeCuepoints(inp.cuepoints, errs);
       b.firstAt = intIn(inp.firstAt ?? 240, 'firstAt', 0, 3600, errs);
-      b.every = intIn(inp.every ?? 480, 'every', 60, 3600, errs);
+      b.every = intIn(inp.every ?? 480, 'every', MIDROLL_EVERY_MIN, MIDROLL_EVERY_MAX, errs);
       // A REPEATING CADENCE CAN STOP (31 Aug, AD-JSON-SCOPE — the JSON's
       // totalImpression). A count of breaks, and `Full` is the open end, stored as
       // null: never a magic zero. Named positions carry their own count already.
@@ -215,7 +215,7 @@ export function normalizeSlotBehaviour(type, input, errors, warnings, prefix = '
     }
     // Pods: a break may play up to N ads in a row, assembled by this slot's own ladder.
     // Every fill field is inert while the count is 1, so the defaults ARE today's behaviour.
-    b.podAds = intIn(inp.podAds ?? 1, 'podAds', 1, 3, errs);
+    b.podAds = intIn(inp.podAds ?? 1, 'podAds', 1, MAX_POD_ADS, errs);
     b.nextAd = oneOf(inp.nextAd ?? 'top', 'nextAd', POD_NEXT_AD, errs);
   }
   // WHO ELSE BIDS, BEFORE THE LADDER IS WALKED (10 Sep, user call). `auto` — the answer
@@ -302,10 +302,34 @@ export function refuseDeadRules(input, errors, prefix = '') {
 // becomes the ops team's sharpest tool: flipping a rung off in a SHARED setup takes a
 // sick partner out of every attached integration in one act.
 
+/**
+ * A banner's own lifecycle clocks, written onto the rung: when its close button arrives and
+ * when it hides itself, both counted from the moment it APPEARS so each number stands alone.
+ * @param {object} r     the rung as it was sent
+ * @param {object} rung  the clean rung being built, written in place
+ * @returns {{field: string, message: string}[]} this unit's own refusals, if any
+ */
+function normalizeBannerClocks(r, rung) {
+  const errs = [];
+  rung.closeAfterSec = intIn(r.closeAfterSec ?? 5, 'closeAfterSec', 0, 60, errs);
+  rung.hideAfterSec = intIn(r.hideAfterSec ?? 10, 'hideAfterSec', 5, 120, errs);
+  // Only worth saying when both numbers are themselves usable — otherwise the bound that
+  // was already refused would be reported twice, in two different words.
+  if (!errs.length && rung.hideAfterSec < rung.closeAfterSec) {
+    errs.push({ field: 'hideAfterSec', message: `it would hide at ${rung.hideAfterSec}s, before its close button at ${rung.closeAfterSec}s` });
+  }
+  return errs;
+}
+
 export function normalizeRungs(raw, family, errors, field, where, alsoTakes = null, kind = 'ladder', slotType = null) {
   const rungs = [];
   const seenTags = new Set();
   let chain = 0;
+  // A unit's own checks collect into their own list — one unit's reasons can never be read
+  // as another's — and are re-worded with the unit's name before they join the slot's.
+  const refuseOnUnit = (tagName, unitErrors) => {
+    for (const e of unitErrors) errors.push({ field, message: `${where}: “${tagName}” — ${e.message}` });
+  };
   for (const r of Array.isArray(raw) ? raw : []) {
     if (!r) continue;
     // A rung is on unless it says otherwise, so anything written before switches
@@ -356,7 +380,7 @@ export function normalizeRungs(raw, family, errors, field, where, alsoTakes = nu
       if (r.showAfterSec !== undefined || tag.type === 'display') {
         rung.showAfterSec = intIn(r.showAfterSec ?? 1, 'showAfterSec', 0, 30, rerrs);
       }
-      for (const e of rerrs) errors.push({ field, message: `${where}: “${tag.name}” — ${e.message}` });
+      refuseOnUnit(tag.name, rerrs);
     }
     // AD PLACEMENT IS EVERY UNIT'S (3 Sep, user call): where on the page the unit
     // renders — a banner directly, a video unit's companion alongside it. It used to be
@@ -379,25 +403,21 @@ export function normalizeRungs(raw, family, errors, field, where, alsoTakes = nu
     } else {
       const herrs = [];
       rung.headerBidding = oneOf(r.headerBidding ?? 'auto', 'headerBidding', SLOT_HEADER_BIDDING, herrs);
-      for (const e of herrs) errors.push({ field, message: `${where}: “${tag.name}” — ${e.message}` });
+      refuseOnUnit(tag.name, herrs);
     }
     // A ROTATION HAS NO SOUND QUESTION: its banners take turns in an idle player, so
     // there is no content playing to mute against — the answer is refused by name.
     if (kind !== 'ladder' && r.mute !== undefined) {
       errors.push({ field, message: `${where}: “${tag.name}” takes turns in an idle player — nothing is playing, so there is no sound to mute` });
     }
-    if (tag.type === 'display') {
-      if (kind === 'ladder') {
-        const rerrs = [];
-        rung.closeAfterSec = intIn(r.closeAfterSec ?? 5, 'closeAfterSec', 0, 60, rerrs);
-        rung.hideAfterSec = intIn(r.hideAfterSec ?? 10, 'hideAfterSec', 5, 120, rerrs);
-        if (!rerrs.length && rung.hideAfterSec < rung.closeAfterSec) {
-          rerrs.push({ field: 'hideAfterSec', message: `it would hide at ${rung.hideAfterSec}s, before its close button at ${rung.closeAfterSec}s` });
-        }
-        for (const e of rerrs) errors.push({ field, message: `${where}: “${tag.name}” — ${e.message}` });
-      }
-    } else if (r.closeAfterSec !== undefined || r.hideAfterSec !== undefined) {
+    // THE CLOCKS ARE THE BANNER'S ALONE, and a ladder's alone: a video ad runs its own
+    // length in the player's frame, and a rotation draws these once in Delivery settings
+    // rather than five times over. Asking for them anywhere else is refused by name.
+    const wantsClocks = r.closeAfterSec !== undefined || r.hideAfterSec !== undefined;
+    if (tag.type !== 'display' && wantsClocks) {
       errors.push({ field, message: `${where}: “${tag.name}” is a video ad — it runs its own length in the player's frame, so a close button and an auto-hide clock do not apply` });
+    } else if (tag.type === 'display' && kind === 'ladder') {
+      refuseOnUnit(tag.name, normalizeBannerClocks(r, rung));
     }
     rungs.push(rung);
     chain++;
@@ -411,12 +431,12 @@ export function normalizeRungs(raw, family, errors, field, where, alsoTakes = nu
       errors.push({ field, message: `${where}: a break's waterfall settles on one display unit — ${names} are both display tags` });
     }
   }
-  if (kind === 'rotation') {
-    if (chain > ROTATION_MAX) {
-      errors.push({ field, message: `${where}: a squeeze-back rotates up to ${ROTATION_MAX} tags (got ${chain})` });
-    }
-  } else if (chain > MAX_RUNGS) {
-    errors.push({ field, message: `${where}: at most ${MAX_RUNGS} rungs — one primary and ${MAX_RUNGS - 1} waterfalls (got ${chain})` });
+  // How many a ladder holds depends on what kind it is, and each kind refuses in its own words.
+  const cap = kind === 'rotation' ? ROTATION_MAX : MAX_RUNGS;
+  if (chain > cap) {
+    errors.push({ field, message: kind === 'rotation'
+      ? `${where}: a squeeze-back rotates up to ${ROTATION_MAX} tags (got ${chain})`
+      : `${where}: at most ${MAX_RUNGS} rungs — one primary and ${MAX_RUNGS - 1} waterfalls (got ${chain})` });
   }
   return rungs;
 }

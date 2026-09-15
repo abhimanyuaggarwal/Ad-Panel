@@ -8,6 +8,28 @@
 let BULK_DRAFT = null; // { tab, slots:{} } — the AD BEHAVIOUR sheet's queue, breaks only
 let UNIT_DRAFT = null;
 
+// WHO AN APPLY LANDS ON, SAID BESIDE THE BUTTON THAT DOES IT (15 Sep, user call — *"in both
+// bulk edit player behaviour and ad behaviour there should be a text max of 4-5 words conveying
+// that this will change across all the integrations selected... near the button at the bottom"*).
+// WHO THIS SHEET WRITES TO — the one statement of the audience on either sheet, and since 15 Sep
+// the ONLY one (the player sheet's title kicker, `Sets the default player on all 3 selected
+// integrations`, went with the user's call: the sentence was a byline in a title, read once on
+// the way in, at the far end of the screen from the button it qualifies).
+//   It stands in the FOOT, at the button's shoulder, because that is the moment a cohort write
+// stops being an idea — and it stands in body ink with the count in the page's own weight, not as
+// the grey footnote it was. `all N integrations`, not `all N selected`: `selected` names where
+// they came from, which is not the question at the button; what a person is about to do is write
+// to N integrations.
+//   Counted off the journey's OWN audience (`selectedKeys`, which the review's second step can
+// move), so it can never say a number the apply will not write to. Shared by both sheets — one
+// sentence, one place.
+function bulkAppliesNote() {
+  const n = selectedKeys().length;
+  return n === 1
+    ? 'Applies to <b>1 integration</b>'
+    : `Applies to all <b>${n} integrations</b>`;
+}
+
 // The Player tab is GONE from this sheet (2 Sep, user call): player behaviour is a
 // sibling act on the bulk bar with its own sheet (playerBehaviourJourney below),
 // where every selected integration's configs are read and edited together.
@@ -26,6 +48,10 @@ function slotCohortStats(t) {
 
 async function bulkEditJourney() {
   if (!KSEL.size) return;
+  // The journey takes its own copy of WHO (see `bulkWhoOpen`): the review's second step can drop
+  // a surface from this act or add one that was never ticked on the list, and the list itself is
+  // left exactly as it was.
+  bulkWhoOpen();
   BULK_DRAFT = { tab: 'preroll', slots: {} };
   UNIT_DRAFT = slotDraft('preroll');
   renderUnitScreen();
@@ -87,9 +113,15 @@ function bulkDriveSet(t, f, v) {
 
 // The bulk sheet: one tab per unit, plus the player. Apply covers every tab at once,
 // so a tab with queued changes wears a dot.
+// THE TITLE IS THE DOOR YOU CAME THROUGH (15 Sep, user call — the player sheet's audience
+// sentence removed, *"same goes for ad behaviour as well"*). This one read `Edit 3 integrations`
+// over a byline of two names and `+1 more`: a count the foot states beside the act, and a name
+// list the 15 Sep call had already taken off the sibling sheet (*"remove the names of the
+// selected Integrations"*) — every name is on the review's own column one screen on. Both sheets
+// are titled for what they are now, in the bulk bar's own two words: `Ad behaviour` and
+// `Player behaviour`.
 function renderUnitScreen() {
   const d = BULK_DRAFT;
-  const keys = selectedKeys();
   const tabs = [
     ...KL_META.slotTypes.map(t => {
       const dr = slotDraft(t);
@@ -105,7 +137,7 @@ function renderUnitScreen() {
   ];
   dialogRoot().innerHTML = `
     <div class="dlg-veil"><div class="dlg bulk steady">
-      <h3>Edit ${keys.length} integration${keys.length > 1 ? 's' : ''}<span class="dlg-kicker">${esc(keys.slice(0, 2).map(k => k.name).join(', '))}${keys.length > 2 ? ` +${keys.length - 2} more` : ''}</span></h3>
+      <h3>Ad behaviour</h3>
       <div class="btabs">
         ${tabs.map(x => `<button type="button" class="btab wswitch ${d.tab === x.v ? 'on' : ''} ${x.runs !== undefined && x.runs !== 'on' ? 'off' : ''}"
           onclick="bulkTab('${x.v}')">${esc(x.label)}${x.runs !== undefined ? `
@@ -117,7 +149,8 @@ function renderUnitScreen() {
         ${slotTabHtml(d.tab)}
       </div>
       <div class="dlg-foot">
-        <button class="btn ghost" onclick="closeUnitScreen()">Cancel</button>
+        <span class="bulk-applies">${bulkAppliesNote()}</span>
+        <button class="btn ghost" onclick="cancelUnitScreen()">Cancel</button>
         <button class="btn" id="bulk-next" ${anyBulkDirty() ? '' : 'disabled'}
           onclick="reviewBulk()">${(() => { const n = bulkQueuedRows().length;
             return n ? `Review ${n} change${n === 1 ? '' : 's'}` : 'Review changes'; })()}</button>
@@ -125,10 +158,34 @@ function renderUnitScreen() {
     </div></div>`;
 }
 
+// Closing the SHEET is not ending the journey: `applyBulk` closes it and then writes, and the
+// writes go to the journey's own audience. So the audience is dropped at the two real endings —
+// Cancel, and the far side of an apply — never here.
 function closeUnitScreen() {
   BULK_DRAFT = null;
   UNIT_DRAFT = null;
   closeDialog();
+}
+
+function cancelUnitScreen() {
+  bulkWhoClose();
+  closeUnitScreen();
+}
+
+// A BREAK'S COHORT FACTS ARE CACHED (`d.st`), because the sheet reads them on every keystroke —
+// so when the audience moves under them on the review, they are recounted. `runs0` is counted
+// with them: a switch queued against the old truth is still the person's decision, but one that
+// now matches what every selected surface already does has nothing left to do and drops itself.
+function bulkRecount() {
+  if (!BULK_DRAFT) return;
+  for (const t of KL_META.slotTypes) {
+    const d = BULK_DRAFT.slots[t];
+    if (!d) continue;
+    const untouched = d.runs === d.runs0;
+    d.st = slotCohortStats(t);
+    d.runs0 = d.st.sections && d.st.on === d.st.sections ? 'on' : d.st.on === 0 ? 'off' : null;
+    if (untouched) d.runs = d.runs0;
+  }
 }
 
 function bulkSyncFoot() {
@@ -359,8 +416,24 @@ function bulkQueuedRows() {
 // before anyone touched it read as a decision, when it was only a default. Now a lever
 // at rest is a LABEL and the cohort's counted today-word; the control appears when the
 // lever is chosen, UNSET, and the row only queues once a value is actually picked.
-// Three states, in one grammar: closed (label · today · Set) → open (control, nothing
-// selected, × closes) → queued (the accent bar, as before — × drops the change).
+// Three states, in one grammar: closed (label · today, the door on hover) → open (control,
+// nothing selected, × closes) → queued (the accent bar, as before — × drops the change).
+//
+// AN UNANSWERED FIELD LOOKS THE SAME ON BOTH BULK SHEETS (15 Sep, user call — *"the set cta is
+// there in ad behaviour while not set yet label in the player behaviour, make it uniform; maybe
+// the set cta shows on hover"*). It used to say two different things depending on which sheet
+// you opened it from: a standing bordered `Set` chip here, a `Not set yet` caption there. The
+// house had already settled this the same morning on the config sheet — *"remove this Not set
+// yet"* — and the rule it left is the one both sheets follow now: AN EMPTY CONTROL IS THE
+// STATE, a row with no answer in it is not mistakable for one that has an answer, and words
+// describing it are a caption on something already legible. So the caption is gone from the
+// player sheet, and `Set` goes back to being what it is — the DOOR, not a report. It is the
+// closed row's alone (the player sheet has no closed row; picking a setting opens it), and it
+// surfaces under the cursor, where the act is about to happen.
+//   This reopens 7 Sep UAT P2 by the user's own call. What answers it now is not the chip but
+// the row: it takes the pointer cursor, lights on hover, and — where the cohort has one — prints
+// the value it holds today, so a resting sheet reads as six live questions rather than six grey
+// facts.
 function bulkFieldRowHtml(t, def, shownOff) {
   const d = slotDraft(t);
   const queued = d.dTouched.has(def.f);
@@ -375,10 +448,10 @@ function bulkFieldRowHtml(t, def, shownOff) {
     </div>`;
   }
   return `
-    <div class="bqf-r open ${queued ? 'queued' : ''} ${shownOff && !queued ? 'off-dim' : ''}"${def.why ? ` title="${esc(def.why)}"` : ''}>
+    <div class="bqf-r open ${queued ? 'queued' : 'unset'} ${shownOff && !queued ? 'off-dim' : ''}"${def.why ? ` title="${esc(def.why)}"` : ''}>
       <span class="bqf-l">${esc(def.label)}</span>
       <span class="bqf-c form">${def.ctl()}</span>
-      <span class="bqf-s">${queued ? '' : `<span class="bqf-today">${esc(today)}</span>`}
+      <span class="bqf-s">${queued || !today ? '' : `<span class="bqf-today">${esc(today)}</span>`}
         <button type="button" class="bqs-x on" onclick="bulkUnsetField('${t}', '${def.f}')">×</button></span>
     </div>`;
 }
@@ -415,11 +488,14 @@ function bulkFieldsHtml(t, shownOff) {
 // THIS BREAK'S QUEUE, in the card every bulk sheet now shares (`changesCardHtml`, 14 Sep).
 // Tab-scoped: the other tabs' dots already say where else changes wait, and cross-break
 // reading is Review's job.
+// THE ANSWER, NOT A TRANSITION (15 Sep, user call): a cohort has no single prior value, so the
+// card names the field and what this sheet will write on it. What they hold today stands on the
+// field's own row a hand's width to the left, and the review counts it before anything lands —
+// so no `from` is passed here. See `changesCardHtml`.
 function bulkPendingCardHtml(t) {
   const rows = bulkQueuedRows().filter(r => r.t === t);
   return changesCardHtml(rows.map(r => ({
     label: r.label,
-    from: bulkTodayWord(r.t, r.f),
     to: r.to,
     drop: `bulkDropField('${r.t}', '${r.f}')`,
   })), { clear: `bulkClearTab('${t}')`, empty: 'No changes on this break' });
@@ -532,13 +608,14 @@ function bulkReviewChanges() {
   const keys = selectedKeys();
   const withDeals = t => keys.filter(k => k.sections.some(s2 => s2.slots[t]?.direct?.rungCount)).length;
   return bulkQueuedRows().map(r => {
-    // What they hold TODAY is the honest left-hand side — the agreed value when the
-    // cohort has one, and "mixed today" when it does not. Never one surface's answer
-    // standing in for all of them. Both sides are already words here, so they are
-    // handed over as text rather than re-worded by the review.
+    // THE ANSWER ONLY (15 Sep, user call). This list used to carry what the cohort holds
+    // today on the left — the agreed value where they agreed, a spread of values where they
+    // did not. It reads as a from-side and it is not one: nothing here is a transition from a
+    // single prior state, and a review that shows one invites the reader to check a diff that
+    // does not exist. The sheet's own rows still say what a break holds today, where that is
+    // the context for choosing; this screen says what will be written. (`noFrom`, review.js.)
     const row = {
-      where: r.where, field: r.f, label: r.label,
-      fromText: bulkTodayWord(r.t, r.f), toText: r.to,
+      where: r.where, field: r.f, label: r.label, toText: r.to,
     };
     // The counted caveats belong here, next to the change they qualify — this is the
     // last screen before a cohort write, so a surface the change cannot touch is named.
@@ -554,19 +631,48 @@ function bulkReviewChanges() {
   });
 }
 
-async function reviewBulk() {
+// WHAT THE REVIEW SAYS, COUNTED AGAINST WHOEVER IS IN THE ACT RIGHT NOW. One function, read
+// when the screen opens and again after every tick in its audience panel — so the title, the
+// list, the spreads inside it and the button's own label can never disagree about the cohort.
+function bulkReviewState() {
   const keys = selectedKeys();
-  const names = keys.slice(0, 2).map(k => k.name).join(', ') + (keys.length > 2 ? ` +${keys.length - 2} more` : '');
-  const ok = await reviewChanges({
-    title: `Apply to ${keys.length} integration${keys.length > 1 ? 's' : ''}?`,
-    kicker: names,
+  return {
+    title: `Apply to ${keys.length} integration${keys.length === 1 ? '' : 's'}?`,
+    okLabel: keys.length ? `Apply to ${keys.length}` : 'Apply',
     changes: bulkReviewChanges(),
-    okLabel: `Apply to ${keys.length}`,
+    // WHAT HAPPENS AFTER THE BUTTON, said before it (15 Sep, user call — *"when we apply, why
+    // are they in unpublished state? it is not the correct communication"*). A cohort write
+    // SAVES on every surface it reaches; going on air stays each integration's own deliberate
+    // act from its own page, which is the 2 Sep call that took publish off this bar. Somebody who
+    // has just confirmed `Apply to 12 integrations?` has every reason to think it is live, so the
+    // caption says otherwise while the act is still a question — not in a toast after it.
+    foot: 'Saved on each integration · on air when it is published',
+    emptyText: keys.length
+      ? 'Nothing to change on these integrations.'
+      : 'No integrations in this change — tick at least one above.',
+  };
+}
+
+async function reviewBulk() {
+  const ok = await reviewChanges({
+    ...bulkReviewState(),
     cancelLabel: 'Back',
+    // Field and answer, no was-side — a cohort has no single previous value.
+    noFrom: true,
     // Step 2 of the tabbed sheet: same footprint, so confirming is not a new dialog.
     steady: 'ads',
+    // WHO, ANSWERED HERE (15 Sep, user call) — see the audience block in review.js. A tick
+    // recounts this break's cached cohort facts and then the whole screen.
+    audience: {
+      chosen: selectedKeys,
+      all: bulkWhoAll,
+      has: bulkWhoHas,
+      toggle: id => { if (!bulkWhoToggle(id)) return false; bulkRecount(); return true; },
+      recount: bulkReviewState,
+    },
   });
-  // Back leaves the sheet exactly as it was — the queue is still there to edit.
+  // Back leaves the sheet exactly as it was — the queue is still there to edit, now counted
+  // against whatever the audience became.
   if (!ok) { renderUnitScreen(); return; }
   await applyBulk();
 }
@@ -588,6 +694,7 @@ async function applyBulk() {
     }
   }
 
+  bulkWhoClose();
   await refreshKeysList();
 }
 

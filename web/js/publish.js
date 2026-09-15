@@ -31,7 +31,7 @@ function pubStateChipHtml() {
   const live = PUB.liveVersion != null;
   return `
     <span class="stat ${live ? 'live' : 'off'}">${live ? `On air · v${PUB.liveVersion}` : 'Off air'}</span>
-    ${n ? `<span class="stat pending">${n} unpublished</span>` : ''}`;
+    ${n ? `<span class="stat pending">${n} change${n === 1 ? '' : 's'} not on air</span>` : ''}`;
 }
 
 // WHERE IT STANDS, AS A LIST CELL (4 Sep, user call — the round-28 column cut reversed,
@@ -40,9 +40,16 @@ function pubStateChipHtml() {
 //   ● v3             on air, the version counted
 //   ● v5 · from v2   on air, and the live version is a restore — provenance named
 //   Off air          was published, taken down
-// The amber unpublished count rides underneath as its own quiet line: the gap between
-// draft and air is a second fact, not part of the state word. Same .stat grammar as the
-// editor header's chip, so a row and its editor never disagree.
+// The amber line underneath is the gap between draft and air — a second fact, not part of
+// the state word. Same .stat grammar as the editor header's chip, so a row and its editor
+// never disagree.
+//   ONE WORD CANNOT MEAN TWO THINGS IN ONE COLUMN (15 Sep, user call — *"when we apply, why
+// are they in unpublished state? it is not the correct communication"*). That line used to
+// read `Unpublished`, which is also the STATE word three rows above it for a surface that
+// was never published at all — so a live v1 with a saved change said the same word as a
+// surface serving nothing, and a cohort write looked like it had knocked three integrations
+// off the air. It says what it is now, in the vocabulary this column already speaks:
+// `Changes not on air`.
 function statusCellHtml(o) {
   const state = o.live
     ? `<span class="stat live sm2">v${o.liveVersion}${o.liveRestoredFrom
@@ -56,7 +63,7 @@ function statusCellHtml(o) {
   // state word already says it, so a never-published draft never reads "Unpublished"
   // twice down one cell.
   return `${state}${o.unpublishedCount && (o.live || o.everPublished)
-    ? '<div class="st-gap">Unpublished</div>' : ''}`;
+    ? '<div class="st-gap">Changes not on air</div>' : ''}`;
 }
 
 // The two buttons, in the form's foot. Publish carries the weight whenever there is

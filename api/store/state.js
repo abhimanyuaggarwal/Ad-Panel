@@ -67,10 +67,10 @@ export const PLAYER_FIELDS = [
   'playbackMode', 'redirectUrl', 'quality', 'fallbackMediaId',
   // Playback · Out of view · Completion
   'dock', 'autoPausePct', 'loop', 'endScreen',
-  // Controls & appearance
+  // Appearance & controls
   'controlsMode', 'hiddenControls', 'playbackRates', 'controlsAutoHideMs',
   'brandColor', 'textColor', 'logoUrl',
-  // Analytics & measurement
+  // Measurement
   'analyticsLevel', 'viewAfterMs', 'heartbeatMs', 'comscoreId', 'nielsenId', 'gaId',
 ];
 // A CUSTOM CONFIG MAY OVERRIDE ANY OF THEM (13 Sep, user call — *"create custom config
@@ -225,6 +225,14 @@ export const PODS_TOO_CLOSE_SEC = 60;
 export const ROTATION_MAX = 5;
 export const MAX_SECTIONS = 5;
 export const MAX_RUNGS = 10; // 1 primary + 9 waterfall rungs (user call, 25 Aug — was 4)
+// ADS IN A ROW, AND HOW OFTEN BREAKS FALL. Both are answered twice — by the ad setup
+// (`normalizeSlotBehaviour`) and by a surface overriding it (`normalizeDrive`) — so the
+// bound is spelled HERE rather than at each of them. Spelling a shared cap twice is how
+// the two sides drift: `deferSec` already has (setup floor 3 s, surface floor 1 s), and
+// that one is left as found because unifying it would move a rule, not tidy one.
+export const MAX_POD_ADS = 3;
+export const MIDROLL_EVERY_MIN = 60;    // seconds — a break a minute is the floor
+export const MIDROLL_EVERY_MAX = 3600;  // seconds — an hour between breaks is the ceiling
 // A full pass down the ladder asks this many servers in a row — past this the player visibly stalls.
 export const WORST_CASE_WARN_MS = 6000;
 
@@ -253,12 +261,16 @@ export const FIELD_WORDS = {
   quality: 'Quality', muted: 'Starts muted',
   rememberVolume: 'Remember volume', rememberAudioLang: 'Remember audio language',
   rememberCaptions: 'Remember captions',
-  controlsMode: 'Controls', hiddenControls: 'Hidden controls',
+  // CONTROLS, THE TWO GRAINS (15 Sep, user call). The nine-glyph row is `Controls` — they ARE
+  // the controls a viewer sees — so the mode above it takes the name of the thing it sizes:
+  // `Control bar`, which is what Full / Minimal / None actually describes. `Hidden controls`
+  // named the FIELD's storage (what is taken away) rather than the decision anyone makes.
+  controlsMode: 'Control bar', hiddenControls: 'Controls',
   playbackRates: 'Speeds', controlsAutoHideMs: 'Hide controls after',
   dock: 'Dock position', autoPausePct: 'Pause below visibility',
   loop: 'Loop', endScreen: 'End screen',
   brandColor: 'Brand colour', textColor: 'Text colour', logoUrl: 'Logo',
-  analyticsLevel: 'Events reported', viewAfterMs: 'A view counts after',
+  analyticsLevel: 'Events reported', viewAfterMs: 'View counts after',
   heartbeatMs: 'Heartbeat every', comscoreId: 'comScore id',
   nielsenId: 'Nielsen id', gaId: 'Google Analytics id',
   fallbackMediaId: 'Fallback media',
@@ -274,6 +286,19 @@ export function fieldWord(f) { return FIELD_WORDS[f] || f; }
 // sign-in lands, the stamp below is what starts reading the session instead — one
 // function to change, not the fifteen call sites this used to be spelled at.
 export const ACTOR = 'You';
+
+/**
+ * A DETACHED COPY of a piece of state, so a mutation cannot reach the original. The
+ * store hands its own objects out (the Maps hold live references), so anything that
+ * builds a patch by editing what it read must copy first or it has already written.
+ *
+ * JSON round-trip, which is exact here: the model is objects, arrays, strings, numbers
+ * and booleans and nothing else — no Dates, no Maps, no undefined-valued keys that a
+ * caller would miss. `web/js/util.js` spells this same concept under this same name,
+ * once per side of HTTP, the way `WF_WORD` is spelled twice; keep the two in step.
+ * @template T @param {T} v @returns {T}
+ */
+export function deepCopy(v) { return JSON.parse(JSON.stringify(v)); }
 
 /**
  * The authorship stamp every write puts on an object: when, and by whom.

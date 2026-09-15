@@ -44,6 +44,9 @@ let KPIN_OPEN = false;
 
 async function viewKeysList() {
   KEY_RETURN = null;
+  // A journey's audience belongs to the journey. Painting the list means none is open — so a
+  // set left behind by a navigation cannot answer for a later one.
+  bulkWhoClose();
   FILTER_CTX = { state: KF, repaint: () => { keyFiltersChanged(); repaintKeyRows(); } };
   const main = document.getElementById('main');
   const [{ keys }, meta, { setups }] = await Promise.all([
@@ -401,23 +404,73 @@ function updateBulkBar() {
   bar.style.display = KSEL.size ? 'flex' : 'none';
   const count = document.getElementById('bulk-count');
   if (count) count.textContent = `${KSEL.size} integration${KSEL.size > 1 ? 's' : ''} selected`;
+  // THE COHORT ACTS ARE TWO (15 Sep, user call — *"in bulk edit integrations remove the custom
+  // config CTA"*). `Custom configs` stood beside them and was never the same shape: the other
+  // two write one answer every integration has exactly one of, while a config is a keyed, named
+  // thing a surface carries none or six of — so the act is done where the surface is, on its
+  // own page. With the door gone, the bar has no third state to grey either.
   paintSelBanner();
 }
 
+// ---------- A BULK JOURNEY OWNS ITS OWN AUDIENCE (15 Sep, user call) ----------
+// *"In the bulk screen's 2nd step, in both Player behaviour and Ad behaviour, we need an option
+// to show all the selected integrations which we can check/uncheck and search — and the user
+// should be able to search and add another integration as well."*
+//
+// The list's selection starts the act; it is not the act. On the review — the last screen before
+// a cohort write, and the one that asks *"Apply to 12 integrations?"* — the WHO is half the
+// question, and until now it was a grey byline you could only answer by cancelling out and
+// re-ticking the table. So from the moment a journey opens it carries its OWN set, seeded from
+// the list's, and `selectedKeys()` answers with that.
+//
+// ONE SEAM, DELIBERATELY. Every counted word on both sheets and both reviews — the today-words,
+// the spreads, `N carry no special deals`, whether a row changes anything at all — is derived
+// from `selectedKeys()`, so all of it recounts from a single place the moment the audience moves.
+// Nothing else needed teaching.
+//
+// The list's own selection is NOT touched: Cancel leaves the table exactly as it was, and after
+// an Apply `refreshKeysList` clears it as it always did. Adding an integration here adds it to
+// THIS act, not to the table behind the veil.
+let BULK_WHO = null;
+function bulkWhoIds() { return BULK_WHO || KSEL; }
+function bulkWhoOpen() { BULK_WHO = new Set(KSEL); }
+function bulkWhoClose() { BULK_WHO = null; }
+function bulkWhoHas(id) { return bulkWhoIds().has(id); }
+// AN ACT WITH NOBODY IN IT IS NOT AN ACT. The last surface cannot be unticked — the same
+// refusal the waterfall makes for its last partner, and for the same reason: the alternative is
+// a screen that counts changes nobody receives and a button that would write them. Refused by
+// name where it was clicked; `false` tells the caller nothing moved.
+function bulkWhoToggle(id) {
+  if (!BULK_WHO) return false;
+  if (!BULK_WHO.has(id)) { BULK_WHO.add(id); return true; }
+  if (BULK_WHO.size === 1) {
+    toast('One integration must stay in the change', 'warn');
+    return false;
+  }
+  BULK_WHO.delete(id);
+  return true;
+}
+// The estate this act may reach, in the list's own order — so the panel reads like the table it
+// came from. Kept in scope, like every other list of integrations in this room.
+function bulkWhoAll() { return KEYS_CACHE.filter(k => inScope(k.property)); }
+
 function selectedKeys() {
-  return [...KSEL].map(id => KEYS_CACHE.find(k => k.id === id)).filter(Boolean);
+  const ids = bulkWhoIds();
+  return [...ids].map(id => KEYS_CACHE.find(k => k.id === id)).filter(Boolean);
 }
 
 async function bulkApplyDirect(action, value) {
   try {
-    const { changed, unchanged, refused, skipped } = await API.bulkKeys({ ids: [...KSEL], action, value });
+    const { changed, unchanged, refused, skipped } = await API.bulkKeys({ ids: [...bulkWhoIds()], action, value });
     // ONE COUNT FOR THE WHOLE SWEEP (7 Sep, user call). It used to name every row it
     // skipped and every row it left alone, three lines deep — in a pill, over the very
     // rows that say so themselves: a skipped integration repaints unchanged, and the one
     // that took the change repaints changed. The count is what the rows can't show.
+    // …and the one thing the rows CANNOT show once the selection clears: that none of it is on
+    // air yet. One pill, two facts, three when something was skipped — the toast policy's merge.
     const left = (refused?.length || 0) + (skipped?.length || 0);
-    toast(left ? `${changed} changed · ${left} skipped` : `${changed} changed`,
-      left ? 'warn' : undefined);
+    toast([`${changed} changed`, left ? `${left} skipped` : '', 'not on air yet']
+      .filter(Boolean).join(' · '), left ? 'warn' : undefined);
     return true;
   } catch (e) {
     toast(e.message, 'bad');

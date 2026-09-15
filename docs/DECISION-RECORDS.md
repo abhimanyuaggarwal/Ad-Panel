@@ -25,6 +25,7 @@ codebase to (say) `AD-JSON-SCOPE.md` resolves to the chapter of that name below.
 - [API-REFACTOR — the knobs, the seams and the walks, said once (14 Sep 2026)](#api-refactor--the-knobs-the-seams-and-the-walks-said-once-14-sep-2026)
 - [WEB-REFACTOR — the words said once, and a flaky net made honest (14 Sep 2026)](#web-refactor--the-words-said-once-and-a-flaky-net-made-honest-14-sep-2026)
 - [COHORT-SHORTLIST — which player settings a bulk change may answer (14 Sep 2026)](#cohort-shortlist--which-player-settings-a-bulk-change-may-answer-14-sep-2026)
+- [COHORT-CONFIGS — the custom configs of a whole selection, in one sheet (15 Sep 2026)](#cohort-configs--the-custom-configs-of-a-whole-selection-in-one-sheet-15-sep-2026)
 
 ---
 
@@ -2568,3 +2569,106 @@ card still shows it as the from-side of a change, where it answers *what is this
 **A queued row stops saying it twice.** Its from → to lives on the card; the row's own
 "was …" tail repeated it in a second vocabulary a hand's width away. An unset open row keeps
 today's value, because nothing on the card has taken it over yet.
+
+---
+
+## COHORT-CONFIGS — the custom configs of a whole selection, in one sheet (15 Sep 2026)
+
+*"Introduce a custom config bulk change as well in the Integration listing page which will show
+the custom config of all the selected Integrations one under another in a clean manner for user
+to tweak and change."*
+
+### Why this could not be a third blanket form
+
+The two cohort acts already on the bar are **forms**: Ad behaviour answers a break's levers,
+Player behaviour answers the default player, and both can carry ONE answer for forty surfaces
+because the thing they write is something every integration has exactly one of.
+
+A custom config is not that shape. An integration carries **none, or up to six**, each addressed
+by the key a player asks for it by, and each holding only what it overrides. "One answer for
+forty" is therefore the wrong instrument most of the time — and the right one is the thing the
+ask names: **see the forty, correct the ones that are wrong**, without opening forty pages.
+
+So this sheet is an **editor with one accelerator**, not a form. That distinction is the whole
+design; do not collapse it into the Player behaviour sheet.
+
+### The four decisions, and who made them
+
+| Question | Answer | Why |
+|---|---|---|
+| Stack by config key, or by integration? | **By integration** (user call) | A block per selected integration, its configs under it. Grouping by key would have made the cohort more comparable, but the ask was to see each integration's configs, and a seller reading this screen is thinking about surfaces. The header therefore has to carry weight: it wears the **property monogram the Integrations list puts on every row** (`propBadge`) at title weight, so a header here is recognised the same way the row it came from was, and forty of them read as TOI-then-ET-then-NBT at a glance. |
+| One-at-a-time only, or a shortcut too? | **One at a time** (user call, same day, after seeing it) | A `Change a setting on [ every custom config │ configs named shorts ]` strip was built and cut within hours: *"dont give this change a setting on and which setting dropdown on top no need for it."* It was a second way to do the one thing the sheet already does, standing above — and pushing down — the actual work. |
+| The four fields a cohort may never answer (COHORT-SHORTLIST) — editable here? | **Out entirely** (user call) | Not offered, not greyed, not reachable, at either scope. A config being per-surface by nature is an argument for editing Plays as / Redirect URL / Quality / Fallback media on that surface's own page, which is where they stay. |
+| Create and remove configs here? | **No** | Both are keyed, named acts with a ceiling (six per integration) and real consequences for a player asking by key. `configFields` refuses either by name, so a stale screen fails loudly. |
+
+### What was cut the same day, and why it is not coming back
+
+Two things shipped in the first cut and were gone by the second, both for clutter, both on the
+user's call (*"the custom config should not feel cluttered dont show the fields in read only
+mode along side it make it clean and easy on eyes"*):
+
+1. **The shortcut strip** above the list — two dropdowns and an answered row that filled a value
+   into every config in scope. The instinct behind it was sound (this IS a bulk screen) but the
+   shape was wrong: it was a *form* bolted onto an *editor*, in the position that pushed the
+   editor below the fold.
+2. **The glance line** on each config (`Autoplay Off · Playback mode Passive · +2 more`). It
+   printed every field a second time, in grey, next to the control that already says it. On a
+   list of forty configs that was the densest thing on screen and none of it was clickable.
+3. **The `+ Override a setting` link** under each config's rows — the replacement for (1), and
+   wrong for a third reason: a verb repeated once per config, sitting in the middle of the values
+   a reader is trying to compare. What it answers is *which settings does this config override*,
+   and the honest form of that question is the COUNT the header was already printing as a dead
+   fact. So **the fact became the door**: `Overrides 3 settings ▾` in the config's header opens
+   the checklist, reports whether the config is open or shut, and is one control where a label
+   and a link had been two. The panel's own grammar — a fact is the door.
+
+**What replaced both: the settings themselves, open.** A config's rows ARE its content, so they
+are what the sheet shows — and everything on screen is therefore a control, not a description of
+one. A shut config says how many settings it holds, which is a count, not a second rendering of
+them. The folds stay for getting past what you are not working on; they start open, because the
+ask was to see them.
+
+The rule this leaves behind, worth keeping: **on this sheet, nothing is a read-only copy of
+something editable.**
+
+### What the sheet reuses rather than imitates
+
+Every row inside a config is the integration page's own: `.sh-row cfg`, `cfgCtlHtml()`,
+`pickerHtml()` (the shared checklist), `changesCardHtml()`, and THE CHANGE REVIEW. Nothing here
+is a lookalike, so a person who has opened one config anywhere has opened every config
+everywhere, and no two surfaces can drift on a vocabulary, a default or a refusal.
+
+### Counted, as everywhere else
+
+A single config's from-side is its own answer — and says `(default)` when it was following one,
+because *Off* and *Off because nobody set it* are different facts. Where one decision landed on
+several configs, its from-side is **counted across them**: one word when they agree,
+`4 different values` when they do not. Never a blend, never a suggestion.
+
+### The seam
+
+`configFields` is the one bulk action carrying a **list** rather than a value:
+`value: { edits: [{ id, config, fields?, on? }] }`, one entry per config. The shortcut is folded
+into that list by the sheet, so the wire knows nothing about scopes. `null` in `fields` is the
+way back — the override drops and the config follows its integration's default, live. Every
+edit's target and every value is checked **before any integration is touched** (a dry run
+through `normalizePlayerConfigs`), and one integration's edits land in one `updateKey`, so a
+version reads one line per moved field rather than one per edit.
+
+### Two states worth naming
+
+- A selection where **nobody carries a config** greys the bar button with its reason, rather
+  than opening a door onto an empty room. The sheet still refuses honestly if it is reached.
+- The **integration name pins while you scroll** — twelve deep, a row reading `Autoplay Off`
+  means nothing without it, and Apply's own refusal scrolls the reader straight into that state.
+  The config key pinned too for one round and was dropped: two sticky layers in a 475px scroller
+  bought very little and cost a seam where one header's edge met the other's.
+
+### One bug this surfaced, fixed in `controls.js`
+
+`pickerHtml` swept its receiver registry inline, dropping any id whose element was not in the
+document. That was correct while one picker existed per screen. This sheet draws one per open
+config — several in a single `innerHTML` string, none of them in the document yet when the next
+one asks for its markup — so the sweep unwired every picker but the last, and every picker but
+the last silently stopped opening. The sweep is now deferred to the next frame: same stale
+entries collected, no fresh ones.

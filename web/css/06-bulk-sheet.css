@@ -21,7 +21,7 @@
    inside them, so they earn it. Default player behaviour was ONE screen paying 221px of
    air for stability against nothing — it took the `.sheet` frame instead. */
 .dlg.bulk .dlg-body {
-  flex: 1; max-height: calc(100vh - 260px);
+  flex: 1; min-height: 0; max-height: calc(100vh - 260px);
   overflow-y: auto; padding-right: 2px;
 }
 /* THE FRAME IS ONE NUMBER, AND IT SITS ON THE DIALOG (8 Sep, user call — *"a lot of
@@ -37,16 +37,158 @@
    between step 1 and step 2 and there is no arithmetic to keep true.
    `min()` so a short window shrinks the frame instead of overflowing it — the old body
    floor fought its own `max-height` there. */
-.dlg.bulk.steady { min-height: min(var(--frame), calc(100vh - 80px)); }
-/* The ad sheet: 220px of levers (pre-roll and mid-roll, every lever open) + its chrome. */
-.dlg.bulk.steady { --frame: 409px; }
-/* The player sheet: five levers beside the same queue card — measured 341px at rest, 355
-   with every lever open, and 369 for the review that follows, which is the number both
-   steps take. Four or five queued changes grow the card past it and the sheet grows with
-   them: a floor is worth 28px of air at rest, not the 114 that matching the tallest
-   possible state would cost — the same arithmetic this file's 8 Sep note settled. */
-.dlg.bulk.pbx.steady { --frame: 369px; }
-.dlg.bulk .dlg-foot { margin-top: 12px; }
+/* BOTH SHEETS ARE FIXED, NOT FLOORED (15 Sep, user call — *"keep the ad sheet and player
+   sheet both fixed to a particular size"*). `min-height` let each sheet grow past its frame:
+   the ad sheet's pre-roll tab reached 480 with every lever open and the player sheet grew a
+   row at a time, so a number that was supposed to hold the footer still did so only until the
+   content disagreed. It is a height now, for both, and the content scrolls inside it. */
+.dlg.bulk.steady { height: min(var(--frame), calc(100vh - 80px)); }
+/* ONE NUMBER FOR ALL FOUR SCREENS (15 Sep, user call — *"the size of the modal to be same as
+   that of the modal of change ad behaviour"*). It was 409, then 428, and it is 480 because the
+   frame stopped being a floor. 409 was the ad sheet's levers plus its chrome, but its own step
+   1 measures 428 with the tab bar, so the AD journey was jumping 428 → 409 between its own two
+   steps; 428 fixed that while both sheets could still grow. Now that neither can, the number
+   has to be the tallest state any of them actually reaches — the pre-roll tab with every lever
+   open, 480 — or a sheet would scroll content it has always shown at once. The cost is 52px of
+   air on a shut ad tab; the alternative is the ad sheet scrolling levers it never scrolled. */
+.dlg.bulk.steady { --frame: 480px; }
+/* ONE SIZE FOR THE WHOLE FAMILY (15 Sep, user call — *"the size of the modal to be same as
+   that of the modal of change ad behaviour"*). The player sheet had its own measured floor,
+   369px, and next to the ad sheet's 409 the two cohort acts read as two different objects
+   opened from one bar. They are one family and they now take one number: the ad sheet's,
+   inherited from `.dlg.bulk.steady` above, and matched by the review both of them end on. */
+
+/* ---------- PLAYER BEHAVIOUR: pick the setting, then answer it (15 Sep) ---------- */
+/* WHAT THIS ACT WRITES, BESIDE THE TITLE. It rides the kicker, so it is a byline by
+   position — but it is the sheet's subject, not a label for it, so it takes the body ink and
+   a touch more weight than the names it replaced. */
+/* RETIRED 15 Sep with the kicker itself (`pb-says`): the sheet's title is `Player behaviour` and
+   nothing else, and who it writes to is stated once, in the foot beside the act. */
+
+/* THE WORK STARTS HIGHER (15 Sep, user call). With the block under the title gone there is
+   nothing between the heading and the two columns, so the gap closes to the heading's own. */
+.dlg.bulk.pbx h3 { margin-bottom: 14px; }
+
+/* The strip that adds a question. Same anatomy as the config sheet's `Override a setting`,
+   the cohort's verb on it — and since 15 Sep it sits INSIDE the left column, so its top edge
+   lines up with the queue card's across the split (user call) instead of floating above both.
+   The rows scroll under it; it does not move. */
+.pb-add {
+  display: flex; align-items: center; gap: 12px; flex: 0 0 auto;
+  padding: 0 0 12px; border-bottom: 1px solid var(--line);
+}
+/* The menu is the catalogue — twenty-one settings in three groups — so it is given the room
+   to be read rather than the room the sheet happens to have. It can only take that room
+   because the body below stopped clipping it: the scroller moved off `.dlg-body` and onto
+   the rows alone, which is the one box the menu is not inside. */
+.pb-add .sel-menu { max-height: min(420px, calc(100vh - 300px)); }
+.pb-add-l { font-size: 12.5px; font-weight: 500; color: var(--ink); }
+.pb-add .select { min-width: 300px; padding: 7px 11px; font-size: 12.5px; font-weight: 500; }
+
+.dlg.bulk.pbx .dlg-body { overflow: visible; display: flex; min-height: 0; }
+/* The split is now a flex ITEM as well as a flex container, so it has to be told to take the
+   width it used to take by default — without this the card pulls in from the right edge.
+   `align-items: stretch` undoes the shared `flex-start`: the columns have to inherit the
+   dialog's fixed height for the rows inside them to know what to scroll against, and with
+   `flex-start` the fields column sized to its content instead and simply overflowed. The card
+   is put back on `flex-start` on its own, so it still hugs what it holds. */
+.dlg.bulk.pbx .bulk-split { flex: 1; min-width: 0; min-height: 0; align-items: stretch; }
+.dlg.bulk.pbx .bqp { min-height: 0; align-self: flex-start; }
+.dlg.bulk.pbx .bulk-fields { display: flex; flex-direction: column; min-height: 0; }
+/* THE SHEET IS ONE SIZE AND STAYS IT (15 Sep, user call — *"as i keep adding the fields dont
+   increase the size of the modal keep it fixed introduce scroll in that case"*). `.steady` is
+   a FLOOR for the ad sheet — its pre-roll tab grows to 480 with every lever open — but this
+   sheet has no fixed content to bound it: one pick at a time, up to twenty-one, and a dialog
+   that grew a row at a time walked its own footer down the screen while you worked. So the
+   floor becomes the height. Same `min()`, so a short window shrinks the frame rather than
+   overflowing it.
+   THE ROWS ARE THEN THE ONLY THING THAT SCROLLS, and they need no cap of their own: the
+   dialog's height bounds them through the flex chain. The body stays `overflow: visible` so
+   the strip's menu can still escape it — the menu is the one box the scroller is not around. */
+.dlg.bulk.pbx .pb-rows { flex: 1; min-height: 0; overflow-y: auto; padding-right: 2px; }
+
+/* The two rows whose control is half a form: name and state on one line, control under it
+   at full width. Same shape the config sheet gives them, for the same reason. */
+.dlg.bulk.pbx .bqf-r.tall {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start; row-gap: 8px; padding-bottom: 12px;
+}
+/* Placed by hand, not by auto-flow: the name and what the row still owes you belong on the
+   SAME line, with the control under both — auto-flow pushed the state down past the
+   control, a hand's width from the label it answers. */
+.dlg.bulk.pbx .bqf-r.tall .bqf-l { grid-area: 1 / 1; align-self: center; }
+.dlg.bulk.pbx .bqf-r.tall .bqf-s { grid-area: 1 / 2; align-self: center; }
+.dlg.bulk.pbx .bqf-r.tall .bqf-c { grid-area: 2 / 1 / 3 / 3; }
+
+.pb-sec + .pb-sec { margin-top: 10px; }
+.pb-sh { padding: 10px 0 4px; }
+.pb-sh h4 {
+  margin: 0; font-size: 10.5px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+
+/* `NOT SET YET` IS GONE from this sheet too (15 Sep, user call — the config sheet's *"remove
+   this Not set yet"* carried across when the two bulk sheets were made to read the same). A
+   waiting row is an empty control and its ×: the control is the state, and the caption was a
+   description of something already legible. What the row says is what is news — the flag below,
+   once Apply has refused over it. */
+/* The row a pick just added is lit for a moment, so the eye lands where the sheet grew. */
+.bqf-r.lit { background: var(--accent-soft); transition: background .4s ease; }
+/* A picked row named by the refusal wears the warning until it is answered — and wears it
+   over the arrival highlight, which is the shorter-lived of the two. */
+.bqf-r.flag { box-shadow: inset 2px 0 0 var(--warn); background: var(--warn-soft); }
+
+/* An answered row that changes nothing says so where it stands, rather than travelling to a
+   review to report `Auto → Auto`. */
+.pb-same { font-size: 11.5px; font-weight: 500; color: var(--ink-faint); }
+
+/* ---------- THE SHEET'S ANATOMY: AN EMPTY BODY IS THE SHEET, NOT A CAPTION (15 Sep) ---------- */
+/* Shared by the cohort player sheet and the custom config sheet — see `sheetAnatomyHtml`. The
+   sections a pick can land in, in the order they will appear, greyed until something arrives.
+   The name is drawn in the REAL section header's type (`.pb-sh h4` / `.sh-sh h4`), so the first
+   pick reads as its heading going live rather than as one block replacing another; the rhythm is
+   the settings row's, so the map is the size of the thing it maps. */
+.sh-anat { padding: 0; }
+.sh-anat-r {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 14px;
+  padding: 10px 2px 16px 0; border-bottom: 1px solid #f1f3f7;
+}
+.sh-anat-r + .sh-anat-r { padding-top: 16px; }
+.sh-anat-r:last-child { border-bottom: 0; }
+/* The cohort sheet's own header type (`.pb-sh h4`) to the pixel, so the first pick reads as
+   PLAYBACK staying put and gaining a row. */
+.sh-anat-n {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.sh-anat-c { font-size: 11.5px; color: #b6bcc9; }
+/* THE CONFIG SHEET'S HEADER IS A TINTED BAND, so there the map wears the band — the same figure
+   the first pick leaves standing, rather than a second way of drawing a section name. */
+.sh-body .sh-anat-r {
+  margin: 0 -8px 8px -10px; padding: 11px 12px 10px;
+  background: #f6f7fa; border-bottom: 1px solid var(--line);
+}
+.sh-body .sh-anat-r + .sh-anat-r { padding-top: 11px; }
+.sh-body .sh-anat-n { font-size: 11.5px; letter-spacing: .085em; color: var(--ink-soft); }
+
+/* The refusal itself: one line, under the strip, naming what is still waiting. */
+.pb-err {
+  margin: 10px 0 2px; padding: 9px 11px; border-radius: 8px;
+  background: var(--warn-soft); border: 1px solid #f0d8a8;
+  font-size: 12px; line-height: 1.5; color: var(--warn);
+}
+.dlg.bulk .dlg-foot { margin-top: 12px; align-items: center; }
+/* WHO THE APPLY LANDS ON, at the button's shoulder (15 Sep) — the audience sits LAST, against
+   the buttons, because it is the sentence a person is reading when their hand is already there.
+   IT IS NOT A FOOTNOTE (user call — *"make this more prominent and more clear, currently it is
+   not clear"*). Since the player sheet's title kicker went, this is the ONLY statement of the
+   audience on either sheet, so it stopped wearing the foot's grey counted-fact register: body
+   ink at body size, with the COUNT carrying the page's own weight. The number is the fact; the
+   rest is the sentence around it. */
+.bulk-applies {
+  flex: none; margin-right: 6px; font-size: 12.5px; color: var(--ink-soft); letter-spacing: -.1px;
+}
+.bulk-applies b { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
 /* Tighter rhythm than the key editor: this dialog holds a whole slot on one screen, so
    every row gives back a few pixels and the tallest tab (mid-roll) fits without a scroll. */
 
@@ -121,3 +263,173 @@
 .pg-btn:disabled { opacity: .35; cursor: default; }
 
 
+
+/* ---------- CUSTOM CONFIGS: the cohort's configs, one under another (15 Sep) ---------- */
+/* THE THIRD COHORT SHEET, AND THE ONE THAT IS A LIST (user call — *"show the custom config of
+   all the selected Integrations one under another in a clean manner for user to tweak and
+   change"*). Its two siblings are forms: a handful of levers, answered once for everyone. This
+   one is an EDITOR over a cohort — a block per integration, its configs under it — with one
+   shortcut above the scroller that fills an answer into every config in scope.
+   So it borrows the pbx frame wholesale (same split, same card, same escaping menus) and adds
+   only the list. Every row inside a config is the integration page's own `.sh-row cfg` — not a
+   lookalike — so a person who has opened one config here has opened every config anywhere. */
+/* THE ONE SHEET IN THE FAMILY THAT IS TALLER, AND WHY. The other two are forms: a bounded
+   handful of levers, so 480px holds their tallest state and the shared number is right. This
+   one lists a cohort — its content is as long as the selection — and at 480 it showed three
+   integrations of twelve, which is not "one under another", it is a porthole. The frame is
+   measured for what this sheet is: 620 holds the strip, the queue card and about a dozen list
+   rows, and the list scrolls past that as it always would. Still one number, stated once, and
+   still `min()` so a short window shrinks it rather than overflowing.
+   (15 Sep, second cut: the shortcut strip above the list went, and the configs' own settings
+   came open in its place — so the frame still earns 620, for different content.) */
+.dlg.bulk.ccx.steady { --frame: 620px; }
+.dlg.bulk.ccx .cc-says { color: var(--ink-soft); font-weight: 500; }
+.dlg.bulk.ccx h3 { margin-bottom: 14px; }
+/* `overflow: visible` so the scope select and the two checklists can escape the body; the
+   scroller lives on `.cc-list` alone, which is the one box those menus are not inside. */
+.dlg.bulk.ccx .dlg-body { overflow: visible; display: flex; min-height: 0; }
+.dlg.bulk.ccx .bulk-split { flex: 1; min-width: 0; min-height: 0; align-items: stretch; }
+.dlg.bulk.ccx .bqp { min-height: 0; align-self: flex-start; }
+.dlg.bulk.ccx .bulk-fields { display: flex; flex-direction: column; min-height: 0; }
+
+/* THE LIST — the only thing that scrolls. The dialog's fixed height bounds it through the flex
+   chain, so it needs no cap of its own. */
+.cc-list { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 2px 0; }
+
+/* A BLOCK IS AN INTEGRATION. A label and a hairline, never a bordered box — the change review's
+   own rule, for the same reason: twelve of these as cards is twelve nested containers. */
+.cc-blk + .cc-blk { margin-top: 22px; }
+/* WHOSE CONFIG AM I LOOKING AT — answered at every scroll position, not only at the top of a
+   block. Twelve integrations deep, a row reading `shorts · Autoplay Off` is meaningless without
+   the name above it, and Apply's own refusal scrolls the reader straight into that state. So
+   the integration name pins at the top of the scroller as you pass it. The change review's
+   sticky section labels, applied to a list. */
+/* PROMINENT, BY THE LIST'S OWN DEVICE (15 Sep, third cut, user call — *"the header for each
+   integration can it be more prominent"*). It was a 12.5px name on a hairline, one notch above
+   the config keys under it — which is not enough separation for the thing that OWNS everything
+   below it. What makes it prominent is not size alone: it is the property monogram the
+   Integrations list already puts on every row, so a header here is recognised the same way the
+   row it came from was, and a cohort of forty reads as TOI-then-ET-then-NBT at a glance. Then
+   the name takes title weight, the rule firms up, and the blocks get real air between them.
+   The property WORD goes with it — the badge says TOI; saying it twice is not prominence. */
+.cc-bh {
+  display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 6px 8px;
+  border-radius: 7px; cursor: pointer; text-align: left;
+  border-bottom: 1.5px solid #d9dfea;
+  position: sticky; top: 0; z-index: 2; background: #fff;
+}
+.cc-bh .pbadge { width: 20px; height: 20px; flex: 0 0 20px; border-radius: 5px; font-size: 8px; }
+.cc-bh:hover { background: var(--bg-soft, #f7f8fb); }
+.cc-bh:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* THE SAME CHEVRON EVERY OTHER FOLD IN THIS PANEL DRAWS, turned. `▸` is missing from the UI
+   font and fell back to something that read as a bullet, which put a list marker in front of
+   every row on a screen that has no list markers. `▾` is the glyph the selects and the filter
+   pills already use, so a shut fold points the way it points everywhere else. */
+.cc-cv {
+  flex: 0 0 12px; font-size: 11px; line-height: 1; color: #98a1b3;
+  transition: transform .12s ease, color .12s; transform: rotate(-90deg);
+}
+.cc-bh:hover .cc-cv, .cc-chd:hover .cc-cv { color: var(--ink-soft); }
+.cc-blk.open > .cc-bh .cc-cv, .cc-cfg.open .cc-cv { transform: rotate(0deg); }
+.cc-bn { font-size: 13.5px; font-weight: 700; letter-spacing: -.1px; color: var(--ink); }
+.cc-bm { font-size: 11.5px; color: var(--ink-faint); }
+.cc-bc { font-size: 11px; font-weight: 600; color: var(--ink-faint); white-space: nowrap; }
+.cc-moved {
+  font-size: 10.5px; font-weight: 700; color: var(--chg);
+  background: #fdf4e3; border-radius: 5px; padding: 2px 6px; white-space: nowrap;
+}
+.cc-cfgs { padding: 8px 0 4px 20px; }
+
+/* A CONFIG IS ONE LINE: its key, what it overrides, and its switch. Opening it turns the line
+   into the integration page's own rows, in place. */
+.cc-cfg { position: relative; border-radius: 7px; scroll-margin-top: 44px; }
+/* AIR, NOT A LINE, BETWEEN CONFIGS. With the settings themselves open, one config runs to a
+   dozen rows and the next begins — a hairline between two blocks that tall is not a separator,
+   it is another line on a screen that already has enough of them. Whitespace does the work, as
+   it does between the change review's sections. */
+.cc-cfg + .cc-cfg { margin-top: 14px; }
+/* ONE PINNED HEADER, NOT TWO (15 Sep, second cut). The config key pinned too for a round, at
+   `top: 35px` under the integration. Two sticky layers in a 475px scroller bought very little —
+   with the settings open a config is usually three or four rows, so its key is on screen anyway
+   — and cost a seam where one header's edge met the other's. The integration name is the fact a
+   row cannot do without; that one pins, and nothing else does. */
+.cc-ch { display: flex; align-items: center; gap: 8px; min-height: 36px; }
+.cc-chd {
+  display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;
+  padding: 4px 6px; border-radius: 7px; cursor: pointer;
+}
+.cc-chd:hover { background: var(--bg-soft, #f7f8fb); }
+.cc-chd:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.cc-key { font-size: 12px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+/* WHAT THIS CONFIG OVERRIDES — a micro-label and a counted fact, and the fact is the door to
+   the checklist that changes it (15 Sep, third cut). It replaces a `+ Override a setting` link
+   that stood under every config's rows: seven verbs down a list, in the place a reader is trying
+   to compare values. At rest it REPORTS — `Overrides 3 settings` — and reads as quiet type; on
+   hover and while open it takes the shell of the house select, because that is what it is. */
+.cc-ov { display: inline-flex; align-items: center; gap: 7px; }
+.cc-ov-l {
+  font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--ink-faint); white-space: nowrap;
+}
+.cc-ov .shpick {
+  min-width: 0; height: 24px; border-color: transparent; background: none; border-radius: 7px;
+}
+.cc-ov .shpick:hover { border-color: var(--line); background: #fff; }
+.cc-ov .shpick.open { border-color: var(--accent); background: #fff; }
+.cc-ov .shpick-face { padding: 0 7px; gap: 5px; width: auto; }
+.cc-ov .shpick-t { font-size: 11.5px; font-weight: 600; color: var(--ink-soft); white-space: nowrap; }
+.cc-ov .shpick:hover .shpick-t, .cc-ov .shpick.open .shpick-t { color: var(--ink); }
+.cc-ov .sel-chev { font-size: 9px; color: var(--ink-faint); }
+/* The face is compact and right-aligned, so the menu hangs from its RIGHT edge at a width it
+   can actually be read at, rather than stretching to the face. */
+.cc-ov .shpick-menu { left: auto; right: 0; width: 300px; top: calc(100% + 5px); }
+.cc-acts { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; padding-right: 4px; }
+/* An OFF config keeps its key and its facts and recedes — players asking for it get the
+   default, which is a state, not an absence. */
+.cc-cfg.off .cc-key { opacity: .5; }
+/* A config with something queued on it wears the panel's one change mark — 2px of amber, out
+   of flow so it shifts nothing. Same bar, same colour, same meaning as everywhere else. */
+.cc-cfg.chg::before {
+  content: ""; position: absolute; left: -10px; top: 4px; bottom: 4px; width: 2px;
+  border-radius: 1px; background: var(--chg); pointer-events: none;
+}
+.cc-rows { padding: 2px 6px 8px 18px; }
+/* THE SECTION BAND IS A LABEL AND A HAIRLINE HERE, NOT A FILLED BAND (15 Sep, second cut). On
+   the config sheet it is the only band on screen and it pins itself, so a full-bleed tint is
+   what tells you where you are. Inside a list it is the third tier down — under an integration
+   and under a config key — and tinted it became the heaviest mark on a screen whose whole point
+   is the controls. It loses the fill, the bleed and the pinning, and keeps the one job it has
+   here: saying where Playback ends and Appearance begins. The change review's own rule. */
+.cc-rows .sh-sh {
+  position: static; margin: 12px 0 2px; padding: 0 0 5px;
+  background: none; border-bottom: 1px solid var(--line);
+}
+.cc-rows .sh-sec:first-child .sh-sh { margin-top: 2px; }
+.cc-rows .sh-sh h4 { font-size: 10px; letter-spacing: .09em; color: var(--ink-faint); }
+.cc-rows .sh-sec + .sh-sec .sh-sh { border-top: 0; }
+/* A config that overrides nothing says so once, plainly — not as a row, and not as a value. */
+.cc-follows { font-size: 12px; color: var(--ink-faint); padding: 6px 2px 4px; }
+.cc-rows .sh-row.cfg { grid-template-columns: 180px minmax(0, 1fr) auto; }
+.cc-rows .sh-sec + .sh-sec { margin-top: 4px; }
+/* RETIRED 15 Sep with `.sh-empty` itself: the one-sentence empty body both pick-then-answer
+   sheets used to draw. What stands there now is `.sh-anat` below — the sheet's own sections,
+   greyed, with nothing in them yet. */
+
+/* The row a pick just added is lit for a moment, so the eye lands where the sheet grew; a row
+   the refusal named wears the warning instead, which is news rather than description. */
+.sh-row.lit, .cc-cfg.lit { background: var(--accent-soft); transition: background .4s ease; }
+/* A row scrolled to must clear the one header pinned over it. */
+.cc-rows .sh-row { scroll-margin-top: 48px; }
+.sh-row.needs { box-shadow: inset 2px 0 0 var(--warn); background: var(--warn-soft); }
+
+/* NOTHING TO SHOW is a fact about the selection, said plainly — never an estimate, never a
+   blank pane the reader has to interpret. */
+/* NOTHING TO SHOW TAKES NO FRAME. `.steady` is a measured height for a sheet full of work;
+   over two lines of type it is the dead white this file's own opening condemns. The empty state
+   sizes to what it says, drops the queue card beside it (there is nothing that could enter it)
+   and its one door says Close rather than Cancel — nothing was started, so nothing is cancelled. */
+.dlg.bulk.ccx.bare { height: auto; }
+.dlg.bulk.ccx.bare .dlg-body { display: block; }
+.cc-empty { padding: 4px 6px 12px; display: flex; flex-direction: column; gap: 6px; max-width: 460px; }
+.cc-empty b { font-size: 13px; font-weight: 650; color: var(--ink); }
+.cc-empty span { font-size: 12px; line-height: 1.55; color: var(--ink-soft); }

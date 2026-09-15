@@ -89,9 +89,7 @@ async function newSetupChooser() {
       </div>
       <div class="dlg-foot"><button class="btn ghost" onclick="setupChooserClose()">Cancel</button></div>
     </div></div>`;
-  document.querySelector('.dlg-veil').onclick = e => {
-    if (e.target.classList.contains('dlg-veil')) setupChooserClose();
-  };
+  wireVeilDismiss(dialogRoot(), setupChooserClose);
 }
 
 // Cancel walks the address back too — ← and refresh keep meaning what they say.
@@ -389,68 +387,6 @@ function suTemplatesRowHtml() {
         <button type="button" class="slot-add pcc-add" onclick="tplNew()">+ Add template</button>
       </div>
     </div>`;
-}
-
-// ask() clears the dialog before resolving, so a form dialog reads its values FIRST:
-// same anatomy as ask(), plus a read step on OK.
-function askForm(opts, readFn) {
-  return new Promise(resolve => {
-    const root = dialogRoot();
-    root.innerHTML = `
-      <div class="dlg-veil">
-        <div class="dlg ${esc(opts.cls || '')}">
-          <h3>${esc(opts.title)}${opts.kicker ? `<span class="dlg-kicker">${esc(opts.kicker)}</span>` : ''}</h3>
-          <div class="dlg-body">${opts.body || ''}</div>
-          <div class="dlg-foot">
-            <button class="btn ghost" data-act="no">${esc(opts.cancelLabel || 'Cancel')}</button>
-            <button class="btn" data-act="yes">${esc(opts.okLabel || 'Confirm')}</button>
-          </div>
-        </div>
-      </div>`;
-    wireDialogExit(root, () => resolve(null));
-    // A REFUSAL STAYS IN THE DIALOG (7 Sep, UAT P1): with `opts.submit`, the write runs
-    // while the form still stands — a refused field wears its reason where it was typed,
-    // nothing is re-typed. Only a write that lands closes the dialog.
-    root.querySelector('[data-act=yes]').onclick = async () => {
-      const out = readFn(root);
-      if (!opts.submit) { closeDialog(); resolve(out); return; }
-      const ok = root.querySelector('[data-act=yes]');
-      ok.disabled = true;
-      root.querySelectorAll('.field.err').forEach(f => { f.classList.remove('err'); f.querySelector('.field-err')?.remove(); });
-      root.querySelector('.dlg-err')?.remove();
-      try {
-        await opts.submit(out);
-        closeDialog();
-        resolve(out);
-      } catch (e) {
-        ok.disabled = false;
-        paintDialogRefusal(root, e);
-      }
-    };
-  });
-}
-
-// A REFUSAL, PAINTED WHERE IT WAS TYPED: each named field wears its own reason, and
-// anything the form has no field for goes to one banner at the top of the body. Called
-// with the dialog still standing — nothing the person typed is thrown away.
-function paintDialogRefusal(root, e) {
-  const errs = (e.errors && e.errors.length) ? e.errors : [{ message: e.message }];
-  const loose = errs.filter(er => !paintFieldRefusal(root, er)).map(er => er.message);
-  if (!loose.length) return;
-  root.querySelector('.dlg-body')
-    .insertAdjacentHTML('afterbegin', `<div class="banner bad dlg-err">${esc(loose[0])}</div>`);
-}
-
-// One field's reason, under the field. Returns false when there is no field to wear it —
-// or when one already does, which is how the FIRST reason for a field is the one shown.
-function paintFieldRefusal(root, er) {
-  const field = er.field && root.querySelector(`[data-dfield="${er.field}"]`);
-  if (!field) return false;
-  if (field.classList.contains('err')) return true;
-  field.classList.add('err');
-  field.insertAdjacentHTML('beforeend', `<div class="field-err">${esc(er.message)}</div>`);
-  field.querySelector('input')?.focus();
-  return true;
 }
 
 let TPL_PROVIDER = 'ima'; // the dialog's provider pick, written by the house select

@@ -22,7 +22,7 @@ export default async function run({ test, req, eq, assert, freshSetup, patchSlot
     const r = await req('PATCH', '/panel/setups/as_5/sections/0/behaviour',
       { slot: 'preroll', behaviour: { adSound: 'muted' } });
     eq(r.status, 400, 'refused in the ops room');
-    assert(r.body.errors.some(e => e.message.includes('Player config')),
+    assert(r.body.errors.some(e => e.message.includes('Player behaviour')),
       `says where the answer lives now (got ${JSON.stringify(r.body.errors)})`);
     eq((await patchDrive('key_6', 'preroll', { adSound: 'prompt' })).status, 400, 'and the drive never takes it');
   });

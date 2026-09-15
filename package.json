@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node api/server.js",
     "test": "node test/run.js",
-    "check": "for f in api/*.js api/store/*.js api/routes/*.js api/mock/*.js web/js/*.js test/*.js test/cases/*.js; do node --check \"$f\" || exit 1; done && echo 'syntax ok'",
+    "check": "for f in api/*.js api/store/*.js api/routes/*.js api/mock/*.js web/js/*.js test/*.js test/*.mjs test/cases/*.js; do node --check \"$f\" || exit 1; done && echo 'syntax ok'",
     "ui:snapshot": "node test/ui-snapshot.mjs",
     "demo": "curl -s -X POST localhost:4200/panel/mock/reset",
     "scale": "curl -s -X POST localhost:4200/panel/mock/reset -H 'content-type: application/json' -d '{\"scenario\":\"scale\"}'"

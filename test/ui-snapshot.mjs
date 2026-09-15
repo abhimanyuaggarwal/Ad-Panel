@@ -20,11 +20,14 @@ import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PORTS } from '../api/config.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PANEL = join(HERE, '..');
 const OUT_ROOT = join(HERE, 'snapshots');
-const PORT = 4300;
+// The capture's own port is a knob, so it is spelled in api/config.js like the other two —
+// never here as well, where the two copies could drift onto whatever you were clicking.
+const PORT = PORTS.snapshot;
 const BASE = `http://localhost:${PORT}`;
 const CHROME = process.env.CHROME || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PUPPETEER = process.env.PUPPETEER
@@ -146,21 +149,35 @@ async function capture(label) {
   await click('.bqf-r.open .seg button', 0); await snap('bulk-ads-queued');
   await click('.btabs .btab', 1); await snap('bulk-ads-midroll');
   await click('#bulk-next'); await snap('bulk-ads-review'); await click('.dlg [data-act=no]');
-  // ONE PLAYER ACT (14 Sep, second cut): five playback facts a cohort really does answer at
-  // once, flat — no fold, and no master-detail sheet beside it.
+  // ONE PLAYER ACT, PICKED NOT PRINTED (15 Sep, third cut): the sheet opens on one strip —
+  // every setting the server accepts, each carrying what the selection holds for it today,
+  // the four it refuses greyed among them — and a picked setting must be answered before
+  // Apply will move.
   await click('#bulk-bar .btn.small', 1); await snap('bulk-player');
-  await click('.bqf-r.closed', 0); await click('.bqf-r.open .seg button', 1); await snap('bulk-player-set');
-  await click('.bqf-r.closed', 0); await snap('bulk-player-number');
+  // The checklist both sheets share: a box per setting, a box per section, the menu standing
+  // open while you work, and the four the platform refuses greyed among them.
+  await click('.pb-add .shpick-face'); await snap('bulk-player-picker');
+  await click('.shp-opt:not(.off)', 0); await snap('bulk-player-picked');
+  // A picked setting lands CLOSED, exactly as a break's lever does (15 Sep) — `Set` on hover,
+  // click to open — so both cohort sheets are one grammar: closed → open/unanswered → queued.
+  await click('.bqf-r.closed', 0); await snap('bulk-player-opened');
+  await click('.bqf-r.open .seg button', 1); await snap('bulk-player-set');
+  // A second question, left unanswered on purpose: Apply refuses in place and names it.
+  await click('.shp-opt:not(.off)', 1);
+  await click('.dlg h3'); // shut the menu the way a person does
+  // Apply refuses over the one left unanswered — and OPENS it where it stands, because a row
+  // the sheet is complaining about cannot be one whose control is folded out of sight.
+  await click('#pb-apply'); await snap('bulk-player-unanswered');
+  await click('.bqf-r.unset .bqs-x');
   await click('#pb-apply'); await snap('bulk-player-review'); await click('.dlg [data-act=no]');
   await click('.dlg-foot .btn.ghost'); await click('#bulk-bar .btn.ghost.small');
   await click('.page-head .btn'); await snap('keys-chooser');
   await click('.dlg-card', 1); await snap('keys-new-from-copy');
-  // A blank integration's default player starts from a preset (14 Sep): the strip in the
-  // Player config card's head picks the shape, the Default card names it, an edit landed
-  // from the sheet is counted against it, and re-picking a preset over that edit asks first.
+  // A blank integration's default is the same three bands an existing one has (15 Sep): set
+  // in place, all of it visible, with `Start from` in the title row. A moved row wears the bar
+  // and the head counts it; re-picking the preset over it asks first.
   await go('keys'); await click('.page-head .btn'); await click('.dlg-card.create'); await snap('keys-new-blank');
-  await click('.pc-card', 0); await click('.sh-row[data-r="autoplay"] .seg button', 1);
-  await click('.sh-foot .btn:not(.ghost)'); await snap('keys-new-blank-moved');
+  await click('.pcd-r[data-r="autoplay"] .seg button', 1); await snap('keys-new-blank-moved');
   await click('.pc-preset .select'); await click('.pc-preset .sel-opt', 0); await snap('keys-new-blank-restamp-ask');
   await click('.dlg [data-act=no]');
 
@@ -171,20 +188,35 @@ async function capture(label) {
   await click('.brk-tabs .stab', 0);
   await click('.pchip.on', 1); await snap('key-ask-toggled');
   await click('.drive-reset'); await snap('key-drive-reset');
-  // The player config: cards (level 1), a sheet (level 2), its `more` (level 3) — 14 Sep.
-  // `.btn:not(.ghost)` is Done/Create; the ghosts are Cancel and, on a config, the way back.
-  await click('.pc-card', 0); await snap('key-player-default');
-  await click('.sh-scope button', 1); await snap('key-player-default-all');
-  await click('.sh-scope button', 0);
-  // The sheet is a transaction: a moved row wears the change bar and the head counts it,
-  // on the DEFAULT as much as on a config, and Cancel puts every one of them back.
-  await click('.sh-row[data-r="autoplay"] .seg button', 1); await snap('key-player-default-changed');
-  await click('.sh-foot .btn.ghost');                  // Cancel — nothing lands
-  await click('.pc-card', 0);
-  await click('.sh-foot .btn:not(.ghost)');            // Close — reopened clean, closes clean
-  await click('.pc-card', 1); await snap('key-player-config');
+  // Player behaviour (15 Sep, sixth cut): the DEFAULT is set on the page, all of it — three
+  // full-width bands, three settings to a line, no switch and no modal — and the custom configs
+  // are CARDS carrying what they override, each opening the one sheet left here ("pick a
+  // setting, then answer it"). `.btn:not(.ghost)` is Apply/Close/Create; the ghosts are Cancel
+  // and the way back.
+  // A control on the page writes straight into the draft: the row wears the bar, the head
+  // counts it, and the page's own Save is the gate.
+  await click('.pcd-r[data-r="autoplay"] .seg button', 1); await snap('key-player-default-changed');
+  await click('.pcd-r[data-r="muted"] .toggle');
+  await click('.pcd-r[data-r="hiddenControls"] .cfg-ico', 5); await snap('key-player-controls-strip');
+  await click('.pcc-card', 0); await snap('key-player-config');
+  // The strip offers a whole section as well as a setting (15 Sep), and a picked setting
+  // arrives EMPTY: Apply refuses over it by name, answering clears the refusal, the × takes it
+  // back off the sheet. The sheet's picker is INLINE — it has no face to open, it stands open —
+  // so the walk ticks straight into it (the four `.shpick-face` clicks it used to make went
+  // missing on every run after that cut, and a walk that reports four false problems is a walk
+  // nobody reads the problems of).
+  await snap('key-player-config-pick');
+  await click('.shp-opt[data-pick="loop"]'); await snap('key-player-config-ticked');
+  await click('.sh-foot .btn:not(.ghost)'); await snap('key-player-config-unanswered');
+  await click('.sh-row[data-r="loop"] .seg button', 0); await snap('key-player-config-answered');
+  await click('.sh-row[data-r="loop"] .sh-x'); await snap('key-player-config-dropped');
+  // A section's own box ticks everything under it, and ticks back off.
+  await click('.shp-head[data-pick="all:measure"]'); await snap('key-player-config-section');
+  await click('.shp-head[data-pick="all:measure"]'); await snap('key-player-config-section-off');
+  // Ticked on and back off nets to nothing, so the act row is one button again: `Close`, with
+  // no Cancel beside it, because there is nothing to put back.
   await click('.sh-foot .btn:not(.ghost)');
-  await click('.pc-new'); await snap('key-config-new');
+  await click('.pcc-new'); await snap('key-config-new');
   await click('.sh-foot .btn:not(.ghost)'); await snap('key-config-new-refused');
   await click('.sh-foot .btn.ghost');
   await click('.eh-more-btn'); await snap('key-more-menu'); await click('.eh-more-btn');

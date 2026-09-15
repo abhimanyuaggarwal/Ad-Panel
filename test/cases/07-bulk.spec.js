@@ -186,4 +186,129 @@ export default async function run({ test, req, eq, assert, freshSetup, patchSlot
     eq(k.live, true, 'on air again');
     eq(k.unpublishedCount, 0, 'and nothing left unpublished');
   });
+
+  // ---------- configFields: the cohort's custom configs (15 Sep) ----------
+  // The third cohort act, and the one that carries a LIST rather than one value — because a
+  // custom config is not something every integration has exactly one of. What the Custom
+  // configs sheet resolves its shortcut into is exactly what these cases send.
+
+  await test('a cohort config edit lands per config — the shortcut is already folded into the list', async () => {
+    const r = await req('POST', '/panel/keys/bulk', {
+      ids: ['key_1', 'key_3', 'key_4', 'key_6'], action: 'configFields',
+      value: { edits: [
+        { id: 'key_1', config: 'shorts', fields: { autoplay: 'on' } },
+        { id: 'key_3', config: 'shorts', fields: { autoplay: 'on' } },
+        { id: 'key_4', config: 'shorts', fields: { autoplay: 'on' } },
+        { id: 'key_6', config: 'shorts', fields: { autoplay: 'on' }, on: true },
+      ] },
+    });
+    eq(r.status, 200, 'applied');
+    eq(r.body.changed, 4, 'every integration carrying the key moved');
+    for (const id of ['key_1', 'key_3', 'key_4', 'key_6']) {
+      const c = (await req('GET', `/panel/keys/${id}`)).body.key.playerConfigs.find(x => x.name === 'shorts');
+      eq(c.autoplay, 'on', `${id} shorts took the answer`);
+    }
+    eq((await req('GET', '/panel/keys/key_6')).body.key.playerConfigs[0].on, true, 'and the switch with it');
+  });
+
+  await test('one integration’s config is tweaked alone — a cohort act is not a blanket one', async () => {
+    const r = await req('POST', '/panel/keys/bulk', {
+      ids: ['key_1', 'key_3'], action: 'configFields',
+      value: { edits: [{ id: 'key_3', config: 'shorts', fields: { autoplay: 'auto' } }] },
+    });
+    eq(r.status, 200, 'applied');
+    eq(r.body.changed, 1, 'exactly one');
+    eq((await req('GET', '/panel/keys/key_3')).body.key.playerConfigs[0].autoplay, 'auto', 'the named one moved');
+    eq((await req('GET', '/panel/keys/key_1')).body.key.playerConfigs[0].autoplay, 'off',
+      'the one not named did not');
+  });
+
+  await test('null is the way back — the override drops and the config follows the default LIVE', async () => {
+    const r = await req('POST', '/panel/keys/bulk', {
+      ids: ['key_1'], action: 'configFields',
+      value: { edits: [{ id: 'key_1', config: 'shorts', fields: { playback: null } }] },
+    });
+    eq(r.status, 200, 'applied');
+    const k = (await req('GET', '/panel/keys/key_1')).body.key;
+    const c = k.playerConfigs.find(x => x.name === 'shorts');
+    eq(c.playback, undefined, 'the override is gone, not set to something');
+    // …and the emitted config now reads the default, which is what "follows" means.
+    await req('POST', '/panel/keys/key_1/publish');
+    const live = (await req('GET', `/panel/live/${k.key}`)).body;
+    eq(live.playerConfigs.find(x => x.name === 'shorts').player.playback, k.player.playback,
+      'the player is handed the default it now follows');
+  });
+
+  await test('the four a cohort may not answer are refused here too — by name, at any scope', async () => {
+    for (const [f, v] of [['playbackMode', 'inline'], ['redirectUrl', 'https://x.example'],
+      ['quality', '720p'], ['fallbackMediaId', 'med_x']]) {
+      const r = await req('POST', '/panel/keys/bulk', {
+        ids: ['key_1'], action: 'configFields',
+        value: { edits: [{ id: 'key_1', config: 'shorts', fields: { [f]: v } }] },
+      });
+      eq(r.status, 400, `${f} refused`);
+      assert((r.body.message || '').includes('each integration’s own'), `${f} says whose it is`);
+    }
+    const c = (await req('GET', '/panel/keys/key_1')).body.key.playerConfigs[0];
+    eq(c.playbackMode, undefined, 'and nothing landed');
+  });
+
+  await test('this act never CREATES a config — a key the integration does not carry is named', async () => {
+    const r = await req('POST', '/panel/keys/bulk', {
+      ids: ['key_2'], action: 'configFields',
+      value: { edits: [{ id: 'key_2', config: 'shorts', fields: { autoplay: 'on' } }] },
+    });
+    eq(r.status, 400, 'refused');
+    assert(r.body.message.includes('TOI Mweb ArticleShow') && r.body.message.includes('shorts'),
+      `the surface and the key are both named (got ${r.body.message})`);
+    eq((await req('GET', '/panel/keys/key_2')).body.key.playerConfigs.length, 0, 'and none was seeded');
+  });
+
+  await test('a refused VALUE stops the whole sweep — a cohort write never half-lands', async () => {
+    const r = await req('POST', '/panel/keys/bulk', {
+      ids: ['key_1', 'key_3'], action: 'configFields',
+      value: { edits: [
+        { id: 'key_3', config: 'shorts', fields: { autoplay: 'on' } },
+        { id: 'key_1', config: 'shorts', fields: { passiveVolume: 500 } },
+      ] },
+    });
+    eq(r.status, 400, 'refused before anything was touched');
+    assert(r.body.message.includes('between 0 and 100'), `naming the number required (got ${r.body.message})`);
+    eq((await req('GET', '/panel/keys/key_3')).body.key.playerConfigs[0].autoplay, 'off',
+      'the edit ahead of the bad one did NOT land');
+  });
+
+  await test('one integration, many configs, ONE version line each — not one per edit', async () => {
+    await req('POST', '/panel/keys/bulk', {
+      ids: ['key_4'], action: 'configFields',
+      value: { edits: [
+        { id: 'key_4', config: 'shorts', fields: { autoplay: 'on' } },
+        { id: 'key_4', config: 'live_blog', fields: { loop: false } },
+      ] },
+    });
+    const pub = await req('POST', '/panel/keys/key_4/publish');
+    eq(pub.status, 200, 'published');
+    const cs = pub.body.version.changes.filter(c => String(c.where).startsWith('Player configs'));
+    eq(cs.length, 2, 'two moved fields, two lines');
+    assert(cs.some(c => c.where === 'Player configs · shorts' && c.field === 'autoplay'),
+      'each named where it lives');
+    assert(cs.some(c => c.where === 'Player configs · live_blog' && c.field === 'loop'),
+      'including the second config');
+  });
+
+  await test('an edit naming an integration outside the selection is refused', async () => {
+    const r = await req('POST', '/panel/keys/bulk', {
+      ids: ['key_1'], action: 'configFields',
+      value: { edits: [{ id: 'key_3', config: 'shorts', fields: { autoplay: 'on' } }] },
+    });
+    eq(r.status, 400, 'refused');
+    assert(r.body.message.includes('not one of the selected'), `said plainly (got ${r.body.message})`);
+  });
+
+  await test('an empty act is refused rather than reporting a sweep that wrote nothing', async () => {
+    for (const value of [{}, { edits: [] }, { edits: [{ id: 'key_1', config: 'shorts' }] }]) {
+      const r = await req('POST', '/panel/keys/bulk', { ids: ['key_1'], action: 'configFields', value });
+      eq(r.status, 400, `refused: ${JSON.stringify(value)}`);
+    }
+  });
 }

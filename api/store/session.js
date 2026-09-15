@@ -49,10 +49,6 @@ export function setAccounts(accounts, workDomain, accessOwner) {
   session.signedIn = session.accounts[0] || null;
 }
 
-/** The signed-in account, or null. */
-export function signedInAccount() {
-  return session.signedIn;
-}
 
 /**
  * What the front door and the header band both read: whether anyone is signed in, and

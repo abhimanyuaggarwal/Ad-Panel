@@ -27,6 +27,20 @@ function rungWords(rungs) {
   });
 }
 
+// Which fact speaks in words, and which word map says them. A fact with no entry here
+// prints its stored value as it stands (the clocks: a number is already the word).
+const RUNG_FACT_WORDS = {
+  displaySlot: DISPLAY_SLOT_WORD,
+  pause: PAUSE_WORD,
+  mute: MUTE_WORD,
+  headerBidding: HB_WORD,
+};
+
+/** One rung fact's stored value, in the word the screen uses for it. */
+function rungFactWord(field, value) {
+  return RUNG_FACT_WORDS[field]?.[value] || value;
+}
+
 // A banner's own facts moving on a rung is a change the rail must say — the tags and
 // their order can hold perfectly still while where-on-the-page or the pause answer moves.
 function rungFactChanges(where, before, after) {
@@ -39,8 +53,7 @@ function rungFactChanges(where, before, after) {
     for (const f of RUNG_FACTS) {
       if (JSON.stringify(prev[f]) !== JSON.stringify(r[f])) {
         const t = state.tags.get(r.tagId);
-        const word = v => f === 'displaySlot' ? (DISPLAY_SLOT_WORD[v] || v) : f === 'pause' ? (PAUSE_WORD[v] || v) : f === 'mute' ? (MUTE_WORD[v] || v) : f === 'headerBidding' ? (HB_WORD[v] || v) : v;
-        out.push({ where: `${where} · ${t ? t.name : r.tagId}`, field: f, from: word(prev[f]), to: word(r[f]) });
+        out.push({ where: `${where} · ${t ? t.name : r.tagId}`, field: f, from: rungFactWord(f, prev[f]), to: rungFactWord(f, r[f]) });
       }
     }
   }

@@ -425,14 +425,22 @@
 .bqf-r.closed { cursor: pointer; }
 .bqf-r.closed:hover { background: var(--bg-soft, #f7f8fb); }
 .bqf-r.closed .bqf-today { justify-self: start; }
-/* Visible at rest (7 Sep, UAT P2): hidden until hover, five levers read as five grey
-   facts beside a disabled Review button — nothing said the sheet was editable. */
+/* THE DOOR, NOT A REPORT (15 Sep, user call — *"maybe the set cta shows on hover"*, making the
+   two bulk sheets read the same). `Set` stood at the end of every closed row: six chips down a
+   sheet whose subject is six questions, and the one thing on it that the player sheet had no
+   equivalent for. It surfaces under the cursor now, where the act is about to happen.
+   It KEEPS ITS SEAT while invisible (opacity, never display), so the column is sized for it and
+   nothing on the row moves as it arrives — the panel's oldest rule, at the scale of one chip.
+   This reopens 7 Sep UAT P2 (a row at rest must not read as an inert grey fact) by the user's
+   own call. What answers it now is the row rather than the chip: pointer cursor, a lit ground
+   on hover, and the cohort's counted today-word where it has one. */
 .bqf-set {
   justify-self: end; font-size: 11px; font-weight: 650; color: var(--accent);
-  opacity: .75; transition: opacity .12s, background .12s;
-  padding: 2px 8px; border: 1px solid var(--line); border-radius: 6px;
+  padding: 2px 8px; border: 1px solid var(--accent); border-radius: 6px;
+  background: #f3f7ff; white-space: nowrap;
+  opacity: 0; transition: opacity .12s;
 }
-.bqf-r.closed:hover .bqf-set { opacity: 1; border-color: var(--accent); background: #f3f7ff; }
+.bqf-r.closed:hover .bqf-set { opacity: 1; }
 .bqf-r.open .bqf-s { display: inline-flex; align-items: center; gap: 8px; justify-self: end; }
 .bqf-r.open .bqs-x.on { opacity: .6; }
 /* A set row reads its own change back — the one-step sheet's honesty. */
@@ -741,118 +749,202 @@ tr.grp-more td { padding: 7px 14px 8px 43px; background: #fffdf4; border-bottom:
 tbody tr.grp-more:hover td { background: #fdf6e2; }
 
 
-/* ---------- THE PLAYER CONFIG CARDS + SHEET (14 Sep, third surface) ---------- */
-/* *"Let's not have this column-like approach; clean cards, clicking on which opens the
-   preview … limited fields upfront, then at level 2 some fields, and so on, so that we are
-   not bombarded."*
-   The two surfaces before this one failed the same way from opposite ends: the folded card
-   put eight groups of CONTROLS on the page, and the comparison grid put every config on
-   screen at once in columns. Both answered "show me everything" when the question a person
-   arrives with is "which config, and what does it do". Three levels answer that one:
-     1  THE CARDS   identity and a few facts. No control but the switch, which is state.
-     2  THE SHEET   the settings a surface is actually set up with, in three sections.
-     3  MORE        the rest, counted on the door that opens it, in place. */
+/* ---------- THE PLAYER BEHAVIOUR CARD (15 Sep, seventh cut) ---------- */
+/* *"The column-like arrangement was better for the default — revert to it, but make it more
+   breathable and clean, not cluttered, and more mature."*
+   THE COLUMNS COME BACK, WITHOUT THE FURNITURE. What made the first column cut feel cluttered
+   was never the arrangement: it was a tinted box around the three, a full-height divider
+   between them and a hairline over every row — a GRID OF LINES — plus a hard bottom edge under
+   the shortest column, which made three columns of honestly different lengths look broken.
+   So the lines go and the air stays: no box, no dividers, no row rules. Each column is its name
+   under ONE rule, then its settings on a 40px rhythm with every answer on one lane at the
+   column's right edge. Columns end where their content ends, the way columns of type do.
+   RETIRED: `.pcd-band` / `.pcd-grid` / `.pcd-r.w2` (the full-width bands), and before them the
+   tinted `.pcd` block, its `.pcd-scope` switch and the config ROWS. */
 
 .pcw-k { font-size: 11px; color: var(--ink-faint); }
 /* THE PRESET STRIP (14 Sep): while a blank integration is being made, the card's title row
    carries the shape its default starts from — the Ad behaviour card's own strip grammar
-   (eyebrow, then the decision as a control), so the two cards' heads read alike. The select
-   is cut to the row's height; the count of custom configs, when there is one, rides after. */
+   (eyebrow, then the decision as a control), so the two cards' heads read alike. */
 .fieldset-title-row .pc-preset { margin-left: auto; gap: 10px; }
 .pc-preset .select { min-width: 150px; padding: 6px 11px; font-size: 12.5px; }
-.pc-preset .pcw-k { margin-left: 6px; }
-/* What moved off the seed, counted, in the change amber — the same mark the sheet's head and
-   the card's own bar carry, so one colour keeps meaning "not what it would otherwise be". */
+/* What moved off the baseline, counted, in the change amber — the same mark the rows carry,
+   so one colour keeps meaning "not what it would otherwise be". */
 .pc-moved {
   font-size: 10.5px; font-weight: 650; color: var(--chg); white-space: nowrap;
   background: rgba(217, 154, 31, .1); border-radius: 5px; padding: 1px 6px;
 }
-/* Four across at the editor's width, so the default and six configs are two calm rows and
-   nothing scrolls. Cards stretch to a common height per row: a grid of ragged cards reads as
-   a mistake. */
-.pc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(238px, 1fr)); gap: 12px; align-items: stretch; }
-.pc-card {
-  position: relative; display: flex; flex-direction: column; text-align: left; min-width: 0;
-  border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 15px 16px 14px;
-  cursor: pointer; font-family: inherit; transition: border-color .12s, box-shadow .12s;
-}
-.pc-card:hover { border-color: #c9d6f2; box-shadow: 0 2px 12px rgba(20, 30, 50, .06); }
-.pc-card:focus-visible { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
-/* The default is what every other card is measured against, so it reads as the ground the
-   rest sit on rather than as one more sibling. */
-.pc-card.pc-dflt { background: #fafbfd; border-color: #dfe4ee; }
-.pc-card.off { background: #fcfcfd; }
-.pc-card.off .pc-name, .pc-card.off .pc-say { opacity: .5; }
-.pc-card.chg::before { left: -8px; top: 2px; bottom: 2px; }
 
-/* THE NAME IS THE CARD'S FIRST LINE (14 Sep). The eyebrow above it read CUSTOM CONFIG on
-   every custom card, which is a label that never varies and therefore never informs; the
-   name and the card's own ground already say which kind this is. */
-.pc-top { display: flex; align-items: center; gap: 8px; min-height: 24px; }
-.pc-name {
-  flex: 1; min-width: 0; font-size: 15px; font-weight: 650; color: var(--ink); line-height: 1.35;
+/* THE DEFAULT: one line saying what it is, then three columns on the card's own ground. */
+.pcd { position: relative; padding: 2px 0 2px; }
+.pcd.chg::before { left: -9px; top: 2px; bottom: 2px; }
+.pcd-head { display: flex; align-items: baseline; gap: 10px; min-height: 22px; margin-bottom: 16px; }
+/* NOTHING TO SAY, NO LINE TO SAY IT ON (15 Sep) — the default's head lost its eyebrow, so on an
+   existing surface sitting at its saved answer it holds only a hidden count. It keeps its place
+   in the DOM (the count is written there while somebody types) and gives up its height. */
+.pcd-head.bare { min-height: 0; margin-bottom: 0; }
+.pcd-eyebrow {
+  font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-soft); white-space: nowrap;
+}
+.pcd-say {
+  font-size: 11.5px; color: var(--ink-faint); min-width: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.pc-name.mono { font-family: ui-monospace, Menlo, monospace; font-size: 13.5px; font-weight: 600; letter-spacing: -.1px; }
-/* State never hides; the rare acts do, the way every row's ⋯ does on this page. */
-.pc-acts { display: inline-flex; align-items: center; gap: 2px; flex: none; }
-.pc-card .row-kebab { opacity: 0; transition: opacity .12s; }
-.pc-card:hover .row-kebab, .pc-card:focus-within .row-kebab, .pc-card .rmenu.open .row-kebab { opacity: 1; }
+/* Three at the editor's width, two in a narrower pane, one in a very narrow one — the cell
+   width is what the controls were cut for, so the cell holds and the count gives. The gutter is
+   wide enough (48px) that no line is needed to tell one column from the next. */
+.pcd-cols {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  align-items: start; column-gap: 48px; row-gap: 26px;
+}
+.pcd-col { min-width: 0; }
+/* THE COLUMN'S NAME, UNDER ITS OWN RULE — the one line each column gets, which is what makes
+   three lists read as three sections without drawing a box around any of them. */
+.pcd-col h5 {
+  margin: 0 0 6px; padding-bottom: 10px; border-bottom: 1px solid var(--line);
+  font-size: 10px; font-weight: 700; letter-spacing: .085em; text-transform: uppercase;
+  color: var(--ink-faint); line-height: 14px;
+}
+/* A ROW: the setting on the left, its control at the column's right edge. No rule between
+   rows — the rhythm does that work, and a hairline on every one of fourteen rows is the table
+   this card spent three cuts getting away from. A label that runs out of room ellipses rather
+   than pushing the control down. */
+.pcd-r {
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px;
+  align-items: center; min-height: 40px;
+}
+.pcd-l { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pcd-c { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; flex-wrap: wrap; row-gap: 5px; }
+.pcd-r.na { cursor: help; }
+.pcd-r.na .pcd-c { opacity: .45; pointer-events: none; }
+.pcd-r.chg::before { left: -12px; top: 7px; bottom: 7px; }
+/* A CONTROL WIDER THAN THE LANE puts its label above and runs the column's width under it —
+   the preview, the nine glyphs, and the chip sets whose three words would otherwise squeeze
+   `Remembers` into `Rememb…`. Truncating the question to fit the answer is backwards. */
+.pcd-r.tall { grid-template-columns: minmax(0, 1fr); align-items: start; padding: 6px 0 10px; }
+.pcd-r.tall .pcd-l { white-space: normal; }
+.pcd-r.tall .pcd-c { justify-content: flex-start; padding-top: 8px; }
+/* THE CONTROLS, CUT TO A COLUMN. Every one of them is the panel's own, one size smaller: the
+   segs and switches the page already uses, the number boxes narrowed, the selects cut to the
+   answer lane rather than to a modal's width. */
+/* WIDTHS ONLY. Every size on this page comes from the one scale at the end of this file. */
+/* THE NINE GLYPHS, INLINE (15 Sep, user call). Measured, not guessed: the column is 320px and
+   the row's gutter is 12, so a strip that shares its line with a label has 320 − 12 − (label)
+   to live in. At the shared 28px it is 284px wide and there is nothing left for the question —
+   which is why it stood stacked. At 24px with a 3px gap it is 240px, leaving 68 for `Controls`,
+   which the label fits inside. `nowrap` so it is one strip and not two rags: the row is only
+   worth un-stacking if it is genuinely one line. Page only — the two sheets are wider and keep
+   the 28px strip they have room for. */
+.pcd-c .cfg-strip { flex-wrap: nowrap; gap: 3px; }
+.pcd-c .cfg-strip .cfg-ico { width: 24px; height: 24px; border-radius: 6px; }
+.pcd-c .cfg-strip .cfg-ico .cfg-ic { width: 14px; height: 14px; }
+.pcd-c .select { min-width: 0; max-width: 100%; }
+.pcd-c .num-wrap { width: 90px; }
+.pcd-c .rule-text { flex: 1 1 130px; min-width: 0; }
+.pcd-r[data-r="remembers"] .pcd-c { gap: 5px; }
+.pcd-c .cfg-look { gap: 12px; }
 
-/* ONE SENTENCE, NO NUMBERS (14 Sep, user call). This line has now lost two things in two
-   passes and is better for both: first the four label/value rows (four identical labels down
-   a row of cards read as a table that had lost its header), then the counted pips that
-   replaced them — `Playback 2` is a number with an invisible denominator, so it reads as a
-   score, and a score invites comparing cards that are not in competition. What a list is
-   scanned for is what KIND of thing each one is, and that is a sentence. */
-.pc-meta {
-  display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 7px; margin-top: 9px;
-  font-size: 11.5px; min-width: 0;
+/* ---------- THE CUSTOM CONFIGS: CARDS ---------- */
+/* A config is PICKED out of a small set, so it is a card; and what tells one from another is
+   what it OVERRIDES, so the card carries its first four overrides as label/value lines with
+   the rest counted on a fifth. The rule above the head is the only one on this card that runs
+   its full width: it separates the thing every player gets from the named exceptions to it. */
+.pcc-head {
+  display: flex; align-items: baseline; gap: 10px; min-height: 22px;
+  margin: 26px 0 12px; padding-top: 20px; border-top: 1px solid var(--line);
 }
-.pc-say {
-  min-width: 0; color: var(--ink-faint); line-height: 1.45;
-  overflow: hidden; text-overflow: ellipsis;
+.pcc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(258px, 1fr)); gap: 12px; align-items: stretch; }
+/* THE BLOCK AT TWENTY (15 Sep). The head gains a key filter once there are enough configs to hunt
+   through, and the grid a counted door — see `pcGridHtml`. Both are quiet: this is the second
+   block on a long card, not a screen of its own. */
+.pcc-find { margin-left: auto; }
+.pcc-find-f {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 9px;
+  border: 1px solid transparent; border-radius: 8px; background: #f2f4f8;
+  transition: border-color .12s, box-shadow .12s, background .12s;
 }
-.pc-card:hover .pc-say { color: var(--ink-soft, #5a6272); }
-/* A config that is not serving says so in words — a dimmed switch is easy to miss across six
-   cards, and "is this one live" is the first thing a list of them is scanned for. */
+.pcc-find-f:hover { background: #eef1f6; }
+.pcc-find-f:focus-within { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px var(--ring); }
+.pcc-find-f svg { width: 12px; height: 12px; flex: none; color: #8f98a9; }
+.pcc-find-f input {
+  width: 128px; border: 0; outline: 0; background: none; padding: 0;
+  font-family: inherit; font-size: 12px; color: var(--ink);
+}
+.pcc-find-f input::placeholder { color: #8f98a9; }
+.pcc-more-row { margin-top: 12px; }
+.pcc-none-q { margin-top: 12px; font-size: 12.5px; color: var(--ink-faint); }
+.pcc-card {
+  position: relative; display: flex; flex-direction: column; text-align: left; min-width: 0;
+  border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 13px 15px 12px;
+  cursor: pointer; font-family: inherit; transition: border-color .12s, box-shadow .12s;
+}
+.pcc-card:hover { border-color: #c9d6f2; box-shadow: 0 2px 12px rgba(20, 30, 50, .06); }
+.pcc-card:focus-visible { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+.pcc-card.chg::before { left: -8px; top: 2px; bottom: 2px; }
+.pcc-card.off { background: #fcfcfd; }
+.pcc-card.off .pcc-name, .pcc-card.off .pcc-facts { opacity: .5; }
+.pcc-top { display: flex; align-items: center; gap: 7px; min-height: 24px; }
+.pcc-name {
+  flex: 1; min-width: 0; font-family: ui-monospace, Menlo, monospace; font-size: 13.5px;
+  font-weight: 600; letter-spacing: -.1px; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* State never hides; the rare acts do, the way every row's ⋯ does on this page. */
+.pcc-acts { display: inline-flex; align-items: center; gap: 2px; flex: none; }
+.pcc-card .row-kebab { opacity: 0; transition: opacity .12s; }
+.pcc-card:hover .row-kebab, .pcc-card:focus-within .row-kebab, .pcc-card .rmenu.open .row-kebab { opacity: 1; }
+/* THE OVERRIDES: label left, value right, one line each — the same fact grammar the ad units
+   use, stacked so four of them read as a small table rather than as a sentence. */
+.pcc-facts { display: flex; flex-direction: column; margin-top: 8px; min-width: 0; }
+.pcc-f {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: baseline;
+  padding: 3px 0; font-size: 11px; border-top: 1px solid rgba(19, 27, 46, .05);
+}
+.pcc-f:first-child { border-top: 0; }
+.pcc-f i { font-style: normal; color: #98a1b3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pcc-f b { font-weight: 600; color: var(--ink-soft, #5a6272); white-space: nowrap; }
+.pcc-card:hover .pcc-f b { color: var(--ink); }
+.pcc-more { margin-top: 5px; font-size: 10.5px; color: var(--ink-faint); cursor: help; }
+.pcc-none { margin-top: 2px; font-size: 11px; color: var(--ink-faint); line-height: 1.5; }
+/* A config that is not serving says so in words — a dimmed switch is easy to miss across a
+   row of cards, and "is this one live" is the first thing they are scanned for. */
 .pc-off {
   font-size: 9.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
   color: var(--ink-faint); background: rgba(19, 27, 46, .055); border-radius: 4px; padding: 1px 5px;
 }
-
-/* The card that makes another one: the same shape drawn as an outline, so the row reads as
-   one family and the add stands exactly where the thing it makes will appear. */
-.pc-new {
+/* The card that makes another one: the same shape drawn as an outline, so the row reads as one
+   family and the add stands exactly where the thing it makes will appear. */
+.pcc-new {
   align-items: center; justify-content: center; gap: 3px; text-align: center;
   border-style: dashed; background: transparent;
 }
-.pc-new:hover { border-color: var(--accent); background: #fbfcff; box-shadow: none; }
-.pc-plus { font-size: 19px; line-height: 1; color: var(--ink-faint); }
-.pc-new:hover .pc-plus, .pc-new:hover .pc-newt { color: var(--accent); }
-.pc-newt { font-size: 12.5px; font-weight: 650; color: var(--ink-soft); }
-.pc-newh { font-size: 10.5px; color: var(--ink-faint); }
+.pcc-new:hover { border-color: var(--accent); background: #fbfcff; box-shadow: none; }
+.pcc-plus { font-size: 19px; line-height: 1; color: var(--ink-faint); }
+.pcc-new:hover .pcc-plus, .pcc-new:hover .pcc-newt { color: var(--accent); }
+.pcc-newt { font-size: 12.5px; font-weight: 650; color: var(--ink-soft); }
+.pcc-newh { font-size: 10.5px; color: var(--ink-faint); }
 
-/* ---------- LEVEL 2 · THE SHEET ---------- */
-/* One sheet for the default, for a config and for a new one — the "modal" is not a fourth
-   thing to learn, it is this sheet with the key where the title goes.
-   THE HEAD IS A TITLE AND ONE LINE (14 Sep): the eyebrow above it read DEFAULT PLAYER CONFIG
-   over `Every player` over a sentence beginning "what this surface serves" — one idea said
-   three times before a single setting appeared. The line under the title says what this is
-   for, what it has taken over, or the rule a new key must pass; a refusal REPLACES it, so
-   the head never grows a third line. */
-.dlg.sh { height: min(660px, calc(100vh - 80px)); }
-/* THE HEAD: what this is on the left, HOW MUCH OF IT YOU ARE LOOKING AT on the right. The
-   scope switch is the one control that answers for the whole sheet, so it stands in the one
-   place that belongs to the whole sheet — not as three links buried at the bottom of three
-   sections. (The change count that briefly lived here has moved to the act row, where the
-   button that lands it can carry it: one telling, always in view.) */
-.sh-head { padding-bottom: 13px; border-bottom: 1px solid var(--line); }
-.sh-title { display: flex; align-items: flex-start; gap: 16px; min-width: 0; }
+/* ---------- LEVEL 2 · A CONFIG'S SHEET ---------- */
+/* The one sheet left on this card: an existing config, or a new one — same shape, the key
+   where the title goes. (The DEFAULT left it 14 Sep, fifth cut; it is set on the page.)
+   THE HEAD IS A TITLE AND ONE LINE: the line says what this config has taken over, or the
+   rule a new key must pass; a refusal REPLACES it, so the head never grows a third line. */
+/* 660 → 700 (15 Sep, with the rail). The catalogue is a permanent column of twenty-five rows
+   now rather than a drop that borrowed the screen for a moment, so the sheet's height is what
+   decides how much of it a person can see at once: at 660 the rail showed fifteen of twenty-five,
+   at 700 it shows twenty. Past that the modal starts fighting a laptop's viewport, and `min()`
+   already hands those back the window's own height. */
+.dlg.sh { height: min(700px, calc(100vh - 80px)); }
+/* THE HEAD IS ONE LINE, SO IT IS SET ON ONE LINE (15 Sep, user call — *"mature the header a bit
+   currently the title and all are not properly aligned"*). `flex-start` was right when the title
+   carried a second line under it; with that line retired it left the switch pinned to the top of a
+   34px key field, floating a third of the way above its own baseline. The row centres now, and the
+   key's optical inset (it is a borderless input that has to line up with the dialog's padding)
+   is paid for on the row rather than by the field's own negative margins. */
+.sh-head { padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.sh-title { display: flex; align-items: center; gap: 16px; min-width: 0; min-height: 34px; }
 .sh-t { flex: 1; min-width: 0; }
-.dlg.sh .sh-head h3 { margin: 0; font-size: 20px; letter-spacing: -.3px; }
-.sh-scope { flex: none; margin-top: 2px; }
-.sh-scope button { padding: 4px 11px; font-size: 11.5px; }
 /* The title IS the rename field — the shape the ad setup's placement tabs already use. It is
    a title first and a field second, so it wears no box until it is pointed at. */
 .sh-key {
@@ -870,6 +962,134 @@ tbody tr.grp-more:hover td { background: #fdf6e2; }
 /* The scrolling box reaches 10px further left than its content so the change bar, which is
    drawn out of flow beside a row, has a gutter to stand in instead of being clipped away. */
 .sh-body { margin-left: -10px; padding-left: 10px; padding-right: 8px; padding-bottom: 4px; }
+
+/* ---------- TWO PANES: THE CATALOGUE, THEN THE ANSWERS (15 Sep, user call) ---------- */
+/* The body stops scrolling as one box and becomes two that scroll on their own. That is a rule
+   this file has argued against before — two scrollbars an inch apart moving different things —
+   and the argument stands where it was made: a QUEUE CARD beside the rows that filled it is two
+   views of one thing, and `changesCardHtml` still folds rather than scrolls. This is not that.
+   A source list beside the work it feeds is two different things, said so by a rule between
+   them, and it is the one arrangement every reader already knows. Both are long — twenty-five
+   settings, and up to twenty-five rows of controls — so neither can borrow the other's height. */
+/* 244 → 206, and the gutter 28 → 22 (15 Sep, user call — *"reduce a bit of space from lhs and
+   give it to rhs"*). The rail's widest line is its longest section name, `Appearance & controls`
+   at ~135px, plus a 15px box and its gaps — 206 clears that with room and hands 44px back to the
+   pane, which is where the controls are. */
+.sh-body.sh-split {
+  display: grid; grid-template-columns: 206px 1fr; gap: 22px;
+  overflow: hidden; min-height: 0; padding-bottom: 0;
+}
+.sh-rail {
+  display: flex; flex-direction: column; min-height: 0;
+  border-right: 1px solid var(--line); margin-right: -14px; padding-right: 14px;
+}
+/* RETIRED 15 Sep (user call — *"`Overrides` — remove this text from the lhs"*): `.sh-rail-hd`, the
+   rail's own eyebrow. It was the last label on a column that had already stopped needing one: a
+   search field over a checklist of the player's settings, standing beside the values those
+   settings hold, is not a thing anyone has to be told the name of. The search is the rail's head
+   now, and it lines up with the pane's first band across the rule. */
+/* RETIRED 15 Sep (user call — *"remove this 24 settings etc"*): the rail's total and its section
+   counts. A count earns its place on a CLOSED control, where it is the only report a face can
+   make — which is why the two cohort sheets' drops keep theirs. Standing open, every box is on
+   screen and the pane beside it lists exactly what is ticked: the number was a third telling.
+   `pickerCountWord` stays for the drops; the rail passes `quiet`.
+
+   THE SEARCH (user call — *"make the LHS more polished sleek and modern easy to use with a search
+   maybe"*). Twenty-four settings across three groups is past the point where scanning beats
+   typing, and this is the one list on the sheet a person arrives at knowing what they want. It is
+   the panel's own field, one size down, with the glyph inside it and a × that only exists while
+   there is something to clear. */
+/* A FILLED FIELD, NOT AN OUTLINED ONE (15 Sep, user call — *"this looks broken and not mature"*).
+   A hairline box in `--line` over an almost-white fill is a ghost: it was the faintest thing in
+   the rail, sitting directly above the most saturated (a solid accent checkbox), and the two
+   together read as a mistake rather than as a field over a list. A search is a well of type, so
+   it is drawn as one — a soft fill, no border at rest, and the border arriving only on focus,
+   where it means something. */
+.sh-search {
+  flex: 0 0 auto; position: relative; display: flex; align-items: center; gap: 7px;
+  height: 32px; margin: 0 0 6px; padding: 0 10px;
+  border: 1px solid transparent; border-radius: 9px; background: #f2f4f8;
+  transition: border-color .12s, box-shadow .12s, background .12s;
+}
+.sh-search:hover { background: #eef1f6; }
+.sh-search:focus-within { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px var(--ring); }
+.sh-search svg { width: 13px; height: 13px; flex: none; color: #8f98a9; }
+.sh-search input {
+  flex: 1; min-width: 0; border: 0; outline: 0; background: none; padding: 0;
+  font-family: inherit; font-size: 12px; color: var(--ink);
+}
+.sh-search input::placeholder { color: #8f98a9; }
+/* The foot's menu: hard left, opening upward, and quiet until pointed at — a rare act should be
+   findable without being the loudest thing in the act row. */
+.sh-foot .sh-menu { margin-right: auto; }
+/* A bare ellipsis at the foot of a dialog reads as a stray glyph. It gets the footprint of the
+   buttons beside it — a 30px target that lights on hover — without their weight. */
+.sh-foot .row-kebab {
+  width: 32px; height: 30px; border-radius: 8px; font-size: 15px;
+  transition: background .12s, color .12s;
+}
+.sh-foot .row-kebab:hover { background: #f2f4f8; color: var(--ink); }
+.sh-foot .rmenu.open .row-kebab { background: #f2f4f8; color: var(--ink); }
+.rmenu.up .rmenu-list { top: auto; bottom: calc(100% + 6px); }
+.rmenu.up.sh-menu .rmenu-list { left: 0; right: auto; }
+.sh-search-x {
+  flex: none; width: 16px; height: 16px; border: 0; border-radius: 50%; background: #e7eaf1;
+  color: var(--ink-soft); font-size: 12px; line-height: 1; cursor: pointer; padding: 0;
+}
+.sh-search-x:hover { background: #d9dee8; color: var(--ink); }
+.sh-noq { padding: 14px 7px; font-size: 12px; color: var(--ink-faint); }
+.sh-rail-list { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
+.sh-pane { min-width: 0; min-height: 0; overflow-y: auto; padding-right: 4px; padding-bottom: 4px; }
+/* A config that has taken nothing over says what it DOES, which the rail beside it cannot: it
+   follows the default. Not an instruction — the ticks are one column away and lit. */
+.sh-follows { font-size: 12.5px; color: var(--ink-faint); padding: 10px 2px; }
+
+/* THE CHECKLIST WITH NO SHELL. Same rows, same boxes, same receiver — the face, the drop, the
+   border and the shadow all belong to a control that opens, and this one never does. */
+.shpick.inline {
+  position: static; display: block; min-width: 0; height: auto;
+  border: 0; background: none; cursor: default;
+}
+.shpick.inline .shpick-menu {
+  display: block; position: static; border: 0; box-shadow: none; padding: 0;
+  max-height: none; overflow: visible; width: auto;
+}
+/* Tighter than the drop, because it lives on the page rather than over it and has a column's
+   worth of rows to fit. */
+/* A SECTION HEAD PINS WHILE THE RAIL SCROLLS — twenty-four rows past three groups, and without
+   it the middle of the list says nothing about which group you are in. The pane's own band does
+   the same thing on the other side of the rule. It drops to the micro-label register the rest of
+   this product uses for a group name, so the rail reads as type and boxes and nothing else. */
+/* A SECTION HEAD HAS TO CARRY ITS OWN BOX. At 10px faint it could not: a solid accent square
+   beside the lightest type in the column made the box the subject and the group name an
+   afterthought. It takes the weight back — 11px, tracked, in the body ink's softer tone — which
+   is still a header register and no longer loses to a 14px square.
+   AND THE BOXES ARE ONE SIZE. The head's was 13px and the options' 15px, so a parent read
+   SMALLER than its children — the hierarchy upside down, and the single thing that made this
+   column look wrong. They are both 14px now; the nesting is said by the indent and the type,
+   which is what says it everywhere else in this product. */
+.shpick.inline .shp-head {
+  position: sticky; top: 0; z-index: 1; background: #fff;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--ink-soft); gap: 9px; padding: 10px 6px 4px;
+}
+/* `Appearance & controls` is the longest of the three and it wrapped, which put the section's box
+   floating between two lines of type. The tracking gives back the ~12px it needed; the alignment
+   below is the belt to that brace, so a longer name added later breaks gracefully instead of
+   detaching its box. */
+.shpick.inline .shp-head { align-items: flex-start; }
+.shpick.inline .shp-head .shp-box { margin-top: 1px; }
+.shpick.inline .shp-head .shp-t { line-height: 1.35; }
+.shpick.inline .shp-sec:first-child .shp-head { padding-top: 4px; }
+.shpick.inline .shp-head.static { padding-left: 6px; }
+.shpick.inline .shp-box { width: 14px; height: 14px; border-radius: 4px; }
+.shpick.inline .shp-opt { padding: 5px 6px 5px 23px; font-size: 12px; border-radius: 7px; gap: 9px; }
+/* A NEUTRAL HOVER, AND THE ACCENT KEPT FOR THE TICK. Lighting a row in the same blue the box
+   uses made hovering read as choosing — on a list you scan top to bottom, that is the whole
+   column flashing "chosen" as the pointer crosses it. */
+.shpick.inline .shp-opt:hover { background: #f4f6fa; }
+.shpick.inline .shp-opt.on { color: var(--ink); font-weight: 600; }
+.shpick.inline .shp-sec + .shp-sec { margin-top: 2px; padding-top: 0; border-top: 0; }
 /* THE SECTION HEADER IS A BAND, AND IT STICKS (14 Sep, user call — *"the headers should be
    prominent with some different styling in the modal"*). A 13px bold `h4` sitting in the flow
    two pixels above a 12.5px medium row label is not a header, it is a slightly heavier row:
@@ -890,10 +1110,8 @@ tbody tr.grp-more:hover td { background: #fdf6e2; }
   margin: 0; font-size: 11.5px; font-weight: 700; letter-spacing: .085em;
   text-transform: uppercase; color: var(--ink-soft);
 }
-.sh-n {
-  font-size: 10px; font-weight: 700; color: var(--accent-ink, #1e47ad);
-  background: var(--accent-soft); border-radius: 9px; padding: 2px 8px;
-}
+/* RETIRED 14 Sep: `.sh-n`, the `N own` pip on a section band — a config's sheet lists only
+   what it owns now, so the band's rows are the count. */
 
 /* A ROW: the setting and its control. TWO COLUMNS EVERYWHERE (14 Sep, user call — *"we don't
    need follow default at each line, we can have one global reset button"*): the per-row way
@@ -909,18 +1127,12 @@ tbody tr.grp-more:hover td { background: #fdf6e2; }
 .sh-row + .sh-row { border-top: 1px solid rgba(19, 27, 46, .05); }
 .sh-l { font-size: 12.5px; font-weight: 500; color: var(--ink); }
 .sh-c { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; row-gap: 6px; }
-/* ON A CONFIG a row that follows the default is RECEDED — this panel's grammar for a fact
-   still at its default — and comes back to full ink under the pointer, because it is live:
-   touching it is how an override is made.
-   A ROW THE CONFIG HAS ANSWERED FOR ITSELF WEARS THE CHANGE BAR (14 Sep, user call — *"the
-   change state is different from how we do it on the ad setup; the brown subtle bar, use that
-   only"*). It is the mark this app already draws for a thing that has been moved: 2px in
-   amber, out of flow so it shifts nothing, and NOTHING ELSE — the blue rule and the blue bold
-   label it replaces were two more signals for one state. The DEFAULT's sheet has neither
-   grammar, because there is no other answer for a row to be following. */
-.sh-row.cfg:not(.own) .sh-l, .sh-row.cfg:not(.own) .sh-c { opacity: .55; transition: opacity .12s; }
-.sh-row:not(.own):hover .sh-l, .sh-row:not(.own):hover .sh-c,
-.sh-row:not(.own):focus-within .sh-l, .sh-row:not(.own):focus-within .sh-c { opacity: 1; }
+/* A ROW THAT HAS MOVED WEARS THE CHANGE BAR (14 Sep, user call — *"the change state is
+   different from how we do it on the ad setup; the brown subtle bar, use that only"*). It is
+   the mark this app already draws for a thing that has been moved: 2px in amber, out of flow
+   so it shifts nothing, and NOTHING ELSE. Since the config's sheet lists only its own rows
+   (14 Sep, fourth cut) the bar means the same on every sheet: not what it was when you came.
+   (The receded "follows the default" rows went with the rows themselves.) */
 .sh-row.own::before {
   content: ""; position: absolute; left: -8px; top: 4px; bottom: 4px; width: 2px;
   border-radius: 1px; background: var(--chg); pointer-events: none;
@@ -932,6 +1144,21 @@ tbody tr.grp-more:hover td { background: #fdf6e2; }
 .sh-row.tall .sh-l { padding-bottom: 9px; }
 .sh-row.na { cursor: help; }
 .sh-row.na .sh-c { opacity: .4; }
+/* A PARKED ROW keeps its place and its value and stops being an answer: the control recedes and
+   cannot be moved, the switch beside it is the only live thing on the row, and the tail says what
+   is happening instead of what would otherwise be. */
+/* A ROW WAITING FOR ITS FIRST ANSWER recedes until it gets one. On the simple kinds the empty
+   control is already the state; on the four that cannot be drawn empty — nine glyphs, speeds,
+   chips, colours — it is not, and without this they sit at full strength looking like an answer
+   somebody gave. Lighter than `.parked` and still live: dim is "not yet in play", inert is
+   `.parked`'s alone. It goes the instant the control is touched. */
+.sh-row.unset .sh-c { opacity: .58; }
+.sh-row.parked .sh-c { opacity: .42; pointer-events: none; }
+.sh-row.parked .sh-l { color: var(--ink-faint); }
+.sh-dflt.off { color: var(--ink-faint); font-style: italic; }
+/* RETIRED 15 Sep: `.sh-tail .toggle.tiny { margin-left: 4px }` — a nudge to separate the switch
+   from the default word that used to sit before it. The word is gone and the flex gap does the
+   spacing, so the nudge was only making the tail two widths wide. */
 /* The one way back, in the act row, dead while there is nothing to undo. */
 .sh-reset { font-size: 12px; }
 .sh-reset[disabled] { opacity: .45; cursor: not-allowed; }
@@ -942,6 +1169,14 @@ tbody tr.grp-more:hover td { background: #fdf6e2; }
    across a scroll, and a door that counts what it hides cannot tell you whether the setting
    you came for is behind it. One switch in the head answers for the whole sheet instead. */
 
+/* THE NINE GLYPHS IN THE SHEET'S LANE — the page's cut of them, measured for this row instead.
+   The sheet's control lane runs from the 170px label to the tail: ~264px, and a 24px strip with a
+   3px gap is 240. `nowrap`, because a row is only worth un-stacking if it is genuinely one line. */
+.dlg.sh .sh-c .cfg-strip { flex-wrap: nowrap; gap: 2px; }
+/* `flex: none` so they HOLD 24px rather than quietly compressing to whatever is left — a strip
+   that shrinks to fit is a strip whose size depends on the longest word in the tail beside it. */
+.dlg.sh .sh-c .cfg-strip .cfg-ico { flex: none; width: 24px; height: 24px; border-radius: 6px; }
+.dlg.sh .sh-c .cfg-strip .cfg-ico .cfg-ic { width: 14px; height: 14px; }
 .sh-c .rule-text { flex: 0 0 210px; }
 .sh-c .rule-text.sh-wide { flex: 1 1 210px; }
 .sh-c .rule-text.sh-hex { flex: 0 0 112px; }
@@ -949,7 +1184,154 @@ tbody tr.grp-more:hover td { background: #fdf6e2; }
 .sh-c .num-wrap { width: 104px; }
 .sh-foot { display: flex; align-items: center; gap: 8px; }
 
-/* ---------- the pieces both levels share ---------- */
+/* ---------- A CONFIG'S SHEET: PICK THE SETTING, THEN ANSWER IT (14 Sep, user call) ---------- */
+/* *"User first selects which field he/she wants to customize from a drop down of fields and
+   once selected alters its value."* One strip at the top adds an override — the catalogue in
+   our own select, grouped under the three section names, minus what is already here — and the
+   rows under it are the overrides the config has, each with the default's answer at its right
+   edge and a × that puts it back to following. The menu is taller than the select's usual cap
+   because the whole point of it is to be read down. */
+.sh-add {
+  display: flex; align-items: center; gap: 12px; padding: 8px 2px 14px;
+  border-bottom: 1px solid var(--line); margin-bottom: 6px;
+}
+.sh-add-l { font-size: 12.5px; font-weight: 500; color: var(--ink); }
+
+/* THE PICKER (15 Sep): a checklist, not a menu of one-shot picks. It wears the select's shell —
+   same border, same chevron, same drop — because it is the same family of control, and it keeps
+   its own class because its behaviour is the opposite: it stays open, and every row in it is a
+   state rather than an act. */
+/* THE CONTROL CARRIES ITS OWN HEIGHT (15 Sep), rather than taking it from the integration
+   editor's type scale below. A shared control that is only the right size on the one page whose
+   scale happens to cover it is a control with a hidden dependency — and the cohort sheet, which
+   adopted this picker the same day, drew it 21px tall and squashed for exactly that reason. */
+.shpick {
+  position: relative; display: inline-flex; align-items: center; cursor: pointer; user-select: none;
+  min-width: 300px; height: 30px; box-sizing: border-box;
+  border: 1px solid var(--line); border-radius: 9px; background: #fff;
+  transition: border-color .12s, box-shadow .12s;
+}
+.shpick:hover { border-color: #d4d9e3; }
+.shpick.open { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+/* THE ONLY WAY IN WEARS THE ACT (15 Sep): on a sheet with rows on it this is a field among
+   fields and recedes; on an empty one it is the whole flow, and a grey field top-left reads as
+   a filter. Border and ink only — a filled control reads as one already answered. Same box, same
+   place, so nothing moves when the first pick makes it recede. */
+.shpick.cta { border-color: var(--accent); }
+.shpick.cta .shpick-t { color: var(--accent-ink, #1c4fd6); font-weight: 600; }
+.shpick.cta .sel-chev { color: var(--accent); }
+.shpick-plus { font-style: normal; font-weight: 700; margin-right: 6px; }
+.shpick-face { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; padding: 0 11px; }
+.shpick-t { font-size: 12.5px; font-weight: 500; color: var(--ink-faint); }
+.shpick-menu {
+  display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30;
+  background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-2);
+  padding: 6px; max-height: 380px; overflow-y: auto; cursor: default;
+}
+.shpick.open .shpick-menu { display: block; }
+.shp-sec + .shp-sec { margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--line); }
+/* A SECTION IS A HEADER WITH A BOX — the thing the old faint caption could not be. It carries
+   the section's own weight, its count on the right, and the state of everything under it. */
+.shp-head, .shp-opt { display: flex; align-items: center; gap: 10px; padding: 7px 9px; border-radius: 7px; cursor: pointer; }
+.shp-head { font-size: 12px; font-weight: 700; color: var(--ink); letter-spacing: -.05px; }
+.shp-opt { font-size: 12.5px; color: var(--ink-soft); padding-left: 25px; }
+.shp-opt.on { color: var(--ink); }
+.shp-head:hover, .shp-opt:hover { background: var(--accent-soft); }
+.shp-head:focus-visible, .shp-opt:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--ring); }
+.shp-n { margin-left: auto; font-size: 10.5px; font-weight: 600; color: var(--ink-faint); white-space: nowrap; }
+/* Three states in one 15px square: empty, half (some of a section), full. */
+.shp-box {
+  position: relative; width: 15px; height: 15px; border-radius: 4px; flex: none;
+  box-shadow: inset 0 0 0 1.5px #d3d8e2; transition: background .12s, box-shadow .12s;
+}
+.shp-head:hover .shp-box, .shp-opt:hover .shp-box { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.shp-box.on, .shp-box.part { background: var(--accent); box-shadow: none; }
+.shp-box.on::after {
+  content: ""; position: absolute; left: 5px; top: 2.2px; width: 3.5px; height: 7.4px;
+  border: solid #fff; border-width: 0 1.7px 1.7px 0; transform: rotate(42deg);
+}
+.shp-box.part::after {
+  content: ""; position: absolute; left: 3.2px; right: 3.2px; top: 6.6px; height: 2px;
+  background: #fff; border-radius: 1px;
+}
+/* The row grows a third column for the tail; a tall row keeps the tail on its label's line
+   and lets the control run the whole width under both. */
+/* THE ROW FILLS ITS PANE, AND THE SLACK SITS BETWEEN THE ANSWER AND THE ACTS (15 Sep, user call
+   — *"why is space left in right side in the modal?"*).
+   Two arrangements were tried and both moved the problem rather than solving it. CAPPING the row
+   at 500 closed the gap inside it by leaving 82px of dead pane beside every row — the band ending
+   in one place and the rows in another, which is what prompted the question. Letting the LABEL
+   take the slack (`1fr` first) packed the answer against the right edge and opened a 370px
+   canyon between `Autoplay` and its own control, which is worse: a label and its answer are the
+   pair that has to read together.
+   So the label keeps a fixed lane and the control sits right after it, where it can be read with
+   the question — and the row's two ACTS keep the right edge, which is where a settings row has
+   put its switch since the first phone. The slack falls between answer and acts, which is the one
+   place it costs nothing, and the row still reaches the pane's edge so the band above it agrees. */
+.sh-row.cfg { grid-template-columns: 170px minmax(0, 1fr) auto; }
+.sh-row.cfg.tall { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "l t" "c c"; }
+.sh-row.cfg.tall .sh-l { grid-area: l; }
+.sh-row.cfg.tall .sh-c { grid-area: c; }
+.sh-row.cfg.tall .sh-tail { grid-area: t; align-self: start; }
+/* THE TAIL HOLDS ITS WIDTH WHETHER OR NOT THE SWITCH IS IN IT. A row ticked and not yet answered
+   has nothing to park, so it draws no switch — and without its slot the control ran 44px further
+   right than every answered row's, which is exactly the half-alignment that reads as broken. The
+   slot is held by the control itself, hidden (`.void`), rather than by a width kept true by hand.
+   One lane for the ×, one for the switch, one for every control's right edge. */
+.sh-tail { display: inline-flex; align-items: center; justify-content: flex-end; gap: 10px; justify-self: end; }
+.toggle.void { visibility: hidden; pointer-events: none; }
+.sh-dflt { font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
+.sh-dflt i {
+  font-style: normal; font-size: 9.5px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; margin-right: 5px;
+}
+/* A ROW STILL BEING ASKED CARRIES NO WORDS (15 Sep): the empty control is the state, and a
+   caption on a thing that is already legible is just more to read. Its label keeps full ink so
+   the open question does not recede, and only once Apply has REFUSED over it does the row flag
+   itself — the panel's `refuse in place, by name`, drawn as the softest possible flag rather
+   than a red box. (`.sh-needs` retired with the caption.) */
+.sh-row.unset .sh-l { color: var(--ink); }
+.sh-row.needs { background: rgba(200, 40, 40, .045); border-radius: 8px; }
+.sh-row.needs .sh-l { color: var(--bad); font-weight: 600; }
+/* The way back for one row: quiet until the row is pointed at, like every ⋯ on this page. */
+.sh-x {
+  width: 24px; height: 24px; border: 0; border-radius: 6px; background: transparent;
+  color: var(--ink-faint); font-size: 17px; line-height: 1; cursor: pointer; font-family: inherit;
+  opacity: 0; transition: opacity .12s, background .12s, color .12s;
+}
+.sh-row:hover .sh-x, .sh-row:focus-within .sh-x, .sh-x:focus-visible { opacity: 1; }
+.sh-x:hover { background: #f2f5fa; color: var(--ink); }
+/* A row the page or the strip just led to lights for a moment, so the eye lands on it. */
+.sh-row.lit { animation: sh-lit 1.5s ease-out; }
+@keyframes sh-lit {
+  0%, 35% { background: rgba(217, 154, 31, .14); }
+  100% { background: transparent; }
+}
+
+/* ---------- the pieces the page and the sheet share ---------- */
+/* THE NINE CONTROLS IN A COLUMN (14 Sep, fifth cut): a strip of glyphs, lit when the viewer
+   gets that control, each named on hover. The modal's grid earns its labels; a column has no
+   room for them, and a player's controls are things a viewer SEES, so the glyphs carry it. */
+.cfg-strip { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.cfg-ico {
+  display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 26px;
+  border: 1px solid var(--line); border-radius: 7px; background: #fbfcfd; color: #a7afbf;
+  cursor: pointer; font-family: inherit; transition: border-color .12s, background .12s, color .12s;
+}
+.cfg-ico .cfg-ic { width: 15px; height: 15px; }
+.cfg-ico.on { border-color: #c9d6f2; background: #f2f7ff; color: var(--accent); }
+.cfg-ico:not([disabled]):hover { border-color: #c9d6f2; color: var(--ink-soft); }
+.cfg-ico.on:not([disabled]):hover { color: var(--accent); }
+.cfg-ico:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--ring); }
+.cfg-ico[disabled] { opacity: .45; cursor: not-allowed; }
+.cfg-shown.sm { gap: 6px; }
+/* THE LOOK IN A COLUMN: three fields on one lane, a little tighter. */
+.cfg-look.sm { gap: 6px; }
+.cfg-look.sm .cfg-lf > i { flex: 0 0 38px; }
+/* The page's column is 320px, so an even split leaves each colour field ~110px — the hex needs a
+   smaller floor there than it does in the sheet, or the two fields stop splitting and wrap. */
+.cfg-look.sm .cfg-hex { min-width: 52px; }
+
 /* A SET, toggled a chip at a time — sized to `.pchip`, the page's own chip, not to a pill of
    its own invention. On is the figure, off is the ground; the one member that may never
    leave (1×) says so on hover rather than refusing silently under the pointer. */
@@ -1001,68 +1383,101 @@ tbody tr.grp-more:hover td { background: #fdf6e2; }
 .cfg-tile:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--ring); }
 .cfg-tile[disabled] { opacity: .45; cursor: not-allowed; }
 .cfg-shown { display: flex; flex-direction: column; gap: 8px; min-width: 0; width: 100%; }
-.cfg-shown-n { font-size: 10.5px; color: var(--ink-faint); }
+/* RETIRED 15 Sep: `.cfg-shown-n`, the counted line under the controls. */
 .cfg-ic { display: inline-block; vertical-align: -2px; }
 .cfg-chip:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--ring); }
 .cfg-chip.on { border-color: #ccd9f4; background: #f6f9ff; color: var(--ink); font-weight: 650; }
 .cfg-chip.lock { cursor: default; }
 .cfg-chip.lock:hover { border-color: #ccd9f4; }
 
-/* THE LOOK, ON ONE STAGE (14 Sep, user call — *"brand colour, text colour and logo can be
-   shown as a preview in a single view"*). A hex beside a hex beside a URL tells nobody what a
-   player will look like. A frame standing in for the video does: the logo where it will sit,
-   a progress bar in the brand colour, and a button carrying the TEXT colour ON the brand —
-   which is the pair the contrast rule is about, so a failing pair is visible where it is
-   chosen rather than on a player at a publisher. */
-.cfg-look { display: flex; align-items: flex-start; gap: 18px; flex-wrap: wrap; width: 100%; }
-.cfg-look-stage { display: flex; flex-direction: column; gap: 6px; flex: none; }
-/* With the row running the sheet's whole width, the preview is a preview rather than a
-   thumbnail — big enough that the control bar in it is legible while it is being changed. */
-.cfg-stage {
-  position: relative; display: block; width: 300px; height: 169px; border-radius: 10px;
-  background: linear-gradient(160deg, #1b2030, #0e1119); overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgba(19, 27, 46, .18);
-}
-.cfg-stage-logo { position: absolute; left: 12px; top: 12px; max-width: 68px; max-height: 20px; }
-.cfg-stage-logo.dead { display: none; }
-.cfg-stage-nologo {
-  position: absolute; left: 12px; top: 11px; font-size: 9px; letter-spacing: .06em;
-  text-transform: uppercase; color: rgba(255, 255, 255, .3);
-  border: 1px dashed rgba(255, 255, 255, .22); border-radius: 4px; padding: 2px 6px;
-}
-/* The centre play is where the two colours MEET — brand behind, text colour on it — which is
-   exactly the pair the contrast line under the stage measures. */
-.cfg-stage-play {
-  position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%);
-  width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, .25);
-}
-.cfg-stage-play .cfg-ic { width: 19px; height: 19px; margin-left: 2px; }
-/* THE BAR IS THE ANSWER, DRAWN. Only the controls that are served appear in it. */
-.cfg-stage-bar {
-  position: absolute; left: 12px; right: 12px; bottom: 11px;
-  display: flex; align-items: center; gap: 7px; min-width: 0;
-}
-.cfg-stage-bar .cfg-ic.b { width: 13px; height: 13px; flex: none; opacity: .92; }
-.cfg-stage-track { flex: 1 1 auto; min-width: 14px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .24); }
-.cfg-stage-track i { display: block; width: 44%; height: 100%; border-radius: 2px; }
-.cfg-stage-gap { flex: 1 1 auto; }
-.cfg-stage-nobar {
-  position: absolute; left: 12px; bottom: 11px; font-size: 9.5px; letter-spacing: .04em;
-  text-transform: uppercase; color: rgba(255, 255, 255, .32);
-}
-.cfg-stage-note { font-size: 10.5px; color: var(--ink-faint); cursor: help; }
-.cfg-stage-note.low { color: var(--warn, #b26a00); font-weight: 600; }
-
-/* The three fields beside it, each on its own line, labels on one edge. */
-.cfg-look-f { display: flex; flex-direction: column; gap: 8px; flex: 1 1 260px; min-width: 240px; }
-.cfg-lf { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.cfg-lf > i { font-style: normal; font-size: 11px; color: var(--ink-faint); flex: 0 0 46px; }
+/* THE LOOK: THREE FIELDS (15 Sep, two user calls — *"remove the player preview from
+   appearance"*, then *"the appearance, can it be more refined"*). The drawn player went first:
+   a frame for the video, the logo in its corner, a play button in the text colour on the brand,
+   a bar of the controls served — the biggest object on the card, and a rehearsal of what the
+   publisher's own page shows for real. The WCAG ratio that survived it went next, on the same
+   reading: this card carries the two colours to the player, it does not grade them.
+   What is left is refined by MERGING, not by decorating. A swatch beside a bordered hex box is
+   two controls for one colour — six rectangles for three settings, which is what made this the
+   heaviest block in its column. The swatch lives INSIDE the field now, at its left edge, so
+   Brand, Text and Logo are three fields of one height on one lane, like every other row here.
+   RETIRED: `.cfg-stage` and its parts, `.cfg-look-stage`, `.cfg-look-note`, `.cfg-look-f`,
+   `.cfg-lf-hex`. */
+/* THE TWO COLOURS SHARE A LINE (15 Sep, user call — *"can brand and text come in the same
+   line"*). They are one decision seen once — a brand's pair — so they read as a pair; the logo,
+   which is a different kind of answer and a much longer value, takes the line under them. */
+/* AND THEY SHARE IT EVENLY (15 Sep, user call — *"brand and text can be uniformly placed;
+   currently both are together in the left side leaving the right side empty"*). They sized to
+   their own content, so a pair of 86px hex boxes huddled at the left of a 540px row while the
+   logo under them ran the full width — three fields, two different measures, and a block that
+   looked half-filled. They take an equal share of the line now (`flex: 1 1 0`), which puts their
+   boxes on the same right edge as the logo's and makes the three read as one block. */
+.cfg-look { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; width: 100%; }
+.cfg-lf { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 0; }
+.cfg-lf.cfg-lf-wide { flex: 1 1 100%; }
+.cfg-lf > i { font-style: normal; font-size: 11px; color: var(--ink-faint); flex: 0 0 auto; }
 .cfg-lf .rule-text { flex: 1 1 auto; }
-.cfg-lf .rule-text.cfg-lf-hex { flex: 0 0 118px; min-width: 0; }
+/* ONE COLOUR, ONE FIELD: the box is the control, the swatch is the picker inside it, the hex
+   is typeable. The box carries the hover and focus states, so the two halves behave as one. */
+/* One height for all three fields, set rather than inferred: a hex box built from a swatch and
+   a URL box built from a text input arrive at different heights otherwise, and a 3px step
+   between two fields on one lane is exactly the kind of thing that reads as unfinished. */
+.cfg-cf, .cfg-lf .rule-text input { height: 30px; box-sizing: border-box; }
+.cfg-lf .rule-text input { padding: 0 10px; }
+/* The field grows with its share of the line rather than holding one width, so the two colour
+   boxes end where the logo box ends. */
+.cfg-cf {
+  display: inline-flex; align-items: center; flex: 1 1 auto; min-width: 0;
+  border: 1px solid var(--line); border-radius: 9px; background: #fff; padding: 0 3px;
+  transition: border-color .12s, box-shadow .12s;
+}
+.cfg-cf:hover { border-color: #d4d9e3; }
+.cfg-cf:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+.cfg-hex {
+  flex: 1 1 auto; width: 0; min-width: 62px; border: 0; outline: 0; background: transparent;
+  padding: 0 9px; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; color: var(--ink);
+}
+.cfg-hex::placeholder { color: var(--ink-faint); }
 .cfg-sw {
-  position: relative; width: 30px; height: 30px; border-radius: 8px; flex: none;
+  position: relative; width: 22px; height: 22px; border-radius: 6px; flex: none;
   box-shadow: inset 0 0 0 1px rgba(19, 27, 46, .15); overflow: hidden; cursor: pointer;
 }
 .cfg-sw input[type=color] { position: absolute; inset: -4px; width: 140%; height: 140%; border: 0; padding: 0; opacity: 0; cursor: pointer; }
 .cfg-dot { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; box-shadow: inset 0 0 0 1px rgba(19, 27, 46, .15); }
+
+/* ---------- ONE TYPE SCALE FOR THE INTEGRATION EDITOR (15 Sep, user call) ---------- */
+/* *"The font size and type for every field in identity, player behaviour and ad behaviour
+   seems different — check all these and make it uniform, that doesn't feel cluttered and looks
+   easy on the eyes."* Three cards built in three different months had drifted to three scales:
+   identity at 13.5px text in 37px boxes, player behaviour at 12–12.5px in 28px, ad behaviour at
+   12.5px in 28px — and inside each of them a seg, a chip and a unit had their own sizes again.
+   Twelve sizes did the work of five.
+   THE SCALE, set here and nowhere else on this page:
+     label    12.5px / 500 / ink-soft   every row label and every field label, whatever draws it
+     value    12.5px                    inputs, selects, numbers, hexes, chips-input
+     box      30px                      every control that has a border, so a lane of them lines up
+     seg      12px                      the compact answer control
+     chip     11.5px                    the members of a set
+   It covers the page's three cards (`.keyform`, the class the editor's own form carries) and the
+   custom config sheet (`.dlg.sh`), which draws the same settings and would otherwise read as a
+   fourth scale. The ad setup editor shares `.form` but not `.keyform`, so it keeps its own. */
+:is(.keyform, .dlg.sh) :is(.field > label, .lr-l, .pcd-l, .sh-l) {
+  font-size: 12.5px; font-weight: 500; color: var(--ink-soft);
+}
+/* A band's label is a heading, not a row label, so it keeps its weight and its ink. */
+:is(.keyform, .dlg.sh) .lr.head .lr-l { font-weight: 650; color: var(--ink); }
+:is(.keyform, .dlg.sh) :is(.field input[type=text], .rule-text input, .num-wrap, .select, .cfg-cf) {
+  height: 30px; box-sizing: border-box;
+}
+:is(.keyform, .dlg.sh) :is(.field input[type=text], .rule-text input) { font-size: 12.5px; padding: 0 11px; }
+:is(.keyform, .dlg.sh) .num-wrap input { font-size: 12.5px; padding: 0 2px 0 11px; }
+:is(.keyform, .dlg.sh) .num-wrap .unit { font-size: 10.5px; padding: 0 10px 0 2px; }
+:is(.keyform, .dlg.sh) .select { font-size: 12.5px; font-weight: 500; padding: 0 11px; }
+:is(.keyform, .dlg.sh) .select .sel-label { font-size: 12.5px; }
+:is(.keyform, .dlg.sh) .chips-input { min-height: 30px; padding: 4px 7px; }
+:is(.keyform, .dlg.sh) .chips-input input { font-size: 12.5px; }
+:is(.keyform, .dlg.sh) .cfg-hex { font-size: 12.5px; }
+:is(.keyform, .dlg.sh) :is(.seg button, .seg.small button) { font-size: 12px; padding: 4px 10px; }
+:is(.keyform, .dlg.sh) .cfg-chip { font-size: 11.5px; padding: 4px 9px; }
+:is(.keyform, .dlg.sh) .cfg-tile { font-size: 12px; }
+/* The swatch sits inside a 30px box, so it is sized from that box rather than on its own. */
+:is(.keyform, .dlg.sh) .cfg-sw { width: 22px; height: 22px; border-radius: 6px; }

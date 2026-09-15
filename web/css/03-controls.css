@@ -18,9 +18,43 @@
   padding: 5px; max-height: 240px; overflow-y: auto;
 }
 .select.open .sel-menu { display: block; }
-.sel-opt { padding: 8px 10px; border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer; }
+.sel-opt {
+  display: flex; align-items: baseline; gap: 14px;
+  padding: 8px 10px; border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer;
+}
 .sel-opt:hover { background: var(--accent-soft); }
 .sel-opt.on { font-weight: 700; color: var(--accent); }
+/* The option's own name takes the room; a tail is a fact about it, not a second label —
+   quiet, right-aligned, and never competing with the thing being chosen. */
+.sel-opt-l { flex: 1; min-width: 0; }
+.sel-opt-t {
+  flex: 0 1 auto; min-width: 0; max-width: 56%;
+  font-size: 11.5px; font-weight: 500; color: var(--ink-faint);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* A refused option stays WHERE IT SITS, greyed, with its reason on hover. */
+.sel-opt.off { cursor: default; color: var(--ink-faint); opacity: .55; }
+.sel-opt.off:hover { background: transparent; }
+
+/* ---------- the checklist picker (`pickerHtml`) ---------- */
+/* The body of this control's styling is the `.shpick` / `.shp-*` block in 10-surfaces.css,
+   written for the config sheet and shared outright now that both sheets draw the same control.
+   Only what that sheet has no use for lives here: a row the platform refuses (its box stays
+   empty and unclickable, the reason on hover) and a section heading with nothing to tick. */
+.shp-opt.off { cursor: default; color: var(--ink-faint); opacity: .6; }
+.shp-opt.off:hover { background: transparent; }
+.shp-opt.off .shp-box { opacity: .4; }
+.shp-opt.off:hover .shp-box { box-shadow: inset 0 0 0 1.5px var(--line); }
+.shp-head.static { cursor: default; padding-left: 9px; }
+.shp-head.static:hover { background: transparent; }
+/* A GROUP HEADING inside the menu (14 Sep): the section the options under it belong to, in
+   the page's own section voice — a heading, not a choice. A placeholder label reads as one. */
+.sel-grp {
+  padding: 9px 10px 3px; font-size: 10px; font-weight: 700; letter-spacing: .085em;
+  text-transform: uppercase; color: var(--ink-faint); cursor: default;
+}
+.sel-opt + .sel-grp { margin-top: 4px; border-top: 1px solid var(--line); }
+.sel-label.ph { color: var(--ink-faint); font-weight: 500; }
 
 /* row menu (⋯) — the row's secondary acts, behind one quiet button (4 Sep). The list
    reuses the header ⋯ menu's item grammar (.eh-item, 07-setup-editor.css); open/closed

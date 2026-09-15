@@ -4,7 +4,7 @@
 import { listKeys } from './keys.js';
 import { askWord, driveAsk, groupWalks, liveRungs, normalizeRungs, normalizeSlotBehaviour, refuseDeadRules, slotGroupDefs, unreachableTail } from './ladders.js';
 import { isPublished } from './publish.js';
-import { AD_SOURCES, ADS_ACROSS_PODS_WARN, PODS_TOO_CLOSE_SEC, DIRECTORY_PROVIDERS, URL_PROVIDERS, HB_WORD, HEADER_BIDDING, WF_WORD, MAX_MIDROLL_GROUPS, MAX_RUNGS, MAX_SECTIONS, PAUSE_MODES, PROPERTY_SCOPES, Refusal, SLOT_ALSO_TAKES, SLOT_FAMILY, SLOT_KIND, SLOT_TYPES, SLOT_WORD, state, updateStamp } from './state.js';
+import { AD_SOURCES, ADS_ACROSS_PODS_WARN, PODS_TOO_CLOSE_SEC, DIRECTORY_PROVIDERS, URL_PROVIDERS, HEADER_BIDDING, WF_WORD, MAX_MIDROLL_GROUPS, MAX_RUNGS, MAX_SECTIONS, PAUSE_MODES, PROPERTY_SCOPES, Refusal, SLOT_ALSO_TAKES, SLOT_FAMILY, SLOT_KIND, SLOT_TYPES, SLOT_WORD, deepCopy, state, updateStamp } from './state.js';
 import { diff, fmtSecs, httpUrl, intIn, mustGet, oneOf, str, uniqueName } from './validate.js';
 
 // ---------- ad setups (the ops room's object) ----------
@@ -74,8 +74,6 @@ export function servedHeaderBidding(slotAnswer, global) {
   return a === 'auto' ? (global || 'off') : a;
 }
 
-// The partners in words, for a refusal or a warning that has to name the answer.
-export function headerBiddingWord(v) { return HB_WORD[v] || v; }
 
 // WHAT A UNIT ACTUALLY RUNS (11 Sep): its own answer, or its break's served answer while
 // it says `auto` — and always `off` on a pasted URL, which makes no GAM request for
@@ -563,7 +561,7 @@ export function duplicateSetup(id, wantName) {
   let name = str(wantName) || `${src.name} copy`;
   let n = 2;
   while (!uniqueName(state.setups, name)) name = `${str(wantName) || `${src.name} copy`} ${n++}`;
-  return createSetup({ ...JSON.parse(JSON.stringify(src)), name });
+  return createSetup({ ...deepCopy(src), name });
 }
 
 // One placement's behaviour, edited with FIELD-LEVEL diffs — so a version's changes keep

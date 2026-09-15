@@ -36,7 +36,7 @@ function renderKeyForm(meta) {
       : `<button class="btn" onclick="saveKeyClicked()">Create integration</button>`}
     </div>
     <div class="detail">
-    <div class="form">
+    <div class="form keyform">
       <div class="fieldset">
         <div class="fieldset-title">Details</div>
         <div class="frow">
@@ -185,7 +185,7 @@ function createChangeList() {
   // wears the bar on, in the card's own sections and the sheet's own words. A copy's seed
   // is already the `Copied from` line above, so only its moves are listed.
   const p = d.player || {};
-  if (d.presetName) rows.push({ where: 'Player', field: 'preset', label: 'Default config', fromText: '—', toText: `${d.presetName} preset` });
+  if (d.presetName) rows.push({ where: 'Player', field: 'preset', label: 'Starts from', fromText: '—', toText: `${d.presetName} preset` });
   const seed = d.playerSeed || {};
   // A seed that never spoke about a field left it at the player's own default — that is the
   // word the reviewer should see it move FROM, not "follows default", which is a config's.
@@ -379,7 +379,7 @@ async function newIntegrationChooser() {
     const facts = [
       k.setupName || 'no ad setup',
       `${onN || 'no'} break${onN === 1 ? '' : 's'} on`,
-      ...(cfg ? [`${cfg} player config${cfg === 1 ? '' : 's'}`] : []),
+      ...(cfg ? [`${cfg} custom config${cfg === 1 ? '' : 's'}`] : []),
     ].join(' · ');
     return `
       <div class="dlg-card" data-q="${esc(`${k.name} ${k.property} ${label('platform', k.platform)}`)}" onclick="chooseCopy('${k.id}')">
@@ -403,9 +403,7 @@ async function newIntegrationChooser() {
       </div>
       <div class="dlg-foot"><button class="btn ghost" onclick="chooserClose()">Cancel</button></div>
     </div></div>`;
-  document.querySelector('.dlg-veil').onclick = e => {
-    if (e.target.classList.contains('dlg-veil')) chooserClose();
-  };
+  wireVeilDismiss(dialogRoot(), chooserClose);
 }
 
 // Cancel walks the address back too — ← and refresh keep meaning what they say.

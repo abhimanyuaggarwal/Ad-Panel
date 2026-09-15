@@ -46,10 +46,15 @@ export default async function run({ test, req, eq, assert, freshSetup, patchSlot
     r = await req('PATCH', '/panel/keys/key_1', { playerConfigs: [{ name: 'X', playback: 'floating' }] });
     eq(r.status, 400, 'a playback mode outside the vocabulary is refused');
 
-    r = await req('PATCH', '/panel/keys/key_1', {
-      playerConfigs: [1, 2, 3, 4, 5, 6, 7].map(i => ({ name: `C${i}` })) });
-    eq(r.status, 400, 'at most six custom configs');
-    assert(r.body.errors.some(e => e.message.includes('At most 6')), 'the cap is counted, in the refusal');
+    // The ceiling is 20 (15 Sep): high enough to be about the product rather than about how many
+    // cards a grid could hold, and still a ceiling, because a key is how player code asks for one.
+    const keys = n => Array.from({ length: n }, (_, i) => ({ name: `C${i + 1}` }));
+    r = await req('PATCH', '/panel/keys/key_1', { playerConfigs: keys(20) });
+    eq(r.status, 200, 'twenty custom configs are allowed');
+    eq(r.body.key.playerConfigs.length, 20, 'and all twenty are held');
+    r = await req('PATCH', '/panel/keys/key_1', { playerConfigs: keys(21) });
+    eq(r.status, 400, 'twenty-one is refused');
+    assert(r.body.errors.some(e => e.message.includes('At most 20')), 'the cap is counted, in the refusal');
   });
 
   await test('custom configs ride the publish plane and land in the player’s JSON', async () => {

@@ -174,21 +174,177 @@ const SELECT_REGISTRY = {};
  * @param {(v: *) => void} pickFn          runs on pick — usually writes FORM.data and rerenders
  * @returns {string} html
  */
-function selectHtml(value, options, pickFn) {
+// GROUPS AND A PLACEHOLDER (14 Sep, additive): an option `{ group: 'Playback' }` is a heading
+// inside the menu — it names the section the options under it belong to and is not a choice
+// — and `opts.ph` is the word the closed select shows while nothing is picked, drawn as a
+// placeholder. Callers that pass neither get exactly the select they always had.
+function selectHtml(value, options, pickFn, opts = {}) {
   const id = 'sel_' + (++SELECT_SEQ);
   SELECT_REGISTRY[id] = { options, pickFn };
-  const cur = options.find(o => o.v === value);
+  const cur = options.find(o => !o.group && o.v === value);
+  // AN OPTION MAY CARRY A SECOND WORD, AND MAY REFUSE (15 Sep). `tail` is a quiet
+  // right-aligned fact about the option — what a cohort holds for that setting today — so
+  // a menu can REPORT as well as offer, which is what lets a picker replace a printed list
+  // without losing what the list was saying. `off` greys the option WHERE IT SITS with
+  // `why` on hover, rather than dropping it: a choice the platform would refuse is worth
+  // more named than missing. Both are optional and every existing call site is unchanged.
   return `
     <div class="select" id="${id}" onclick="selectClick(event, '${id}')">
-      <span class="sel-label">${esc(cur ? cur.label : 'Choose…')}</span><span class="sel-chev">▾</span>
-      <div class="sel-menu">${options.map(o =>
-        `<div class="sel-opt ${o.v === value ? 'on' : ''}" data-v="${esc(o.v)}">${esc(o.label)}</div>`).join('')}
+      <span class="sel-label${!cur && opts.ph ? ' ph' : ''}">${esc(cur ? cur.label : (opts.ph || 'Choose…'))}</span><span class="sel-chev">▾</span>
+      <div class="sel-menu">${options.map(o => (o.group
+        ? `<div class="sel-grp">${esc(o.group)}</div>`
+        : `<div class="sel-opt ${o.v === value ? 'on' : ''}${o.off ? ' off' : ''}" data-v="${esc(o.v)}"${o.why ? ` title="${esc(o.why)}"` : ''}>
+            <span class="sel-opt-l">${esc(o.label)}</span>${o.tail ? `<span class="sel-opt-t">${esc(o.tail)}</span>` : ''}
+          </div>`)).join('')}
       </div>
     </div>`;
 }
 
+// ---------- the checklist picker (our own, shared by both sheets) ----------
+// ONE CONTROL FOR "WHICH SETTINGS DOES THIS TOUCH" (15 Sep). The config sheet grew this shape
+// first — a box per setting, a box per section that takes everything under it, and a menu that
+// stays open while you work, because choosing five settings is one act and not five. The cohort
+// sheet asks the identical question of the identical catalogue, so it asks it with the identical
+// control rather than a lookalike: the markup and the `.shpick` / `.shp-*` classes are the same
+// ones, and only the state behind them differs.
+// `h` is the receiver, in this file's usual shape — one verb per thing the control can do:
+//   h.has(v)        is this row on the sheet
+//   h.off(v)        a reason this row may not be picked at all ('' when it may)
+//   h.toggle(v)     take it on or off
+//   h.toggleAll(k)  the section's box: all of it on, or all of it back off
+//   h.open / h.setOpen(bool)   whether the menu is standing open
+// Groups are `{ k, name, rows: [{ v, label }] }`.
+let PICKER_SEQ = 0;
+let PICKER_SWEEP = 0;
+const PICKER_REGISTRY = {};
+
+function pickerHtml(groups, h, opts = {}) {
+  // SWEEP, BUT AFTER THE DOM IS WRITTEN (15 Sep). A sheet that repaints per tick would otherwise
+  // leave a receiver behind on every render — measured on the config sheet: five ticks, seven
+  // entries, one live element — so the registry is swept of ids whose element is gone.
+  // It CANNOT be swept here, inline: a screen may draw SEVERAL pickers in one innerHTML string
+  // (the cohort config sheet draws one per open config), and none of them is in the document yet
+  // when the next one asks for its markup — so an inline sweep deletes every receiver but the
+  // last, and every picker but the last stops opening. Deferring to the next frame sweeps the
+  // same stale entries and none of the fresh ones. One pending sweep at a time.
+  cancelAnimationFrame(PICKER_SWEEP);
+  PICKER_SWEEP = requestAnimationFrame(() => {
+    for (const key of Object.keys(PICKER_REGISTRY)) {
+      if (!document.getElementById(key)) delete PICKER_REGISTRY[key];
+    }
+  });
+  const id = 'pick_' + (++PICKER_SEQ);
+  PICKER_REGISTRY[id] = h;
+  // `opts.inline` — THE SAME CHECKLIST, STANDING OPEN, AS A COLUMN (15 Sep). A dropdown is the
+  // right shape when the catalogue is a detour: you go in, you pick, you come back. It is the
+  // wrong one when choosing IS the work — twenty-five settings behind a face means the list of
+  // what you have taken and the list of what you could take are never on screen together, and
+  // every comparison costs an open-and-shut. Inline, the control loses its face and its drop and
+  // becomes what it always was underneath: the sections, their tri-state boxes, and the rows.
+  // Identical markup and identical receiver — only the shell differs, so the two cannot drift.
+  if (opts.inline) {
+    return `<div class="shpick inline" id="${id}" onclick="pickerClick(event, '${id}')">
+      <div class="shpick-menu">${groups.map(g => pickerSecHtml(g, h, id, { quiet: true })).join('')}</div>
+    </div>`;
+  }
+  // `opts.cta` — THE FACE WEARS THE ACT WHILE THE SHEET IS EMPTY (15 Sep). On a sheet with rows
+  // on it this is a field among fields and should recede; on an empty one it is the only way in,
+  // and a grey field top-left reads as a filter. Same box, same place, so nothing moves when it
+  // recedes — only its colour and the `+` change.
+  return `
+    <div class="shpick${h.open ? ' open' : ''}${opts.cta ? ' cta' : ''}" id="${id}" onclick="pickerClick(event, '${id}')">
+      <span class="shpick-face">
+        <span class="shpick-t">${opts.cta ? '<i class="shpick-plus">+</i>' : ''}${esc(opts.ph || 'Choose settings…')}</span><span class="sel-chev">▾</span>
+      </span>
+      <div class="shpick-menu">${groups.map(g => pickerSecHtml(g, h, id)).join('')}</div>
+    </div>`;
+}
+
+// WHAT A SET OF ROWS HOLDS — counted once, so a section's own line and any total drawn over it
+// can never disagree. A refused row is in the list and greyed, never missing, but it is not part
+// of what a box counts or takes, because it is not the box's to give.
+function pickerCount(rows, h) {
+  const can = rows.filter(r => !h.off(r.v));
+  return { on: can.filter(r => h.has(r.v)).length, total: can.length };
+}
+/** The one phrasing for a picker's count — `3 of 10` once something is ticked, `10 settings`
+ *  while nothing is. Shared by every section line and by the rail's own head. */
+function pickerCountWord({ on, total }) {
+  return on ? `${on} of ${total}` : `${total} setting${total === 1 ? '' : 's'}`;
+}
+function pickerTotalWord(groups, h) {
+  const t = groups.reduce((acc, g) => {
+    const c = pickerCount(g.rows, h);
+    return { on: acc.on + c.on, total: acc.total + c.total };
+  }, { on: 0, total: 0 });
+  return pickerCountWord(t);
+}
+
+function pickerSecHtml(g, h, id, opts = {}) {
+  const { on, total } = pickerCount(g.rows, h);
+  const can = g.rows.filter(r => !h.off(r.v));
+  const all = can.length > 0 && on === total;
+  return `
+    <section class="shp-sec">
+      ${can.length && !g.flat ? `<div class="shp-head" data-pick="all:${g.k}" role="checkbox" aria-checked="${all}" tabindex="0"
+        onkeydown="pickerKey(event, '${id}', this)">
+        <i class="shp-box${all ? ' on' : (on ? ' part' : '')}"></i>
+        <span class="shp-t">${esc(g.name)}</span>
+        ${opts.quiet ? '' : `<span class="shp-n">${esc(pickerCountWord({ on, total }))}</span>`}
+      </div>` : `<div class="shp-head static"><span class="shp-t">${esc(g.name)}</span></div>`}
+      ${g.rows.map(r => {
+        const why = h.off(r.v);
+        if (why) {
+          return `<div class="shp-opt off" title="${esc(why)}"><i class="shp-box"></i><span>${esc(r.label)}</span>
+            <span class="shp-n">${esc(r.tail || '')}</span></div>`;
+        }
+        const chosen = h.has(r.v);
+        return `<div class="shp-opt${chosen ? ' on' : ''}" data-pick="${esc(r.v)}" role="checkbox" aria-checked="${chosen}"
+          tabindex="0" onkeydown="pickerKey(event, '${id}', this)">
+          <i class="shp-box${chosen ? ' on' : ''}"></i><span>${esc(r.label)}</span></div>`;
+      }).join('')}
+    </section>`;
+}
+
+// The face opens and shuts the menu; anything carrying a box toggles what it names and leaves
+// the menu standing.
+function pickerClick(e, id) {
+  const h = PICKER_REGISTRY[id];
+  if (!h) return;
+  const hit = e.target.closest('[data-pick]');
+  if (hit) { e.stopPropagation(); pickerToggle(h, hit.dataset.pick); return; }
+  // A refused row swallows its own click: the menu stays put and says why on hover.
+  if (e.target.closest('.shp-opt.off')) { e.stopPropagation(); return; }
+  h.setOpen(!h.open);
+}
+
+function pickerKey(e, id, el) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  e.preventDefault();
+  e.stopPropagation();
+  const h = PICKER_REGISTRY[id];
+  if (h) pickerToggle(h, el.dataset.pick);
+}
+
+function pickerToggle(h, key) {
+  if (key.startsWith('all:')) h.toggleAll(key.slice(4));
+  else h.toggle(key);
+}
+
+document.addEventListener('click', e => {
+  if (e.target.closest('.shpick')) return;
+  for (const [id, h] of Object.entries(PICKER_REGISTRY)) {
+    if (h.open && document.getElementById(id)) { h.setOpen(false); return; }
+  }
+});
+
 function selectClick(e, id) {
   const el = document.getElementById(id);
+  // A group heading is not a choice: the menu stays open under the pointer.
+  if (e.target.closest('.sel-grp')) { e.stopPropagation(); return; }
+  // A refused option is not a choice either: it says why on hover and the menu stays put.
+  const dead = e.target.closest('.sel-opt.off');
+  if (dead) { e.stopPropagation(); return; }
   const opt = e.target.closest('.sel-opt');
   if (opt) {
     const { options, pickFn } = SELECT_REGISTRY[id];
@@ -808,16 +964,69 @@ function dlgCardsFilter(el) {
   } else if (none) none.remove();
 }
 
+// ---------- THE SHEET'S ANATOMY — what an empty body says instead of a sentence ----------
+// (15 Sep, user call — *"when we open the create new custom config or a bulk change in player
+// behaviour the modal looks empty; how can we in a clean way communicate how to initiate the
+// flow without putting up too much text which no one will read"*.)
+//
+// Both pick-then-answer sheets open on one small strip above 430px of white, and the two of them
+// explained that white differently: the config sheet with a full sentence — *"Follows the default
+// in everything — pick a setting above to give this config its own answer"* — and the cohort
+// sheet with nothing at all. One is the text nobody reads; the other is a screen that looks
+// broken. Neither is the sheet.
+//
+// What stands there now is the sheet's own STRUCTURE: the sections a pick can land in, in the
+// order they will appear, each with how many settings it holds — greyed until something arrives.
+// It is not a caption ABOUT the screen, it is the screen with nothing in it yet, which is why it
+// needs no instruction: the first pick lands under a heading the reader has already looked at,
+// and that heading goes live where it already stood. It is drawn in the real section header's
+// own type for the same reason.
+//
+// `groups` is the very list the picker is built from ({ name, rows }), so the map and the menu
+// can never name different sections or count differently. A section whose rows are all refused
+// is not the section's to give and is not counted (`off`, as `pickerHtml` reads it).
+function sheetAnatomyHtml(groups, h) {
+  const rows = groups.map(g => {
+    const n = g.rows.filter(r => !(h && h.off && h.off(r.v))).length;
+    return `
+      <div class="sh-anat-r">
+        <span class="sh-anat-n">${esc(g.name)}</span>
+        <span class="sh-anat-c">${n} setting${n === 1 ? '' : 's'}</span>
+      </div>`;
+  }).join('');
+  return `<div class="sh-anat">${rows}</div>`;
+}
+
 // ---------- CHANGES TO APPLY — every bulk sheet's queue, beside the fields that made it ----------
 // Shared by the ad sheet and the player sheet (14 Sep, user call — *"can we have them the same
 // way as the change ad behaviour pending changes on the right side section; the pending changes
 // can be renamed to something clear and communicative"*). One card, one tinted header, no nested
-// boxes: a row is the field, its from → to underneath, and an × that surfaces on hover. Empty, it
+// boxes: a row is the field, the answer underneath, and an × that surfaces on hover. Empty, it
 // says so in a few words and holds its ground, so the sheet does not resize as the queue fills.
 //
-// `rows` are `{ label, from, to, drop }` — `drop` being the inline-handler STRING for that row's
-// ×. `opts.clear` is the same for the header's Clear, `opts.empty` the words for an empty queue.
+// A COHORT IS SET, NOT CHANGED (15 Sep, user call — *"we dont have a pre value since we are
+// setting it up so we dont need that it is changed from this to that"*). The row used to print
+// `was → now` on every sheet, and on the two cohort sheets the `was` was never a value: forty
+// integrations hold forty answers, so it read `3 different values → Muted`, or — worse — `on →
+// on`. A queue is the list of answers you are about to write; the row is now the field and the
+// ANSWER, in one clean line. Where a real prior value exists (the custom-config sheet, where a
+// config's own default IS the thing being overridden) the caller still passes `from` and the
+// row still draws the arrow. What the cohort holds today is not lost: it stands beside every
+// field on the sheet itself, and the change review counts it one screen later.
+//
+// `rows` are `{ label, to, from?, drop }` — `drop` being the inline-handler STRING for that
+// row's ×, `from` the optional prior value. `opts.clear` is the same for the header's Clear,
+// `opts.empty` the words for an empty queue.
+// `opts.max` FOLDS THE TAIL RATHER THAN SCROLLING IT (15 Sep, user call — *"why two different
+// scroll for lhs and rhs isnt it confusing"*). A card that scrolls beside a list that scrolls
+// gives one screen two scrollbars an inch apart, moving different things. So the card never
+// scrolls: past `max` it shows a counted line pointing at the screen that holds them all —
+// the change review, which is one button away and exists to be read in full. Nothing becomes
+// unreachable, because a change is dropped by its own row's × as well as by the card's.
+// Callers that pass no `max` get exactly the card they always had.
 function changesCardHtml(rows, opts = {}) {
+  const shown = opts.max && rows.length > opts.max ? rows.slice(0, opts.max) : rows;
+  const hidden = rows.length - shown.length;
   return `<aside class="bqp">
     <div class="bqp-card">
       <div class="bqp-hd">
@@ -825,15 +1034,17 @@ function changesCardHtml(rows, opts = {}) {
         <span class="bqs-gap"></span>
         ${rows.length && opts.clear ? `<button type="button" class="zlink" onclick="${opts.clear}">Clear</button>` : ''}
       </div>
-      ${rows.length ? rows.map(r => `
+      ${shown.map(r => `
         <div class="bqp-r">
           <div class="bqp-top">
             <span class="bqp-f">${esc(r.label)}</span>
             ${r.drop ? `<button type="button" class="bqs-x" onclick="${r.drop}">×</button>` : ''}
           </div>
-          <div class="bqp-vc">${esc(r.from)}<i class="rvw-arr">→</i><b>${esc(r.to)}</b></div>
-        </div>`).join('')
-      : `<div class="bqp-empty">${esc(opts.empty || 'Nothing changed yet')}</div>`}
+          <div class="bqp-vc">${r.from === undefined || r.from === null
+            ? '' : `${esc(r.from)}<i class="rvw-arr">→</i>`}<b>${esc(r.to)}</b></div>
+        </div>`).join('')}
+      ${hidden ? `<div class="bqp-more">+${hidden} more — every one of them on the next screen</div>` : ''}
+      ${rows.length ? '' : `<div class="bqp-empty">${esc(opts.empty || 'Nothing changed yet')}</div>`}
     </div>
   </aside>`;
 }

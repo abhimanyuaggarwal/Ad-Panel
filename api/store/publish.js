@@ -5,7 +5,7 @@ import { versionChanges } from './version-changes.js';
 import { listKeys, updateKey } from './keys.js';
 import { driveWalkRungs, effectiveBehaviour, liveRungs, slotGroupDefs } from './ladders.js';
 import { keysUsingSetup, servedHeaderBidding, servedUnitHeaderBidding, updateSetup } from './setups.js';
-import { ACTOR, RUNG_FACTS, Refusal, SLOT_TYPES, SLOT_WORD, state } from './state.js';
+import { ACTOR, RUNG_FACTS, Refusal, SLOT_TYPES, SLOT_WORD, deepCopy, state } from './state.js';
 import { mustGet } from './validate.js';
 
 
@@ -34,7 +34,7 @@ const PUBLISHABLE = {
       name: s.name,
       slots: Object.fromEntries(SLOT_TYPES.map(t => [t, { on: !!s.slots[t].on }])),
     })),
-    drive: k.drive ? JSON.parse(JSON.stringify(k.drive)) : null,
+    drive: k.drive ? deepCopy(k.drive) : null,
   }),
   setup: s => ({
     name: s.name, property: s.property,
@@ -398,6 +398,10 @@ export function liveConfig(apiKey) {
     return out;
   };
 
+  // A tier's rungs as the player will walk them: a rung whose tag has gone is simply not
+  // in the answer, so the walk never carries a hole.
+  const walkOf = (rungs, hb) => (rungs || []).map(x => walkEntry(x, hb)).filter(Boolean);
+
   const sections = (ks.sections || []).map(s => {
     const def = ss ? (ss.sections || []).find(x => x.name === s.name) : null;
     const slots = {};
@@ -416,8 +420,8 @@ export function liveConfig(apiKey) {
         const hb = servedHeaderBidding(bhv?.headerBidding, ss?.headerBidding);
         return {
           behaviour: bhv && { ...bhv, headerBidding: hb },
-          walk: walk.map(x => walkEntry(x, hb)).filter(Boolean),
-          ...(gd.length ? { direct: { walk: gd.map(x => walkEntry(x, hb)).filter(Boolean) } } : {}),
+          walk: walkOf(walk, hb),
+          ...(gd.length ? { direct: { walk: walkOf(gd, hb) } } : {}),
         };
       }).filter(Boolean);
       if (!groups.length) continue;
@@ -429,7 +433,7 @@ export function liveConfig(apiKey) {
       // Group 1's deal doubles as the slot's, the way group 1's ladder does.
       const dRungs = drive?.direct === false ? [] : liveRungs(slotGroupDefs(def.slots[t])[0]?.direct?.rungs ?? def.slots[t].direct?.rungs);
       if (dRungs.length) {
-        slots[t].direct = { walk: dRungs.map(x => walkEntry(x, slots[t].behaviour?.headerBidding)).filter(Boolean) };
+        slots[t].direct = { walk: walkOf(dRungs, slots[t].behaviour?.headerBidding) };
       }
     }
     return { name: s.name, slots };

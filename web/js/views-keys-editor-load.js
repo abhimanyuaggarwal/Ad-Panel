@@ -363,9 +363,7 @@ function chgPaint() {
       input.setSelectionRange(input.value.length, input.value.length);
     }
   }
-  document.querySelector('.dlg-veil').onclick = e => {
-    if (e.target.classList.contains('dlg-veil')) chgClose();
-  };
+  wireVeilDismiss(dialogRoot(), chgClose);
 }
 
 function chgPickHtml() {
@@ -524,7 +522,7 @@ function scStatusHtml(s) {
     : s.everPublished ? '<span class="stat off sm2">Off air</span>'
       : '<span class="stat off sm2">Unpublished</span>';
   return `${state}${s.unpublishedCount && (s.live || s.everPublished)
-    ? '<span class="stat pending sm2">Unpublished</span>' : ''}`;
+    ? '<span class="stat pending sm2">Changes not on air</span>' : ''}`;
 }
 
 function setupMapCardHtml(s, mine, acts, held) {

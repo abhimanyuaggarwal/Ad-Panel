@@ -83,8 +83,11 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
    Reached STANDALONE from Save, Publish, Restore or Delete the review is the only screen
    there is, so it wears the `.sheet` width and its own content's height. */
 .dlg.rvw.steady { width: 860px; --frame: 529px; min-height: min(var(--frame), calc(100vh - 80px)); }
-.dlg.rvw.steady-ads { --frame: 409px; }     /* step 2 of the ad sheet */
-.dlg.rvw.steady-player { --frame: 369px; }  /* step 2 of the player sheet */
+/* Both reviews take the bulk sheets' own frame (15 Sep, user call): two cohort acts opened
+   from one bar, four screens, the foot in one place across all of them. The two names stay
+   because the journeys do — they are just no longer two different sizes. */
+.dlg.rvw.steady-ads { --frame: 480px; }     /* step 2 of the ad sheet */
+.dlg.rvw.steady-player { --frame: 480px; }  /* step 2 of the player sheet */
 
 /* 1. THE HEAD — what act, on what, and what it costs. Three lines at three weights,
    never three facts on one baseline: the title is the act, the lede is the
@@ -98,6 +101,97 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
 .rvw-lede::first-letter { text-transform: uppercase; }
 .rvw-quote { margin-top: 5px; font-size: 12.5px; font-style: italic; color: var(--ink-faint); }
 
+/* ---------- THE AUDIENCE: A COLUMN OF ITS OWN (15 Sep, user calls) ---------- */
+/* *"Can we show the integrations in a dedicated RHS?"* — and yes, because it is the same shape
+   the sheet one step back already is: a form on the left, a bounded card on the right. WHAT and
+   WHO now stand side by side at the same 860 frame, neither behind a face, so the two halves of
+   one decision are read together and changed without opening anything.
+   A ROW IS A TICK, AND ROWS NEVER LEAVE (*"the current integrations can be checked/unchecked,
+   can never be removed"*). The card carried an × for one round, and an × is the wrong promise:
+   it says GONE, and a cohort you are still deciding about is not a thing you delete from. Take a
+   surface out and it stays where it was with an empty box — one click from being back in.
+   THE LEFT COLUMN IS THE SCROLLER IT ALWAYS WAS; the card's list keeps its own, with the head and
+   the search field held either side of it. */
+/* STEP 2 TAKES STEP 1'S FRAME EXACTLY (`height`, not a floor). Every other review is free to
+   grow with its evidence — but a card of sixty-seven integrations is not evidence, it is a
+   listbox, and left to itself it dragged the dialog to 820px and walked the footer down the
+   screen. So the cohort review is fixed at the sheet's own number, the body fills what is left,
+   and the two things inside it that can be long scroll where they stand. */
+.dlg.rvw.steady.has-who { height: min(var(--frame), calc(100vh - 80px)); }
+.rvw-main {
+  flex: 1; min-height: 0; display: flex; align-items: stretch; gap: 20px; padding: 0 24px 6px;
+}
+/* The evidence's first section label already pays the top gap for both columns. */
+.rvw-main .rvw-sec:first-child .rvw-sh { padding-top: 11px; }
+.rvw-main .rvw-body { flex: 1; min-width: 0; max-height: none; padding: 0; }
+/* A COLUMN, NOT A CARD. It arrived as a bordered box with a tinted head band — the one visual
+   language this screen threw out on 11 Sep (*"a section is a label and a hairline, not a bordered
+   box with a filled band"*), so it read as a widget pasted onto a document. It is built the way
+   the evidence beside it is built: the same micro-label in the same register on the same
+   baseline, a hairline, the rows, a hairline, the way in. One rule divides the two columns, and
+   that is the only edge on the screen.
+   276 = the queue card's 252 one step back plus the 24 the checkbox column costs, so the NAME
+   lane is the width it has on both screens.
+   IT IS THE SIZE OF WHAT IT HOLDS, up to the column: the search sits directly under the last
+   name, and past the available height the rows start scrolling with the label and the field held
+   either side of them. */
+.aud-col {
+  /* The RULE runs the column's full height — a divider that stops two names down leaves the two
+     halves looking like one half and an afterthought — while the CONTENT hugs the top, because
+     none of its three parts grows: the names, then the way in, then air. */
+  flex: 0 0 276px; align-self: stretch;
+  min-height: 0; display: flex; flex-direction: column;
+  padding-left: 20px; border-left: 1px solid var(--line);
+}
+.aud-hd { display: flex; align-items: baseline; gap: 10px; flex: none; }
+/* The evidence's own section label, to the pixel — `.rvw-sh` is sticky over a scroller it does
+   not have here, so only that comes off. */
+.aud-hd .rvw-sh { position: static; padding: 11px 0 8px; }
+/* The count is a NUMBER, not a heading: it sheds the label's caps and tracking and sits in
+   tabular figures, so `2 of 3` reads at a glance instead of shouting `2 OF 3`. */
+.aud-count {
+  margin-left: 7px; font-size: 10.5px; font-weight: 600; letter-spacing: 0;
+  text-transform: none; color: var(--ink-faint); font-variant-numeric: tabular-nums;
+}
+.aud-count:empty { display: none; }
+.aud-hd .zlink { font-size: 10.5px; font-weight: 650; letter-spacing: 0; }
+.aud-list {
+  flex: 0 1 auto; min-height: 0; overflow-y: auto;
+  padding: 4px 0 2px; border-top: 1px solid #f1f3f7;
+  /* A list cut off mid-row says "there is more" by accident; the review's own two-layer cap says
+     it on purpose — a white fade that scrolls WITH the names over a shadow pinned to the box, so
+     the shadow shows only while something is still below. */
+  background:
+    linear-gradient(rgba(255,255,255,0), #fff 72%) bottom / 100% 14px no-repeat local,
+    radial-gradient(farthest-side at 50% 100%, rgba(16,24,43,.10), transparent) bottom / 100% 6px no-repeat scroll;
+}
+/* THE WHOLE ROW IS THE TARGET — a 14px box is a target for a mouse, not for somebody deciding
+   about forty surfaces. Hover is NEUTRAL, so the accent is left to mean one thing in this column:
+   the tick. An unticked row keeps its place and its name, in the faint ink that says it is out. */
+.aud-r {
+  display: flex; align-items: center; gap: 11px; padding: 7px 8px 7px 3px; border-radius: 7px;
+  cursor: pointer; font-size: 12.5px; line-height: 1.3; color: var(--ink);
+}
+.aud-r:hover { background: var(--bg-soft, #f7f8fb); }
+.aud-r:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--ring); background: var(--bg-soft, #f7f8fb); }
+.aud-r:not(.on) .aud-n { color: var(--ink-faint); }
+.aud-r .shp-box { flex: none; }
+.aud-n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aud-s { flex: none; font-size: 10.5px; color: var(--ink-faint); white-space: nowrap; }
+/* THE WAY IN, HELD UNDER THE NAMES — so a surface picked from it lands on the line directly
+   above, where the eye already is. */
+.aud-add { flex: none; padding: 10px 0 0; margin-top: 4px; border-top: 1px solid #f1f3f7; }
+.aud-add .lookup input { padding: 7px 11px; font-size: 12.5px; border-radius: 8px; }
+/* THE RESULTS STAND WHERE THERE IS ROOM, and by default that is below — the column is the size
+   of its names, so the space under the field is the dialog's own empty air and the menu covers
+   nothing. `.up` is set by the screen when the column has grown tall enough that below would mean
+   outside the dialog; then it opens over the tail of a list long enough to have one. */
+.aud-add .lk-menu { top: calc(100% + 5px); bottom: auto; max-height: 232px; }
+.aud-add .lookup.up .lk-menu { top: auto; bottom: calc(100% + 5px); }
+.aud-add .lk-title { font-size: 12px; font-weight: 600; }
+.aud-add .lk-sub { font-family: inherit; font-size: 10.5px; }
+.aud-add .lk-item { padding: 6px 9px; }
+
 /* 2. THE CAPTION — how much am I agreeing to, measured against what. The total the
    screen never used to state, and the scope that used to sit in the FOOT beside the
    buttons, describing the evidence from the wrong end of the dialog. */
@@ -108,6 +202,10 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
 }
 .rvw-n { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .rvw-scope { color: var(--ink-faint); text-align: right; }
+/* On a cohort review the scope slot carries a CONSEQUENCE, not a description of the evidence —
+   that the write saves and does not go on air — and the one line that corrects a wrong
+   expectation should not be the faintest thing on the screen. One step up, still quiet. */
+.dlg.rvw.has-who .rvw-scope { color: var(--ink-soft); }
 
 /* 3. THE EVIDENCE — one list, sectioned. */
 .rvw-body {
@@ -159,6 +257,14 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
 .rvw-arr { font-style: normal; color: #c3c9d4; margin: 0 7px; }
 .rvw-row .rvw-arr { font-size: 11px; color: #ccd2dd; text-align: center; margin: 0; }
 .rvw-now { font-weight: 650; color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
+/* A COHORT ROW: FIELD · ANSWER (15 Sep, user call — the was-side is gone, since forty surfaces
+   have no single previous value). Two lanes, and the two are told apart by TREATMENT, not by
+   position — the field light and grey, the answer dark and heavy — because with the arrow gone
+   a reader needs some other signal for which half is the question. The answer keeps its own
+   lane rather than running on after the label, so twenty rows still read down a column. */
+.rvw-row.pair { grid-template-columns: minmax(92px, 1fr) minmax(0, 1.85fr); }
+.rvw-row.pair .rvw-what { font-weight: 400; color: var(--ink-faint); }
+.rvw-row.pair .rvw-now { text-align: left; }
 /* A clipped value carries the exact string on hover — the tooltip policy's first case. */
 .rvw-was.cut, .rvw-now.cut { cursor: help; }
 /* The per-row note names a surface the change cannot reach. It is a footnote, so it
@@ -221,13 +327,22 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
 .bqp-r { padding: 8px 12px 9px; border-bottom: 1px solid #eef0f5; }
 .bqp-r:last-child { border-bottom: 0; }
 .bqp-top { display: flex; align-items: center; gap: 6px; }
-.bqp-f { flex: 1; min-width: 0; font-size: 12px; font-weight: 600; color: var(--ink); }
+/* THE QUEUE CARD READS THE REVIEW'S GRAMMAR (15 Sep, user call — *"the same is true for rhs in
+   step 1 changes to apply"*): the field is the question and the value is the answer, and they
+   were set in the same size, weight and colour one under the other, so a stack of four rows read
+   as eight equal lines. The field steps back; the answer is the figure. */
+.bqp-f { flex: 1; min-width: 0; font-size: 11.5px; font-weight: 500; color: var(--ink-faint); }
 .bqp-top .bqs-x { opacity: 0; width: 18px; height: 18px; font-size: 13px; }
 .bqp-r:hover .bqs-x { opacity: 1; }
 .bqp-vc { font-size: 11.5px; color: var(--ink-faint); margin-top: 2px; }
-.bqp-vc b { font-weight: 650; color: var(--ink); }
+.bqp-vc b { font-size: 12.5px; font-weight: 650; color: var(--ink); }
 .bqp-vc .rvw-arr { margin: 0 6px; }
 .bqp-empty { padding: 12px; font-size: 11.5px; color: var(--ink-faint); }
+/* The folded tail: a count and where the rest of them are, never a scrollbar. */
+.bqp-more {
+  padding: 9px 12px; border-top: 1px solid var(--line);
+  font-size: 11.5px; color: var(--ink-faint);
+}
 .bqf-r {
   display: grid; grid-template-columns: 158px minmax(0, 1fr) auto;
   gap: 10px; align-items: center; padding: 8px 8px 8px 12px;

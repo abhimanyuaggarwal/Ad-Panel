@@ -346,7 +346,7 @@ Everything else on the contract is settled.
 | Config / template key | one word, `[A-Za-z0-9_-]{1,24}`, unique, never `default` |
 | Passive volume | 0–100 on the default; a custom config may override it |
 | Fields a custom config may override | any of the 29 — stored sparse, resolved live |
-| Hidden controls | from a fixed vocabulary the player team owns |
+| Controls (which the viewer gets) | from a fixed vocabulary the player team owns; stored as the ones HIDDEN |
 | Pause below visibility | 0 (off) or 10–100 — 1–9 refused by name |
 
 - Every cap refuses by name, counting what was found against what's allowed: *"A mid-roll holds at most 3 break groups (got 4)."*
@@ -511,7 +511,7 @@ Everything in this document that is agreed in direction but not yet closed. Owne
 | Serving | `GET /live/:apiKey` |
 | Meta / mock | `GET /meta` · `POST /mock/reset` |
 
-Bulk actions on `POST /keys/bulk`: `publish` · `unpublish` · `slotOn` · `slotOff` · `playerFields` · the ad-behaviour levers.
+Bulk actions on `POST /keys/bulk`: `publish` · `unpublish` · `slotOn` · `slotOff` · `playerFields` · `configFields` (custom configs, one edit per config) · the ad-behaviour levers.
 
 ## Appendix 2 — Error payloads
 

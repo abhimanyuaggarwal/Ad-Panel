@@ -376,9 +376,10 @@ function toast(msg, kind) {
 }
 
 // THE DIALOG ROOT, AND THE ONE WAY OUT. Cancel and a click on the veil close the dialog and
-// answer `bail` — identical in all three dialogs below (and in `askForm`, one room over), so
-// it is written once. The day Escape closes a dialog too, it becomes true of all of them at
-// once, which is the whole point of one control per concept.
+// answer `bail`. EVERY dialog in the console dismisses the same way — the three house ones
+// below, and the four each room paints for itself — so the test for "beside the card, not on
+// it" is written once, here. The day Escape closes a dialog too, it becomes true of all of
+// them at once, which is the whole point of one control per concept.
 const dialogRoot = () => document.getElementById('dialog-root');
 
 /** Close whatever dialog is open. The only way any of them clears the root. */
@@ -393,9 +394,26 @@ function wireDialogExit(root, bail) {
   // A dialog with nothing to decide (a fact, said in a box) gets one button and no Cancel.
   const no = root.querySelector('[data-act=no]');
   if (no) no.onclick = () => { closeDialog(); bail(); };
-  root.querySelector('.dlg-veil').onclick = e => {
-    if (e.target.classList.contains('dlg-veil')) { closeDialog(); bail(); }
-  };
+  wireVeilDismiss(root, () => { closeDialog(); bail(); });
+}
+
+/**
+ * Was this click on the veil ITSELF, and not on the card standing on it? A click inside the
+ * card bubbles out to the veil too, so every dismiss asks this first.
+ * @param {Event} e
+ * @returns {boolean}
+ */
+const isVeilClick = e => e.target.classList.contains('dlg-veil');
+
+/**
+ * Wire the veil so a click beside the card dismisses. `bail` decides what dismissing MEANS,
+ * including whether it closes — a dialog that must read its own fields before the root is
+ * cleared (the change review, reading its note) does that work inside `bail`.
+ * @param {Element} root     the element the dialog was painted into
+ * @param {() => void} bail  what the dialog answers when it is dismissed
+ */
+function wireVeilDismiss(root, bail) {
+  root.querySelector('.dlg-veil').onclick = e => { if (isVeilClick(e)) bail(); };
 }
 
 // ask({title, body, okLabel, danger}) -> Promise<boolean>. Our own dialog, never confirm().
@@ -448,6 +466,68 @@ function pickDialog(title, options) {
   });
 }
 
+// ask() clears the dialog before resolving, so a form dialog reads its values FIRST:
+// same anatomy as ask(), plus a read step on OK.
+function askForm(opts, readFn) {
+  return new Promise(resolve => {
+    const root = dialogRoot();
+    root.innerHTML = `
+      <div class="dlg-veil">
+        <div class="dlg ${esc(opts.cls || '')}">
+          <h3>${esc(opts.title)}${opts.kicker ? `<span class="dlg-kicker">${esc(opts.kicker)}</span>` : ''}</h3>
+          <div class="dlg-body">${opts.body || ''}</div>
+          <div class="dlg-foot">
+            <button class="btn ghost" data-act="no">${esc(opts.cancelLabel || 'Cancel')}</button>
+            <button class="btn" data-act="yes">${esc(opts.okLabel || 'Confirm')}</button>
+          </div>
+        </div>
+      </div>`;
+    wireDialogExit(root, () => resolve(null));
+    // A REFUSAL STAYS IN THE DIALOG (7 Sep, UAT P1): with `opts.submit`, the write runs
+    // while the form still stands — a refused field wears its reason where it was typed,
+    // nothing is re-typed. Only a write that lands closes the dialog.
+    root.querySelector('[data-act=yes]').onclick = async () => {
+      const out = readFn(root);
+      if (!opts.submit) { closeDialog(); resolve(out); return; }
+      const ok = root.querySelector('[data-act=yes]');
+      ok.disabled = true;
+      root.querySelectorAll('.field.err').forEach(f => { f.classList.remove('err'); f.querySelector('.field-err')?.remove(); });
+      root.querySelector('.dlg-err')?.remove();
+      try {
+        await opts.submit(out);
+        closeDialog();
+        resolve(out);
+      } catch (e) {
+        ok.disabled = false;
+        paintDialogRefusal(root, e);
+      }
+    };
+  });
+}
+
+// A REFUSAL, PAINTED WHERE IT WAS TYPED: each named field wears its own reason, and
+// anything the form has no field for goes to one banner at the top of the body. Called
+// with the dialog still standing — nothing the person typed is thrown away.
+function paintDialogRefusal(root, e) {
+  const errs = (e.errors && e.errors.length) ? e.errors : [{ message: e.message }];
+  const loose = errs.filter(er => !paintFieldRefusal(root, er)).map(er => er.message);
+  if (!loose.length) return;
+  root.querySelector('.dlg-body')
+    .insertAdjacentHTML('afterbegin', `<div class="banner bad dlg-err">${esc(loose[0])}</div>`);
+}
+
+// One field's reason, under the field. Returns false when there is no field to wear it —
+// or when one already does, which is how the FIRST reason for a field is the one shown.
+function paintFieldRefusal(root, er) {
+  const field = er.field && root.querySelector(`[data-dfield="${er.field}"]`);
+  if (!field) return false;
+  if (field.classList.contains('err')) return true;
+  field.classList.add('err');
+  field.insertAdjacentHTML('beforeend', `<div class="field-err">${esc(er.message)}</div>`);
+  field.querySelector('input')?.focus();
+  return true;
+}
+
 // A clipboard write is a boundary: it is refused outright in an insecure context and
 // by some permission settings. Saying nothing there leaves the person believing they
 // copied something they did not, so the failure gets the pill too (8 Sep).
@@ -471,6 +551,9 @@ function fmtCue(s) {
 }
 
 // Human-readable value for activity/diff rendering.
+// The player fields whose value is a LIST of ids — meaningless printed raw, and each with a
+// word in `pbWord` (views-keys-editor-player.js, loaded after this file; read at call time).
+const PLAYER_LIST_FIELDS = ['hiddenControls', 'playbackRates'];
 function showVal(field, v) {
   // No milliseconds anywhere a person reads (3 Sep rule; the diffs joined 6 Sep).
   if (MS_FIELDS.includes(field) && typeof v === 'number') return fmtMs(v);
@@ -498,6 +581,12 @@ function showVal(field, v) {
       return `${label('slotType', t)}: ${bits.join(' · ') || 'as set up'}`;
     }).join(' · ');
   }
+  // THE PLAYER'S OWN WORDS, from the one function that owns them. `pbWord`'s comment has always
+  // said a line in the change review reads it — and the publish diff does, but this path (the
+  // SAVE diff) did not, so `Controls` printed the raw control ids the field stores: `quality`
+  // rather than `without Quality`. Only the two list-valued fields are routed, because they are
+  // the two the generic `join(', ')` below was getting wrong; everything else already reads.
+  if (PLAYER_LIST_FIELDS.includes(field) && typeof pbWord === 'function') return pbWord(field, v);
   if (v === true) return 'On';
   if (v === false) return 'Off';
   if (Array.isArray(v)) return v.join(', ') || '—';
@@ -555,11 +644,15 @@ const FIELD_NAMES = {
   quality: 'Quality', muted: 'Starts muted',
   rememberVolume: 'Remember volume', rememberAudioLang: 'Remember audio language',
   rememberCaptions: 'Remember captions',
-  controlsMode: 'Controls', hiddenControls: 'Hidden controls', playbackRates: 'Speeds',
+  // CONTROLS, THE TWO GRAINS (15 Sep, user call). The nine-glyph row is `Controls` — they ARE
+  // the controls a viewer sees — so the mode above it takes the name of the thing it sizes:
+  // `Control bar`, which is what Full / Minimal / None actually describes. `Hidden controls`
+  // named the FIELD's storage (what is taken away) rather than the decision anyone makes.
+  controlsMode: 'Control bar', hiddenControls: 'Controls', playbackRates: 'Speeds',
   controlsAutoHideMs: 'Hide controls after', dock: 'Dock position',
   autoPausePct: 'Pause below visibility', loop: 'Loop', endScreen: 'End screen',
   brandColor: 'Brand colour', textColor: 'Text colour', logoUrl: 'Logo',
-  analyticsLevel: 'Events reported', viewAfterMs: 'A view counts after',
+  analyticsLevel: 'Events reported', viewAfterMs: 'View counts after',
   heartbeatMs: 'Heartbeat every', comscoreId: 'comScore id', nielsenId: 'Nielsen id',
   gaId: 'Google Analytics id',
   tplId: 'Ad unit template', url: 'Request URL',

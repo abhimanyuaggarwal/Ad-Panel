@@ -4,7 +4,7 @@
 import { DRIVE_FIELDS, askWord, driveAsk, driveWalkRungs, effectiveBehaviour, normalizeCuepoints, slotGroupDefs } from './ladders.js';
 import { isPublished } from './publish.js';
 import { duplicateSetup, setupSection } from './setups.js';
-import { ANALYTICS_LEVELS, AUTOPLAY, CONTROLS_MODES, DOCK_POSITIONS, END_SCREENS, FIELD_WORDS, HEADER_BIDDING, MAX_RUNGS, MAX_SECTIONS, MIDROLL_MODES, PLATFORMS, PLAYBACK_RATES, PLAYER_CONTROLS, PLAYER_FIELDS, PLAYBACK_KINDS, PLAYBACK_MODES, PREROLL_TIMING, PROPERTIES, PROVIDER_WORD, Refusal, SLOT_TYPES, SLOT_WORD, TAG_PROVIDERS, WEB_PLATFORMS, WORST_CASE_WARN_MS, fieldWord, keyString, state, updateStamp } from './state.js';
+import { ANALYTICS_LEVELS, AUTOPLAY, CONTROLS_MODES, DOCK_POSITIONS, END_SCREENS, FIELD_WORDS, HEADER_BIDDING, MAX_POD_ADS, MAX_RUNGS, MAX_SECTIONS, MIDROLL_EVERY_MAX, MIDROLL_EVERY_MIN, MIDROLL_MODES, PLATFORMS, PLAYBACK_RATES, PLAYER_CONTROLS, PLAYER_FIELDS, PLAYBACK_KINDS, PLAYBACK_MODES, PREROLL_TIMING, PROPERTIES, PROVIDER_WORD, Refusal, SLOT_TYPES, SLOT_WORD, TAG_PROVIDERS, WEB_PLATFORMS, WORST_CASE_WARN_MS, deepCopy, fieldWord, keyString, state, updateStamp } from './state.js';
 import { DOMAIN_RE, PACKAGE_RE, bool, diff, fmtSecs, hexColor, httpUrl, intIn, mustGet, oneOf, str, uniqueName } from './validate.js';
 
 
@@ -72,7 +72,7 @@ function pausePct(v, errs) {
 export function normalizePlayer(input, errors, prefix = '') {
   const errs = [];
   if (input.startVolume !== undefined) {
-    errs.push({ field: 'player', message: 'startVolume is gone — the player carries one Passive volume (JSON: passiveVolume), set on the Player config card' });
+    errs.push({ field: 'player', message: 'startVolume is gone — the player carries one Passive volume (JSON: passiveVolume), set on the Player behaviour card' });
   }
   const b = {
     autoplay: oneOf(input.autoplay ?? 'auto', 'autoplay', AUTOPLAY, errs),
@@ -154,7 +154,12 @@ export function normalizePlayer(input, errors, prefix = '') {
 // This supersedes the 11 Sep six-field fork rule and the 7 Sep one-volume refusal: what
 // a fork may not do is no longer a refusal list, it is VISIBILITY — every override is
 // named on the row, in the editor and in the change review.
-export const MAX_PLAYER_CONFIGS = 6;
+// 6 → 20 (15 Sep, user call). Six was never a rule about players, it was a guess about how many
+// a card grid could hold; the grid grew a counted door and a key filter instead (see
+// `pcGridHtml`). A ceiling still exists — a config is addressed by key in player code, and an
+// integration carrying hundreds of them is a modelling mistake this refusal should catch — but it
+// is now high enough to be about the product rather than about the screen.
+export const MAX_PLAYER_CONFIGS = 20;
 export function normalizePlayerConfigs(input, player, errors) {
   if (input === undefined || input === null) return [];
   if (!Array.isArray(input)) {
@@ -257,6 +262,64 @@ export function normalizeSection(input, index, errors, warnings, seenNames) {
 // `deferSec` joined them 27 Aug on the user's call, reversing the 26 Aug "seconds stay
 // ops'" line: a surface that may defer its pre-roll may as well say by how long. An
 // unknown field is refused by name — everything else is arranged in the ad setup.
+// ---------- WHAT EACH QUICK DECISION MEANS ----------
+// One writer per drive field, keyed by the field's own name. This was a ten-arm `else if`
+// chain inside two loops: the shape that gains an arm every time the drive gains a lever,
+// and that buries the four fields carrying real reasoning among six that only call `intIn`.
+// A table gives each field one line, puts its reasoning beside it, and takes the chain's
+// two levels of nesting out of `normalizeDrive`.
+//
+// A writer takes the value and an error collector and writes its OWN key on `out` — or
+// writes nothing, which is how `direct` says "absence is on" and how a refused value leaves
+// the field unset. `DRIVE_FIELDS[t]` still decides WHICH of these a break may use; this
+// table only says what each one means. A field with no writer is ignored exactly as the
+// chain's missing `else` ignored it.
+const DRIVE_WRITERS = {
+  ask: (v, errs, out) => {
+    if (!Array.isArray(v)) {
+      errs.push({ field: 'drive', message: 'the ad partners are a list, in the order they are asked' });
+      return;
+    }
+    const bad = v.filter(p => !TAG_PROVIDERS.includes(p));
+    if (bad.length) errs.push({ field: 'drive', message: `${bad.map(p => `“${p}”`).join(', ')} is not an ad partner — ${TAG_PROVIDERS.map(p => PROVIDER_WORD[p]).join(', ')}` });
+    else if (!v.length) errs.push({ field: 'drive', message: 'a break with every partner switched off would ask nobody — leave one on, or switch the break off' });
+    else out.ask = driveAsk(v);
+  },
+
+  // The surface's switch over THIS break's direct tier: absence is on, so only the off
+  // answer is stored — dropping it follows the setup again.
+  direct: (v, errs, out) => { if (v === false) out.direct = false; },
+
+  tries: (v, errs, out) => { out.tries = intIn(v, 'tries', 1, MAX_RUNGS, errs); },
+  start: (v, errs, out) => { out.start = oneOf(v, 'start', PREROLL_TIMING, errs); },
+  // NOTE the floor: a surface may defer by 1 s where the ad setup's own floor is 3 s
+  // (`ladders.js`). Left as found — see the refactor's decision log.
+  deferSec: (v, errs, out) => { out.deferSec = intIn(v, 'deferSec', 1, 60, errs); },
+  podAds: (v, errs, out) => { out.podAds = intIn(v, 'podAds', 1, MAX_POD_ADS, errs); },
+  mode: (v, errs, out) => { out.mode = oneOf(v, 'mode', MIDROLL_MODES, errs); },
+  every: (v, errs, out) => { out.every = intIn(v, 'every', MIDROLL_EVERY_MIN, MIDROLL_EVERY_MAX, errs); },
+
+  cuepoints: (v, errs, out) => {
+    const cps = normalizeCuepoints(v, errs, 'drive');
+    // A cadence with nowhere to fall is a dark break, not a decision.
+    if (!errs.length && !cps.length) {
+      errs.push({ field: 'drive', message: 'a mid-roll needs at least one break position — clear the decision to follow the ad setup again' });
+    } else if (!errs.length) out.cuepoints = cps;
+  },
+
+  // The surface names the partners, or says nobody. `auto` is the AD SETUP's word for
+  // "borrow the global" and means nothing here: absence already says "follow the setup",
+  // whatever it resolves to — so it is refused by name rather than stored as a second way
+  // of saying the same thing.
+  headerBidding: (v, errs, out) => {
+    if (v === 'auto') {
+      errs.push({ field: 'drive', message: 'Auto is the ad setup’s own answer — a surface either names the partners, switches them off, or leaves this to the setup' });
+      return;
+    }
+    out.headerBidding = oneOf(v, 'headerBidding', HEADER_BIDDING, errs);
+  },
+};
+
 export function normalizeDrive(input, errors) {
   const raw = input && typeof input === 'object' ? input : {};
   const drive = {};
@@ -283,48 +346,7 @@ export function normalizeDrive(input, errors) {
       // so the word that means that is dropped here, once, for all of them.
       if (v === 'setup') continue;
       const errs = [];
-      if (f === 'ask') {
-        if (!Array.isArray(v)) {
-          errs.push({ field: 'drive', message: 'the ad partners are a list, in the order they are asked' });
-        } else {
-          const bad = v.filter(p => !TAG_PROVIDERS.includes(p));
-          if (bad.length) errs.push({ field: 'drive', message: `${bad.map(p => `“${p}”`).join(', ')} is not an ad partner — ${TAG_PROVIDERS.map(p => PROVIDER_WORD[p]).join(', ')}` });
-          else if (!v.length) errs.push({ field: 'drive', message: 'a break with every partner switched off would ask nobody — leave one on, or switch the break off' });
-          else out.ask = driveAsk(v);
-        }
-      } else if (f === 'direct') {
-        // The surface's switch over THIS break's direct tier: absence is on, so only
-        // the off answer is stored — dropping it follows the setup again.
-        if (v === false) out.direct = false;
-      } else if (f === 'tries') {
-        out.tries = intIn(v, 'tries', 1, MAX_RUNGS, errs);
-      } else if (f === 'start') {
-        out.start = oneOf(v, 'start', PREROLL_TIMING, errs);
-      } else if (f === 'deferSec') {
-        out.deferSec = intIn(v, 'deferSec', 1, 60, errs);
-      } else if (f === 'podAds') {
-        out.podAds = intIn(v, 'podAds', 1, 3, errs);
-      } else if (f === 'mode') {
-        out.mode = oneOf(v, 'mode', MIDROLL_MODES, errs);
-      } else if (f === 'cuepoints') {
-        const cps = normalizeCuepoints(v, errs, 'drive');
-        // A cadence with nowhere to fall is a dark break, not a decision.
-        if (!errs.length && !cps.length) {
-          errs.push({ field: 'drive', message: 'a mid-roll needs at least one break position — clear the decision to follow the ad setup again' });
-        } else if (!errs.length) out.cuepoints = cps;
-      } else if (f === 'every') {
-        out.every = intIn(v, 'every', 60, 3600, errs);
-      } else if (f === 'headerBidding') {
-        // The surface names the partners, or says nobody. `auto` is the AD SETUP's word for
-        // "borrow the global" and means nothing here: absence already says "follow the
-        // setup", whatever it resolves to — so it is refused by name rather than stored as
-        // a second way of saying the same thing.
-        if (v === 'auto') {
-          errs.push({ field: 'drive', message: 'Auto is the ad setup’s own answer — a surface either names the partners, switches them off, or leaves this to the setup' });
-        } else {
-          out.headerBidding = oneOf(v, 'headerBidding', HEADER_BIDDING, errs);
-        }
-      }
+      DRIVE_WRITERS[f]?.(v, errs, out);
       for (const e of errs) errors.push({ field: 'drive', message: `${SLOT_WORD[t].toLowerCase()}: ${e.message}` });
     }
     if (Object.keys(out).length) drive[t] = out;
@@ -628,7 +650,7 @@ export function duplicateKey(id) {
   while (listKeys().some(k => k.name.toLowerCase() === name.toLowerCase())) name = `${src.name} copy ${n++}`;
   const setupCopy = src.adSetupId ? duplicateSetup(src.adSetupId, `${name} demand`) : null;
   const { obj } = createKey({
-    ...JSON.parse(JSON.stringify(src)),
+    ...deepCopy(src),
     name,
     adSetupId: setupCopy ? setupCopy.id : null,
   });

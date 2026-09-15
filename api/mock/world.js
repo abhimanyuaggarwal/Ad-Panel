@@ -441,6 +441,12 @@ export function resetWorld(opts = {}) {
     domains: ['timesofindia.indiatimes.com'],
     adSetupId: asToiVideoDesktop.id, // its own copy of the shape — setups are 1:1 now
     player: P.VideoShow,
+    // THE SAME KEY, A DIFFERENT ANSWER (15 Sep). `shorts` exists on four of the seven and
+    // no two spell it identically — that DISAGREEMENT is the thing the cohort config sheet
+    // exists to show, so it is seeded rather than left to a demo to create by hand.
+    playerConfigs: [
+      { name: 'shorts', playback: 'passive', autoplay: 'off', controlsMode: 'minimal' },
+    ],
     // Every break live — the surface to open when you want to see every one working.
     sections: [{
       slots: { preroll: on, midroll: on, postroll: on, outstream: on },
@@ -453,6 +459,12 @@ export function resetWorld(opts = {}) {
     packageName: 'com.et.reader.activities',
     adSetupId: asEtMini.id,
     player: P.MiniTV,
+    // Two configs, one of them a key nothing else carries — so the sheet has a config that
+    // is one integration's alone beside one four of them share.
+    playerConfigs: [
+      { name: 'shorts', playback: 'passive', autoplay: 'auto' },
+      { name: 'live_blog', muted: true, loop: true },
+    ],
     sections: [{
       slots: { preroll: on, midroll: on, postroll: off, outstream: on },
     }],
@@ -464,6 +476,9 @@ export function resetWorld(opts = {}) {
     domains: ['economictimes.indiatimes.com'],
     adSetupId: asEtArticle.id,
     player: P.ArticleShow,
+    playerConfigs: [
+      { name: 'amp_stories', autoplay: 'off' },
+    ],
     sections: [{
       slots: { preroll: on, midroll: off, postroll: off },
     }],
@@ -475,6 +490,11 @@ export function resetWorld(opts = {}) {
     domains: ['navbharattimes.indiatimes.com'],
     adSetupId: asNbtVideo.id,
     player: P.VideoShow,
+    // Switched OFF, and the only one of the four that is — so `shorts` across the cohort
+    // disagrees about its switch as well as its values.
+    playerConfigs: [
+      { name: 'shorts', playback: 'passive', passiveVolume: 0, on: false },
+    ],
     sections: [
       {
         slots: { preroll: on, midroll: on, postroll: off },
@@ -648,6 +668,16 @@ function seedScale(w) {
       packageName: web ? '' : b.pkg,
       adSetupId: setup.id,
       player: PLAYER_PRESETS.find(x => x.name === player).values,
+      // CUSTOM CONFIGS AT VOLUME (15 Sep), so the cohort config sheet has a real cohort to
+      // answer for: `shorts` on every third surface, `amp_stories` on every fifth, and one
+      // `live_blog` in twelve — deterministic, and deliberately NOT spelled the same way
+      // twice, because a sheet that only ever shows agreement teaches nothing.
+      playerConfigs: [
+        ...(i % 3 === 0 ? [{ name: 'shorts', playback: 'passive',
+          autoplay: i % 6 === 0 ? 'off' : 'auto', ...(i % 9 === 0 ? { on: false } : {}) }] : []),
+        ...(i % 5 === 0 ? [{ name: 'amp_stories', autoplay: 'off', muted: true }] : []),
+        ...(i % 12 === 0 ? [{ name: 'live_blog', loop: true }] : []),
+      ],
       sections: [{ slots }],
     });
     Object.assign(obj, { updatedAt: w.ago(6 + i * 3), updatedBy: owners[i % 4] });
