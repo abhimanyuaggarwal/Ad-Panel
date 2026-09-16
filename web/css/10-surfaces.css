@@ -943,12 +943,18 @@ tbody tr.grp-more:hover td { background: #fdf6e2; }
    key's optical inset (it is a borderless input that has to line up with the dialog's padding)
    is paid for on the row rather than by the field's own negative margins. */
 .sh-head { padding-bottom: 14px; border-bottom: 1px solid var(--line); }
-.sh-title { display: flex; align-items: center; gap: 16px; min-width: 0; min-height: 34px; }
-.sh-t { flex: 1; min-width: 0; }
+/* The state stands NEXT TO the key, not at the far edge — so `.sh-t` stops taking the slack and
+   the pair follows the field. The key's own box narrows to what a key can actually be — MEASURED,
+   not estimated: 24 characters (the cap the server enforces) of 17px mono need 254px of content
+   box, so 272 clears the longest key this panel will accept with its 8px insets and stops holding
+   60px of air between a six-letter name and the thing that describes it. */
+.sh-title { display: flex; align-items: center; gap: 14px; min-width: 0; min-height: 34px; }
+.sh-t { min-width: 0; }
+.sh-acts { flex: none; }
 /* The title IS the rename field — the shape the ad setup's placement tabs already use. It is
    a title first and a field second, so it wears no box until it is pointed at. */
 .sh-key {
-  display: block; width: 320px; max-width: 100%; margin: -4px 0 0 -9px; height: 34px;
+  display: block; width: 272px; max-width: 100%; margin: -4px 0 0 -9px; height: 34px;
   border: 1px solid transparent; border-radius: 8px; background: transparent; padding: 0 8px;
   font-family: ui-monospace, Menlo, monospace; font-size: 17px; font-weight: 600;
   letter-spacing: -.3px; color: var(--ink); outline: 0;

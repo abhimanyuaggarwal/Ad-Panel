@@ -6,10 +6,13 @@ behind decisions are in `PRODUCT-LOG.md` (the running log) and `docs/DECISION-RE
 dated scope documents); `docs/PRODUCT-SCOPE.md` describes the product for any reader. This
 file stays current and short.
 
-> Last verified: 14 Sep 2026 against branch `Ui/UX_Changes` @ `cdaa366`, working tree clean.
-> The 8 Sep entry's "large uncommitted working tree" is now committed: the routes/store
-> split, the front door, header bidding and the player levers all landed in `cdaa366`.
-> Verified by reading the code, plus `npm test` (171 passed) and `npm run check` (syntax ok).
+> Last verified: 16 Sep 2026 against branch `Ui/UX_Changes` @ `318e49d`, **working tree dirty**
+> (8 files — the player-config UI round, still in progress; `web/js/` was moving while this pass ran).
+> Verified by reading the code, plus `npm test` (183 passed) and `npm run check` (syntax ok).
+> Re-checked this pass: every path and symbol this file names resolves; §5's file table matches
+> `web/js/` exactly (22 of 22); the nine routers in §4 match `api/server.js`; §11's gaps all still
+> hold. Corrected: the case count (was 171), the screen-walk count (was 73), `docs/` in §2, and
+> §9's claim about `process.env`.
 
 ## At a glance
 
@@ -21,7 +24,7 @@ file stays current and short.
 - **Start reading** — `api/server.js` (assembly) → `api/store/state.js` (the model and every
   enum) → `api/store/publish.js` (the two planes) → `web/js/main.js` (the router).
 - **The map is §2; the model is §3; the request path is §4; the screens are §5.**
-- **Before you change anything** — `npm test` (171 HTTP cases, ~1 s) and, for UI work,
+- **Before you change anything** — `npm test` (183 HTTP cases, ~1 s) and, for UI work,
   `npm run ui:snapshot before` / `… after` / `… diff before after` (§10).
 
 ## 1. What it is
@@ -42,7 +45,7 @@ One process serves the API *and* the web app; the suite hosts its own. No build 
 | --- | --- | --- |
 | API (Express, in-memory) | `api/` | `npm start` → http://localhost:4200 |
 | Web app (vanilla JS, served by the same process) | `web/` | open http://localhost:4200 |
-| Rule suite (HTTP, self-hosting on :4299) | `test/` | `npm test` (~1 s, 171 cases) |
+| Rule suite (HTTP, self-hosting on :4299) | `test/` | `npm test` (~1 s, 183 cases) |
 
 Everything is in memory. `POST /panel/mock/reset` rebuilds the demo world with the same ids
 every time, so a polluted state is a one-line fix (`npm run demo`, `npm run scale`).
@@ -69,7 +72,7 @@ panel/
 │   │   └── mock.js        POST /panel/mock/reset
 │   ├── store.js           façade: re-exports every store/ module
 │   ├── store/
-│   │   ├── state.js       the Maps, every enum/cap/word, Refusal, ids, resetState
+│   │   ├── state.js       the Maps, every enum/cap/word, Refusal, ids, resetState, deepCopy
 │   │   ├── validate.js    intIn, oneOf, str, uniqueName, mustGet, diff — the refusal helpers
 │   │   ├── tags.js        ad tags + ad unit templates
 │   │   ├── ladders.js     slot behaviour fields, drive fields, rungs, the walks
@@ -99,6 +102,8 @@ panel/
 │   ├── FAQ.md / .docx     the engineering hand-off FAQ
 │   ├── PLAYER-CONFIG-FIELDS.xlsx  the field inventory the scope work was built from
 │   ├── PLAYER-LEVERS.xlsx the player levers, as handed to the player team
+│   ├── PRODUCT-FLOW.md    the product's flows, screen by screen
+│   ├── REFACTOR-DECISIONS.md  engineering calls made in structural passes (15 Sep)
 │   └── img/               the screenshots PRODUCT-SCOPE.md uses
 ├── .editorconfig          the only checked-in style tooling (utf-8, lf, 2-space)
 ├── README.md              the landing page: what it is, how to run it, where to read next
@@ -188,6 +193,16 @@ Rules of the road:
    other exception is a 500 and a bug.
 5. **Views compute facts, never rules.** `keyView` adds walks and counts so a screen can
    say "3 rungs behind pre-roll" without holding a ladder.
+6. **Copy before you patch.** The store hands out live references — the Maps hold the real
+   objects — so anything building a patch by editing what it just read must copy first or it
+   has already written. `deepCopy` (`store/state.js`) is that copy, and `web/js/util.js`
+   spells the same helper under the same name: one per side of HTTP, the way `WF_WORD` is
+   (§3). A raw `JSON.parse(JSON.stringify(…))` anywhere else is a missed call site.
+7. **A cohort act reports per name.** Every act under `POST /panel/keys/bulk` runs through
+   one `tallyCohort(units, applyOne, classifyRefusal)` in `routes/keys-bulk.js`, which owns
+   the `{ changed, unchanged, refused, skipped }` answer. An act supplies only what it does
+   to ONE integration. `getKey` stays outside its try on purpose: an id naming nothing is a
+   caller's fault and must keep travelling as a 404, not become a per-name refusal.
 
 ### The HTTP surface
 Everything is under `/panel`. One router per subject, registered in `api/server.js`; no two
@@ -224,7 +239,7 @@ cross-file call happens later, at runtime, after all scripts have loaded.
 | `api.js` | `API.*` — one named function per HTTP operation; also fills the tag lookups (`TAG_TYPE`, `TAG_PROVIDER`, …) |
 | `controls.js` | the form session (`FORM`, `startForm`, `clearErr`, `applyServerErrors`), the house select, `pickerHtml` (the shared checklist — `opts.inline` drops its face and drop so the identical rows can stand open as a rail, `opts.cta` wears the act while a sheet is empty, `pickerCount`/`pickerCountWord` phrase every count once and `opts.quiet` drops them where the list stands open, `g.flat` suspends a section's box while a search filters it; its registry sweep is DEFERRED to the next frame, because a screen may draw several pickers in one innerHTML string and an inline sweep unwires all but the last), lookup typeahead, drag-to-reorder, row menus, `accSeg`/`accRow`, `behaviourRowsHtml`, `slotChipRowHtml`, `changesCardHtml` (the CHANGES TO APPLY card every bulk sheet draws) |
 | `publish.js` | the version rail, publish / restore flows (`PUB`) |
-| `review.js` | THE CHANGE REVIEW — the one dialog every write (save, publish, bulk, restore) confirms on. Rows are `WHAT · WAS → NOW`, except under `noFrom` (the two cohort sheets, 15 Sep user call), where a row is `FIELD · ANSWER`: forty surfaces have no single previous value, so there is no was-side to print, and the field and the answer are told apart by treatment — the field light and grey, the answer dark and heavy |
+| `review.js` | THE CHANGE REVIEW — the one dialog every write (save, publish, bulk, restore) confirms on. Rows are `WHAT · WAS → NOW`, except under `noFrom` (the two cohort sheets, 15 Sep user call), where a row is `FIELD · ANSWER`: forty surfaces have no single previous value, so there is no was-side to print, and the field and the answer are told apart by treatment — the field light and grey, the answer dark and heavy. As STEP 2 of a cohort act it is pixel-identical to step 1 by construction (16 Sep): the journey names one `--frame` both screens read (`steady-ads`/`steady-player` 480, `steady-configs` 620 — fixed rather than floored, because step 1 is), both wear the dialog family's 22px head inset, both carry the same title (17/650/-.3) and both end on the same foot bar (full-bleed top rule, `13px 24px 17px`, on the frame's bottom edge) |
 | `views-tag-lookup.js` | the ad-tag lookup control and its search |
 | `views-setups-list.js` | Ad Setups list, the new-setup chooser, ad unit templates UI |
 | `views-setups-waterfall.js` | the waterfall's zone of Global settings and its glimpse, the Apply-on-ad-slots grid, the per-break **source band** (its three states: no waterfall · custom waterfall · connected), and a connected break's shared levers |
@@ -234,11 +249,11 @@ cross-file call happens later, at runtime, after all scripts have loaded.
 | `views-setups-editor.js` | the ad setup editor itself: load, the head sections' fold and the **Global settings** head (`suGlobalsHtml`), slot addressing, delivery settings, the slot row, save |
 | `views-keys-list.js` | Integrations list, filters, paging, selection, bulk bar (**Ad behaviour · Player behaviour** — two acts, 15 Sep user call: the `Custom configs` button came off the bar, and with it the imperative greying it needed. Both remaining acts write one answer every integration has exactly one of; a config is keyed and per-surface, so it is edited on its own page) |
 | `views-keys-bulk-ads.js` | the bulk AD BEHAVIOUR sheet: levers per break on the left, CHANGES TO APPLY on the right, review, apply. A row at rest prints a value only when the cohort has one — "as set up" is the absence of an answer, so it prints nothing |
-| `views-keys-bulk-player.js` | **Player behaviour** — the one cohort player act, PICKED not printed (15 Sep): one `Change a setting` strip over the server's own catalogue (`KL_META.bulkPlayerFields`, with `bulkNever` greyed in the menu carrying its reason), each option a plain checklist row (the cohort's today-word came off the strip, then off the review — `pbTodayWord`/`pbRowTodayWord` are retired, 15 Sep); a picked row is the ad sheet's row drawn with the page's `cfgCtlHtml()` and this sheet's receiver, and MUST be answered — Apply refuses in place, by name. A value they all already hold reads `already this everywhere` and never reaches the review. A custom config belongs to the surface that owns it and is edited on the integration page (see COHORT-SHORTLIST, 14 Sep) |
+| `views-keys-bulk-player.js` | **Player behaviour** — the one cohort player act, PICKED not printed (15 Sep): one `Change a setting` strip over the server's own catalogue — its face takes the queue card's own column (`--bqp-w`, stated once on `.dlg.bulk`) so the two stand on one pair of edges — (`KL_META.bulkPlayerFields`, with `bulkNever` greyed in the menu carrying its reason), each option a plain checklist row (the cohort's today-word came off the strip, then off the review — `pbTodayWord`/`pbRowTodayWord` are retired, 15 Sep); a picked row is the ad sheet's row drawn with the page's `cfgCtlHtml()` and this sheet's receiver, and MUST be answered — Apply refuses in place, by name. A value they all already hold reads `already this everywhere` and never reaches the review. A custom config belongs to the surface that owns it and is edited on the integration page (see COHORT-SHORTLIST, 14 Sep) |
 | `views-keys-bulk-configs.js` | **Custom configs** — NO LONGER REACHED (15 Sep, user call: the CTA came off the bulk bar; `configsJourney` has no caller and the file is loaded but dead — delete it or give it a door, do not leave it as a third state nobody can see). It was the third cohort act, and the only one that is a LIST rather than a form (15 Sep, user call): a block per selected integration, its named configs one under another, and each config's SETTINGS THEMSELVES open as the content — the integration page's own rows (`.sh-row cfg` + `cfgCtlHtml`, never a lookalike). WHICH settings a config overrides is a counted fact in its header that doubles as the door — `Overrides 3 settings ▾` opens the shared `pickerHtml` checklist (`ccOverridesHtml`), reported open or shut, and opening it scrolls that config to the top of the list so the menu is not clipped by the scroller. Each integration header carries the list's own property monogram (`propBadge`) at title weight, and pins while you scroll. Three things were built and cut over the same day for clutter (user calls), all named in the file header so nobody rebuilds them: the `Change a setting on [ scope ]` shortcut strip, the read-only glance line beside each config key, and the `+ Override a setting` link under each config's rows. Nothing on this screen is a read-only copy of something editable. The never-four never appear; the sheet neither creates nor removes a config; the bar button greys with its reason when nothing selected carries one. `ccWireEdits()` resolves the queue into `configFields` edits |
 | `views-keys-editor-load.js` | the integration page: load, save-state, which ad setup fills it |
 | `views-keys-editor-ad-behaviour.js` | its Ad behaviour card: the walk mirror, the drive, break tabs |
-| `views-keys-editor-player.js` | its **Player behaviour** card: the whole default set IN PLACE on the page (`pcDefaultHtml` + `pcColHtml` — three columns, one per section, no box/divider/row rules, `PG_H` writing straight to `FORM.data.player`; no view switch, no modal), custom configs as **cards** carrying their first four overrides (`pcCardHtml` — key left, on/off switch alone on the right; the ⋯ moved into the sheet 15 Sep, so a card offers the one act it can honestly support at a glance). The ceiling is **20** (was 6), so the block grew what a shelf never needed: `pcGridHtml` shows `PCC_SHOW` (8) with a counted `Show all N configs` door, and the head carries a key filter once five or more exist (`pcFindHtml`/`pcFind` — the grid repaints, never the field), and the one sheet left — a config's "tick it, then answer it" body, now **two panes** (`shCfgBodyHtml`, 15 Sep user call): the catalogue standing open down a 206px left rail (`.sh-rail` — the search field IS its head, a filled well with no border at rest, its 6px inset and full width matched to the list beneath so field and rows start and end on the same two lines, then `pickerHtml`'s `inline` shell + `SH_PICK_H`, section heads pinned at 10.5/700 with their box the SAME 14px as the options' (it was smaller, so a parent read smaller than its children), **no counts and no eyebrow**) and the config's own rows filling `.sh-pane`. LEFT because a catalogue is a SOURCE — the version rail and the changes card earn the right by being outcomes — and because the sheet reads *these settings* → *these values*. `shSearch`/`shRailSync` rewrite the list alone, never the sheet, so typing keeps the caret; a live query sets `flat` on each group, which suspends the section boxes ("all of Playback" over a filtered view is a trap). Each pane scrolls on its own; the frame is 700. Head acts sit on the right (`shHeadActsHtml`): the config's on/off switch (working copy, counted by `shChangeCount`) alone. A **vertical** ⋮ carrying **Delete config** is the LAST thing in the act row, right of the primary, opening upward and right-aligned (`shFootMenuHtml`, `.rmenu.up`); it shuts the sheet to hand off to the page's own `pcRemove`. An empty pane draws `.sh-blank` — mark, heading, one line — not a statement of fact about the default. Every ticked setting arrives EMPTY — ALL of them since 15 Sep (`shNeedsSeed` retired): the four kinds with no drawable empty state get an explicit slate from `shRowEff` (nothing lit, no colour), `shCur` hands the first click that same slate so screen and click cannot disagree, `.sh-row.unset` dims until touched, and `shPut` clears `SH.pending` BY ROW so the two composite rows answer from any of their fields. `shDone` refuses by name over anything still waiting. Rows follow the PAGE's grammar — `SH_STACK` is `['look']`, so the nine controls draw as the page's 24px strip on their label's line and only the three colours stack (`.sh-row.cfg` is `150px 1fr auto`, measured against strip 232 + tail ~161). A row fills its pane on a `170px 1fr auto` grid: label lane fixed so the question and its answer read together, the two acts on the right edge, the slack between them (capping the row, and letting the label take the slack, were both tried and reverted — see the log). The tail holds one width whether or not it draws a switch (`.toggle.void` holds the slot on an unanswered row), so the ×, the switch and every control's right edge each stand on a true lane. The tail carries **only its two controls** (15 Sep: `DEFAULT x` / `same as default` / `following the default` all retired — three sentences about the default in the place a row's own acts live). Each row's tail carries a **park switch** and the `×`: off parks the override (row and value kept, control inert, tail reads `following the default`) and `shDone` drops parked fields, the same absence an untick leaves; `×` takes the setting off the sheet. `cfgCtlHtml`'s `compact` option is the page's cut of the two controls taller than a line |
+| `views-keys-editor-player.js` | its **Player behaviour** card: the whole default set IN PLACE on the page (`pcDefaultHtml` + `pcColHtml` — three columns, one per section, no box/divider/row rules, `PG_H` writing straight to `FORM.data.player`; no view switch, no modal), custom configs as **cards** carrying their first four overrides (`pcCardHtml` — key left, on/off switch alone on the right; the ⋯ moved into the sheet 15 Sep, so a card offers the one act it can honestly support at a glance). The ceiling is **20** (was 6), so the block grew what a shelf never needed: `pcGridHtml` shows `PCC_SHOW` (8) with a counted `Show all N configs` door, and the head carries a key filter once five or more exist (`pcFindHtml`/`pcFind` — the grid repaints, never the field), and the one sheet left — a config's "tick it, then answer it" body, now **two panes** (`shCfgBodyHtml`, 15 Sep user call): the catalogue standing open down a 206px left rail (`.sh-rail` — the search field IS its head, a filled well with no border at rest, its 6px inset and full width matched to the list beneath so field and rows start and end on the same two lines, then `pickerHtml`'s `inline` shell + `SH_PICK_H`, section heads pinned at 10.5/700 with their box the SAME 14px as the options' (it was smaller, so a parent read smaller than its children), **no counts and no eyebrow**) and the config's own rows filling `.sh-pane`. LEFT because a catalogue is a SOURCE — the version rail and the changes card earn the right by being outcomes — and because the sheet reads *these settings* → *these values*. `shSearch`/`shRailSync` rewrite the list alone, never the sheet, so typing keeps the caret; a live query sets `flat` on each group, which suspends the section boxes ("all of Playback" over a filtered view is a trap). Each pane scrolls on its own; the frame is 700. Head acts sit BESIDE THE KEY (`shHeadActsHtml`, 16 Sep): an **Active │ Inactive** segment (`accSeg`, working copy, counted by `shChangeCount`) rather than a bare toggle in the far corner — two labelled positions say what either end means without being hovered, and standing next to the name they read as the state of the thing that is named. The key field is measured to the 24-character cap (272px). A **vertical** ⋮ carrying **Delete config** is the LAST thing in the act row, right of the primary, opening upward and right-aligned (`shFootMenuHtml`, `.rmenu.up`); it shuts the sheet to hand off to the page's own `pcRemove`. An empty pane draws `.sh-blank` — mark, heading, one line — not a statement of fact about the default. Every ticked setting arrives EMPTY — ALL of them since 15 Sep (`shNeedsSeed` retired): the four kinds with no drawable empty state get an explicit slate from `shRowEff` (nothing lit, no colour), `shCur` hands the first click that same slate so screen and click cannot disagree, `.sh-row.unset` dims until touched, and `shPut` clears `SH.pending` BY ROW so the two composite rows answer from any of their fields. `shDone` refuses by name over anything still waiting. Rows follow the PAGE's grammar — `SH_STACK` is `['look']`, so the nine controls draw as the page's 24px strip on their label's line and only the three colours stack (`.sh-row.cfg` is `150px 1fr auto`, measured against strip 232 + tail ~161). A row fills its pane on a `170px 1fr auto` grid: label lane fixed so the question and its answer read together, the two acts on the right edge, the slack between them (capping the row, and letting the label take the slack, were both tried and reverted — see the log). The tail holds one width whether or not it draws a switch (`.toggle.void` holds the slot on an unanswered row), so the ×, the switch and every control's right edge each stand on a true lane. The tail carries **only its two controls** (15 Sep: `DEFAULT x` / `same as default` / `following the default` all retired — three sentences about the default in the place a row's own acts live). Each row's tail carries a **park switch** and the `×`: off parks the override (row and value kept, control inert, tail reads `following the default`) and `shDone` drops parked fields, the same absence an untick leaves; `×` takes the setting off the sheet. `cfgCtlHtml`'s `compact` option is the page's cut of the two controls taller than a line |
 | `views-keys-editor-frame.js` | its frame: header, payload, save / create / duplicate / delete, the chooser The form carries `keyform`, the class the page's ONE type scale is scoped to (10-surfaces.css, end of file): label 12.5/500 · value 12.5 · box 30px · seg 12 · chip 11.5, covering all three cards and the config sheet |
 | `login.js` | THE FRONT DOOR (`login.html`): the remembered-account row and its picker (the primary act), the address field under it, which of the two carries the accent, the three refusals painted in place, Request access |
 | `main.js` | THE GATE (the session, read once before anything paints — no session lands on `login.html`), the hash router (`#keys`, `#keys/:id`, `#setups`, `#setups/:id`), nav counts, `getMeta()` |
@@ -357,6 +372,16 @@ a state machine.
 5. `web/js/controls.js` → `behaviourRowsHtml` — add its row in the fixed order.
 6. `test/cases/04-behaviour.spec.js` — pin the default, the bounds and the refusal.
 
+**Add a quick decision (a drive field)**
+1. `store/ladders.js` — add it to `DRIVE_FIELDS[slot]`, which decides *which* breaks may
+   carry it.
+2. `store/keys.js` — add one entry to `DRIVE_WRITERS`, the table keyed by the field's own
+   name. A writer takes `(v, errs, out)` and writes its own key on `out`, or writes nothing
+   (that is how `direct` says "absence is on"). A field with no writer is ignored.
+3. Bounds shared with the ad setup's own answer go in `store/state.js`, not at both sites —
+   see §9.
+4. `web/js/util.js` → `FIELD_NAMES`, and a case in `test/cases/03-drive.spec.js`.
+
 **Add a route**: a function in the owning `store/` module, a thin handler in the matching
 `api/routes/*.js`, a shape in `api/response-shapes.js` if the answer is a new object, a named
 operation in `web/js/api.js`, and a case in `test/cases/`.
@@ -376,11 +401,15 @@ that subject; the harness resets the world before every case.
 with an empty world) → `app.listen`. The listen is skipped when `NODE_ENV === 'test'`,
 which is how `test/run.js` imports the same app and hosts it itself.
 
-**`api/config.js` is the knobs an operator turns**, and the only place the repo reads
-`process.env`. There is still no `.env` and no config *format* — it is a plain module with
-committed defaults that environment variables override, in that order (the precedence is
-documented at the top of the file). Nothing else reads `process.env`; ports are not spelled
-anywhere else either.
+**`api/config.js` is the knobs an operator turns**, and the only place the *application*
+reads `process.env`. There is still no `.env` and no config *format* — it is a plain module
+with committed defaults that environment variables override, in that order (the precedence is
+documented at the top of the file). Ports are not spelled anywhere else.
+
+Two files outside the app touch the environment, both in `test/`, and both are in the table
+below: `test/run.js` **sets** `NODE_ENV` and `PANEL_PORT` before importing the server (which is
+why that import is dynamic), and `test/ui-snapshot.mjs` **reads** `CHROME` and `PUPPETEER` to
+find a browser. Nothing under `api/` or `web/` reads `process.env` at all.
 
 | Name | Source | Default | Controls |
 | --- | --- | --- | --- |
@@ -411,13 +440,23 @@ words — is code in `store/state.js` and `store/ladders.js` on purpose, because
 rule the suite pins rather than a knob an operator turns. A new cap belongs there, not in
 `config.js`.
 
+**A cap answered on both sides is spelled once.** Three bounds are answered twice — by the ad
+setup (`normalizeSlotBehaviour`, `store/ladders.js`) and again by a surface overriding it
+(`DRIVE_WRITERS`, `store/keys.js`). Two of them, `MAX_POD_ADS` and
+`MIDROLL_EVERY_MIN`/`MIDROLL_EVERY_MAX`, now live in `store/state.js` and both sides read
+them. The third, `deferSec`, is **deliberately still split**: the setup's floor is 3 s and a
+surface's is 1 s. Whether that is a licence or an old typo is not something the code answers,
+so it was left as found rather than unified — unifying it would move a rule, not tidy one.
+Each site carries a comment saying so; the reasoning is in `docs/REFACTOR-DECISIONS.md`
+(ADR-4). *(Verified — the split is real, its intent is Unclear.)*
+
 ## 10. Verifying a change
 
 | Command | What it proves |
 | --- | --- |
 | `npm run check` | every JS file parses |
-| `npm test` | the 171 HTTP cases (rules, refusals, the publish plane, the player's JSON, the front door) |
-| `npm run ui:snapshot <label>` | the screens: walks 73 states in headless Chrome at 1440×900 (69 in the console, then the front door's 4), writes their markup and a PNG each, and fails on any console error |
+| `npm test` | the 183 HTTP cases (rules, refusals, the publish plane, the player's JSON, the front door) |
+| `npm run ui:snapshot <label>` | the screens: walks 85 states in headless Chrome at 1440×900 (81 in the console, then the front door's 4), writes their markup and a PNG each, and fails on any console error |
 | `npm run ui:snapshot diff a b` | that two captures are identical |
 
 `ui:snapshot` boots its own server on **:4300**, never your :4200, so a capture cannot be
@@ -462,6 +501,12 @@ These are deliberate for the prototype and must be closed before real traffic:
   numbers it carries; a schema and a compatibility test with the player team are missing.
 - **Single process.** The publish plane assumes one writer; a multi-instance deploy needs
   the versions and live maps in shared storage with a transaction per publish.
+- **Two cohort counters are pinned by nothing.** `skipped` and `unchanged` — two of the four
+  numbers every `POST /panel/keys/bulk` answer carries — are asserted in no case anywhere in
+  `test/cases/`. The 15 Sep refactor of that route proved them unchanged with a differential
+  probe rather than the suite, which is a one-off, not a net: today nothing would catch a
+  regression in either. A case in `07-bulk.spec.js` pinning a non-empty `skipped` and
+  publish's `nothing_to_publish → unchanged` would close it. *(Gap.)*
 - **No lint/format tooling** is checked in beyond `.editorconfig` and `npm run check`.
   `check`'s glob covers `test/*.mjs` since 15 Sep, so `test/ui-snapshot.mjs` — the one `.mjs`
   file in the repo — is no longer the one source file that never parsed. A real linter would

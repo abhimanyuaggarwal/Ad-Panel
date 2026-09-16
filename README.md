@@ -29,7 +29,7 @@ npm start          # http://localhost:4200 — serves the API and the web app to
 | Command | What it does |
 | --- | --- |
 | `npm start` | the API and web app on :4200 (`PANEL_PORT` to change it) |
-| `npm test` | the rule suite — 174 cases over HTTP, ~1 s |
+| `npm test` | the rule suite — 183 cases over HTTP, ~1 s |
 | `npm run check` | every JS file parses |
 | `npm run demo` | rebuild the seeded demo world (same ids every time) |
 | `npm run scale` | rebuild it at the `scale` scenario |
@@ -49,7 +49,7 @@ api/     Express, in-memory. server.js assembles; routes/ is one router per subj
 web/     the app — plain <script> tags in dependency order, every function a global;
          index.html is the console, login.html the front door
 test/    run.js boots the API on :4299 and walks cases/NN-*.spec.js
-docs/    the product overview, the dated scope documents, the hand-off FAQ
+docs/    the product overview and its flows, the dated scope documents, the hand-off FAQ
 ```
 
 ## Where to read next
@@ -58,6 +58,7 @@ docs/    the product overview, the dated scope documents, the hand-off FAQ
 | --- | --- |
 | **[ARCHITECTURE.md](ARCHITECTURE.md)** | **start here to change the code** — the directory map, the model, how a request travels, the two planes, the web conventions, and the known gaps |
 | [docs/PRODUCT-SCOPE.md](docs/PRODUCT-SCOPE.md) | what the product does and where its edges are, for any reader |
+| [docs/PRODUCT-FLOW.md](docs/PRODUCT-FLOW.md) | the same scope read as journeys — who does what, in what order, and where it refuses |
 | [PRODUCT-LOG.md](PRODUCT-LOG.md) | every decision, dated, with the reason — including the reversed ones and why |
 | [docs/DECISION-RECORDS.md](docs/DECISION-RECORDS.md) | the original dated scope documents, merged, oldest first |
 | [docs/FAQ.md](docs/FAQ.md) | the engineering hand-off FAQ |

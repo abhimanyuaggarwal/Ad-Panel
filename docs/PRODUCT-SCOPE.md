@@ -99,8 +99,10 @@ this config have an opinion here at all?* and takes the setting off the sheet. B
 absence when the sheet closes, because the model has one state for "follows the default".
 
 The config's own acts sit at the top right of the sheet, where the config is open in front of you:
-its **on/off switch**; a vertical ⋮ holding *Delete config* is the last thing in the act row, just
-right of the primary — a rare, irreversible act kept one step off the path without being exiled to
+an **Active │ Inactive** segment beside the key — two labelled positions rather than a switch that
+has to be hovered to learn what either end does, and next to the name because it is that name's
+state; a vertical ⋮ holding *Delete config* is the last thing in the act row, just right of the
+primary — a rare, irreversible act kept one step off the path without being exiled to
 the opposite corner. (Dropping every override was in that menu
 for a day and left: unticking the three section boxes in the rail is the same act in plain sight,
 and a menu item duplicating what is already on screen only makes the one item that isn't harder to
@@ -302,9 +304,10 @@ that follows from how many there are.
 **Ad behaviour** prints its levers, because a break has about six: each starts closed showing
 the cohort's counted today-word ("full waterfall", "3 different values").
 
-**Player behaviour** folds its levers into one checklist, because a player has twenty-one —
-a printed list that long is a form for a whole estate rather than a decision. It is the same
-control the custom config sheet uses to choose what it overrides: a box per setting, a box
+**Player behaviour** folds its levers into one checklist, because a cohort may answer
+twenty-five of them — a printed list that long is a form for a whole estate rather than a
+decision. It is the same control the custom config sheet uses to choose what it overrides:
+a box per setting, a box
 per section that takes everything under it, and a menu that stays open while you work. It
 offers the settings the server itself accepts, grouped as the player card groups them, with
 the four a single surface owns greyed in place carrying the reason they are refused. The sheet says what it writes on the line beside its title — that these set
@@ -333,7 +336,7 @@ it was never one answer every integration has exactly one of. It is edited where
 on the integration's own page. What follows describes the sheet as it was built, kept because the
 code is still there and the reasoning still holds if it is ever given a door again: it is a list
 rather than a form — because a custom config
-is not something every integration has one of. A surface carries none, or up to six, each
+is not something every integration has one of. A surface carries none, or up to twenty, each
 addressed by the key a player asks for it by, so "one answer for forty" is usually the wrong
 instrument. The sheet gathers them instead: a block per selected integration, its configs one
 under another, and each config's settings open as the content — the same rows the integration's
@@ -357,6 +360,11 @@ named acts with a six-per-integration ceiling, and they belong on the one surfac
 — and the four settings a single surface owns (Plays as · Redirect URL · Quality · Fallback
 media) are absent from it entirely, at both scopes. A selection where nobody carries a config
 greys the act on the bar with that reason rather than opening an empty sheet.
+
+**Step 2 is the same object as step 1.** Each cohort act names one height, and its sheet and its
+review both take it — same width, same title, same head inset, same foot bar on the same bottom
+edge. Nothing about the frame moves when you cross from the work to the confirmation, because a
+dialog that resizes under a decision reads as a different dialog.
 
 Bulk writes are per-integration: a surface the change cannot apply to is skipped and named,
 never silently included.
@@ -438,7 +446,7 @@ machine-readable (`status`, `code`, `message`, field-level details), so the UI c
 the reason exactly where the mistake was made.
 
 **The numbers.** At most: 5 placements per setup, 3 mid-roll pods, 10 rungs per ladder
-(1 primary + 9 fallbacks), 5 tags in an out-stream rotation, 6 custom configs per
+(1 primary + 9 fallbacks), 5 tags in an out-stream rotation, 20 custom configs per
 integration, 1 direct deal per break or pod. Names are unique case-insensitively per
 object type. Autoplay is On/Off/Auto; Passive volume is 0–100 and is the player's only
 volume on the default; a custom config may override it, or any other field, and is held
@@ -457,17 +465,18 @@ Small, documented honestly rather than patched quietly: clearing the "Hold video
 "Request timeout" box reverts silently to the default instead of saying so; an
 out-of-range value there is refused in raw milliseconds ("waitMs… got 50") despite the
 seconds-only rule; the drive and bulk cue-point editors drop an unparsable token
-client-side where the setup editor correctly lets the server refuse it by name; and the
-Unpublish endpoint has no button in the UI yet — Delete is gated on it, so a live
-integration currently cannot be taken down from the screen. Each is a one-line fix;
-none changes scope.
+client-side where the setup editor correctly lets the server refuse it by name. Each is a
+one-line fix; none changes scope. (The one that used to head this list — an Unpublish
+endpoint no button reached — closed on 7 Sep: `Deactivate` sits on the ⋯ of both editors,
+and Delete is gated on it.)
 
 ## Where the code lives
 
 `api/` is the model behind an Express server (port 4200): `store/` holds eight subject
 modules behind a re-export façade, `mock/` holds every invented fixture. `web/` is a
 no-build vanilla-JS app: plain scripts in dependency order, styles split across ten
-cascade-ordered files. `test/run.js` pins 117 rules over real HTTP in about a second,
+cascade-ordered files. `test/run.js` pins 183 rules over real HTTP in about a second,
 and the repo carries a 44-check browser UAT. The deeper design record — every decision
-and the reasoning behind it — is `PRODUCT-LOG.md`; the store split's method is
-`docs/STORE-SPLIT.md`.
+and the reasoning behind it — is `PRODUCT-LOG.md`; the structural pass over `api/` is
+`docs/REFACTOR-DECISIONS.md`. The same product read as journeys is
+`docs/PRODUCT-FLOW.md`.

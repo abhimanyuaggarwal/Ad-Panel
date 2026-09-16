@@ -652,7 +652,10 @@ async function ccApply() {
     changes,
     okLabel: `Apply to ${touched.size}`,
     cancelLabel: 'Back',
-    steady: 'player',
+    // THIS JOURNEY'S OWN FRAME, not the player sheet's (16 Sep). Borrowing `player` borrowed its
+    // 480 too, so step 2 shrank 140px under step 1's 620 and took the header and the footer with
+    // it. A journey states its height once and both of its screens read it.
+    steady: 'configs',
   });
   if (!ok) {
     CC = { ...back, pending: {}, openKey: backOpenKey, openCfg: backOpenCfg, cfgPick: '', err: '' };

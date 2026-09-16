@@ -9,10 +9,14 @@
 .dlg.bulk {
   width: 860px; max-height: calc(100vh - 80px);
   display: flex; flex-direction: column;
+  /* The queue card's column, stated once for everything that has to line up with it. */
+  --bqp-w: 252px;
 }
 .dlg.bulk .dlg-body { overflow-y: auto; }
-/* The sheet's title is an integration title — same face as the page's. */
-.dlg.bulk h3 { font-size: 18px; font-weight: 650; letter-spacing: -.1px; }
+/* THE SAME TITLE THE REVIEW SETS (16 Sep) — 17/650/-.3 rather than 18/650/-.1. A title that
+   changes size between step 1 and step 2 of one act is the clearest way to tell somebody they
+   have arrived somewhere else. */
+.dlg.bulk h3 { font-size: 17px; font-weight: 650; letter-spacing: -.3px; line-height: 1.3; }
 /* One body height for every tab AND for the review that follows (2 Sep): the sheet used
    to grow and shrink as you moved between tabs, and step 2 arrived as a different-sized
    object. Same number here and on `.rvw-body`.
@@ -74,19 +78,34 @@
    hoisted above the BODY then, floating over both columns with the queue card's head 110px
    lower. In the title row it is part of the header, the two columns start level, and the menu
    still escapes — the body is not the scroller, the rows are. */
+/* THE TITLE SITS WHERE EVERY OTHER TITLE SITS (16 Sep, user call). This is the one sheet whose
+   head is a BAND — the title and the sheet's one instrument on a line — and centring both in it
+   put the title 6px below the dialog's padding edge: 2 from the band's own top margin and 4 from
+   being centred against a 30px control in a row the title is only 22 tall. Its two siblings and
+   the review all start their title at 22, so a step change moved the words. The title is
+   top-aligned now and the CONTROL is centred on its line instead, which is what optical alignment
+   between a heading and a field beside it actually means. */
 .pbx-head {
-  display: flex; align-items: center; gap: 16px;
-  padding: 0 0 12px; margin: 2px 0 12px; border-bottom: 1px solid var(--line);
+  display: flex; align-items: flex-start; gap: 16px;
+  padding: 0 0 12px; margin: 0 0 12px; border-bottom: 1px solid var(--line);
 }
 .pbx-head h3 { margin: 0; }
+.pbx-head .shpick { margin-top: -4px; }
 /* The menu is the catalogue — twenty-one settings in three groups — so it is given the room
    to be read rather than the room the sheet happens to have. It can only take that room
    because the body below does not clip it: the scroller sits on the rows alone, which is the
    one box the menu is not inside. */
 .pbx-head .shpick-menu { max-height: min(420px, calc(100vh - 300px)); }
-/* The face is the widest thing in the band after the title, and it holds its width so the rule
-   under it does not move as the sheet fills. */
-.pbx-head .shpick { flex: 0 0 300px; }
+/* THE FACE STANDS OVER THE QUEUE CARD, AND ENDS WHERE IT ENDS (16 Sep, user call — *"the choose
+   settings drop down to align with changes to apply block"*). It was 300 wide against the card's
+   252, so it began 46px to the card's left and overhung it by two — near enough to look like an
+   attempt at alignment and far enough to read as a miss. It takes the card's own column now
+   (`--bqp-w`), and the band pays the 2px right inset the scrolling body below it already pays, so
+   the two right edges are the same edge rather than two numbers kept in step by hand. */
+.pbx-head { padding-right: 2px; }
+/* `min-width: 0` because the shared control carries a 300px floor of its own, and a floor beats a
+   basis — without it the face simply stayed 300 and only its right edge moved. */
+.pbx-head .shpick { flex: 0 0 var(--bqp-w); min-width: 0; }
 
 .dlg.bulk.pbx .dlg-body { overflow: visible; display: flex; min-height: 0; }
 /* The split is now a flex ITEM as well as a flex container, so it has to be told to take the
@@ -180,7 +199,17 @@
   background: var(--warn-soft); border: 1px solid #f0d8a8;
   font-size: 12px; line-height: 1.5; color: var(--warn);
 }
-.dlg.bulk .dlg-foot { margin-top: 12px; align-items: center; }
+/* THE FOOT IS A BAR, ANCHORED TO THE FRAME — the review's foot, exactly (16 Sep, user call).
+   The sheet's floated inside the dialog's own 22px bottom padding, so across a step change the
+   act row rose 22px and grew a rule out of nowhere. It is the same object on both screens now:
+   full-bleed top rule, `13px 24px 17px`, sitting on the frame's bottom edge. The dialog gives up
+   its bottom padding to it (the foot pays its own), and the negative side margins undo the
+   dialog's 24 so the rule spans the whole width the review's does. */
+.dlg.bulk { padding-bottom: 0; }
+.dlg.bulk .dlg-foot {
+  margin: 12px -24px 0; padding: 13px 24px 17px;
+  border-top: 1px solid var(--line); align-items: center;
+}
 /* WHO THE APPLY LANDS ON, at the button's shoulder (15 Sep) — the audience sits LAST, against
    the buttons, because it is the sentence a person is reading when their hand is already there.
    IT IS NOT A FOOTNOTE (user call — *"make this more prominent and more clear, currently it is

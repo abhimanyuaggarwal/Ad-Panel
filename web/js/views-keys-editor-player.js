@@ -845,20 +845,27 @@ function shRender() {
 // beside it on the same right-hand edge in both places. The card keeps the switch alone: on/off
 // is the one decision worth making at a glance, and the only one a card can honestly support.
 //
-// The switch writes to the WORKING COPY like everything else on this sheet — Cancel puts it back,
-// Done lands it, and `shChangeCount` counts it. Remove and Follow-the-default are not working-copy
-// acts: they are the page's own (`pcRemove` / `pcFollowAll`, which ask first), so they shut the
-// sheet rather than pretending to be undoable inside it.
+// The state writes to the WORKING COPY like everything else on this sheet — Cancel puts it back,
+// Done lands it, and `shChangeCount` counts it. Delete is not a working-copy act: it is the page's
+// own (`pcRemove`, which asks first), so it shuts the sheet rather than pretending to be undoable
+// inside it.
+//
+// A NAMED PAIR BESIDE THE TITLE, NOT A SWITCH IN THE CORNER (16 Sep, user call — *"rather than the
+// enable disable switch on the top right in the header place a Active inactive tab switch near the
+// title"*). A bare toggle says nothing about what either end MEANS — it has to be hovered to learn
+// that off sends players to the default — and parked in the opposite corner from the name it
+// belongs to, it read as a property of the dialog rather than of this config. Two labelled
+// positions say it without being asked, and standing next to the key they read as what they are:
+// the state of the thing that is named. It is the house segment (`accSeg`), which is what every
+// other two-way answer on this sheet already is.
 function shHeadActsHtml() {
   if (!SH) return '';
-  const off = SH.draft.on === false;
-  const isNew = SH.mode === 'new';
-  return `
-    <span class="sh-acts">
-      <span class="toggle tiny${off ? '' : ' on'}"
-        title="${off ? 'Off — players asking for this key get the default' : 'On — players asking for this key get it'}"
-        onclick="shOn(${off})"><span class="track"></span></span>
-    </span>`;
+  const on = SH.draft.on !== false;
+  // No `whyFor`: in `accSeg` that argument is a REASON AN OPTION IS REFUSED, and anything it
+  // returns disables the button. The labels are the explanation here, which is the whole reason
+  // they replaced a switch — and an explainer tooltip would be against the tooltip rule anyway.
+  return `<span class="sh-acts">${accSeg(on ? 'on' : 'off', ['on', 'off'], ['Active', 'Inactive'],
+    o => `shOn(${o === 'on'})`)}</span>`;
 }
 // THE DESTRUCTIVE ACT SITS WITH THE ACTS (15 Sep, user call — *"the 3 dot can be moved to the
 // bottom near the button"*, then *"could be placed at the right side of button on the bottom and

@@ -1,5 +1,88 @@
 # Player Console — the Integrations Panel (StreamAds repo) — v1
 
+**TWO ALIGNMENTS (16 Sep, user calls).**
+
+- ***"The choose settings drop down to align with changes to apply block."*** The player sheet's
+  face was 300 wide against the queue card's 252, so it began 46px to the card's left and overhung
+  it by two — near enough to look like an attempt at alignment and far enough to read as a miss.
+  The card's width is a NAMED COLUMN now (`--bqp-w` on `.dlg.bulk`) that both read, and the head
+  pays the same 2px right inset the scrolling body below it already pays, so the two right edges
+  are one edge rather than two numbers kept in step by hand. One trap on the way: the shared
+  picker carries its own `min-width: 300px`, and a floor beats a basis — without `min-width: 0`
+  only the right edge moved. Measured after: face and card both 872 → 1124.
+- ***"Rather than the enable disable switch on the top right, place an Active/Inactive tab switch
+  near the title."*** A bare toggle says nothing about what either end MEANS — it has to be
+  hovered to learn that off sends players to the default — and parked in the opposite corner from
+  the name it belongs to it read as a property of the dialog rather than of this config. It is the
+  house segment now (`accSeg`), **Active │ Inactive**, sitting next to the key: two labelled
+  positions that explain themselves, which is also why they need no tooltip. `.sh-t` stopped
+  taking the slack so the pair follows the field, and the key's box came down from 320 to a
+  MEASURED 272 — 24 characters of 17px mono need 254 of content box, and the cap the server
+  enforces is 24. (One trap: `accSeg`'s sixth argument is a REASON AN OPTION IS REFUSED, not a
+  tooltip — anything it returns disables the button, which is exactly what happened for a minute.)
+- **183 passed**, `npm run check` ok, and all three step-1/step-2 journeys re-measured at 0 on
+  every axis after the head change.
+
+**STEP 1 AND STEP 2 ARE ONE OBJECT AGAIN (16 Sep, user call — *"the modal in step 1 and step 2 the
+UI is disjointed, the header and the footer jerk when switching"*).** Measured all three cohort
+journeys across the step change before touching anything. Every one of them moved, for three
+different reasons.
+
+| | frame | title | head top | foot bottom |
+|---|---|---|---|---|
+| Ad behaviour | 480 → 480 | 18 → 17 | 22 → 19 | −22 → 0 |
+| Player behaviour | 480 → 480 | 18 → 17 | 28 → 19 | −22 → 0 |
+| Custom configs | **620 → 480** | 18 → 17 | 22 → 19 | −22 → 0 |
+
+- **The frame.** Custom configs borrowed `steady: 'player'` when it was given its own 620, so step
+  2 came back at the player sheet's 480: the dialog shrank 140px, its top fell 70 and the footer
+  jumped 79. It names its own frame now (`steady-configs`, 620) — and takes a FIXED height rather
+  than the floor its siblings use, because a step 1 that is fixed and a step 2 free to grow is the
+  same jerk measured from the other end.
+- **The chrome.** The two screens were built on different padding models: the sheets let `.dlg`
+  pay `22px 24px`; the review opted out so each of its parts could pay its own — and then paid 19
+  at the head and ran its foot flush to the bottom edge with a rule the sheets did not have. So
+  the head slid 3px and the foot rose 22 and grew a line. The review's head comes to the family's
+  22, and the sheets' foot becomes the review's foot: a bar on the frame's bottom edge, full-bleed
+  top rule, `13px 24px 17px`.
+- **The title.** 18/650/-.1 on the sheets, 17/650/-.3 on the review — it changed size mid-act. The
+  review's wins; it is what five other screens already use.
+- **One sheet had its own 6px.** The player sheet's head is a BAND (title + the settings picker on
+  one line) and centring both put the title 6px low: 2 from the band's top margin, 4 from being
+  centred against a 30px control in a 22px row. The title is top-aligned now and the CONTROL is
+  centred on its line — which is what optical alignment between a heading and a field beside it
+  actually means.
+
+**All three journeys now measure 0 on every axis** — width, height, dialog top, head top, head
+left, foot top, foot bottom. **183 passed**; the standalone review (Save / Publish / Restore /
+Delete) keeps its own width and content height and was re-checked.
+
+**Not changed, and worth knowing:** the custom configs review has no audience column where the ad
+and player reviews do — that act's audience is (integration, config) pairs rather than a flat
+cohort, so un-ticking a surface there is a real design question, not a copy of the other two.
+
+**THE SCOPE, READ AS JOURNEYS (16 Sep).** *"Can you update the product flow md file as well so
+that it captures the product scope?"*
+
+- **`docs/PRODUCT-FLOW.md` — the same product, along the other axis.** PRODUCT-SCOPE.md is
+  organised by SURFACE: what each screen is, and why it is shaped the way it is. It answers
+  every question except the one a new reader asks first — *what happens, and in what order?*
+  The flow document walks the nine journeys the console exists to carry (getting in · a new
+  surface · the demand behind it · the drive · custom configs · a cohort write · going on air
+  and coming back off · what the player reads · housekeeping), each as numbered steps with
+  what the person does, what the console does back, and **where it refuses** — the refusals
+  are part of the flow here, not an appendix, because in this product they are what the
+  screens are for. It ends on the caps, what is deliberately out of v1, and a flow → screen →
+  code → cases table, so a reader can leave it for the code at the right line. No new scope:
+  where the two documents disagree, the scope document is the one to fix.
+- **Three things the scope document had gone stale on, found while writing it.** The custom
+  config ceiling in *The numbers* still read `6` where the code (and the configs block, two
+  pages above it) says twenty. The rough-edges list still opened on *the Unpublish endpoint
+  has no button in the UI yet* — closed on 7 Sep, when `Deactivate` went onto the ⋯ of both
+  editors; it now says so, dated, rather than disappearing. And the counted suite was written
+  as 117 rules against a suite that is 183. A scope document that miscounts is worse than one
+  that does not count, so the numbers are read off the code and the run from now on.
+
 **THE PLAYER SHEET'S HEADER BAND, AND WHAT THE FOOT SAYS (16 Sep, four user calls).**
 *"The Change settings should be Choose settings"* · *"can that be cleanly placed alongside the
 header near the title Player behaviour"* · *"Applies to all 2 integrations should be Changes will
