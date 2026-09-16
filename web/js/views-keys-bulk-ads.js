@@ -20,14 +20,18 @@ let UNIT_DRAFT = null;
 // the grey footnote it was. `all N integrations`, not `all N selected`: `selected` names where
 // they came from, which is not the question at the button; what a person is about to do is write
 // to N integrations.
+//   IT NAMES WHAT IS BEING WRITTEN, not just who to (16 Sep, user call). `Applies to all 2
+// integrations` left the other half of the sentence to the title, and a title is at the far end
+// of the dialog from the button this line stands beside. Each sheet passes its own subject —
+// `ad behaviour`, `player behaviour` — so the line is the whole act in one place: what changes,
+// and on how many.
 //   Counted off the journey's OWN audience (`selectedKeys`, which the review's second step can
 // move), so it can never say a number the apply will not write to. Shared by both sheets — one
 // sentence, one place.
-function bulkAppliesNote() {
+function bulkAppliesNote(subject) {
   const n = selectedKeys().length;
-  return n === 1
-    ? 'Applies to <b>1 integration</b>'
-    : `Applies to all <b>${n} integrations</b>`;
+  return `Changes will be applied to the ${esc(subject)} of ${n === 1
+    ? '<b>1 integration</b>' : `all <b>${n} integrations</b>`}`;
 }
 
 // The Player tab is GONE from this sheet (2 Sep, user call): player behaviour is a
@@ -149,7 +153,7 @@ function renderUnitScreen() {
         ${slotTabHtml(d.tab)}
       </div>
       <div class="dlg-foot">
-        <span class="bulk-applies">${bulkAppliesNote()}</span>
+        <span class="bulk-applies">${bulkAppliesNote('ad behaviour')}</span>
         <button class="btn ghost" onclick="cancelUnitScreen()">Cancel</button>
         <button class="btn" id="bulk-next" ${anyBulkDirty() ? '' : 'disabled'}
           onclick="reviewBulk()">${(() => { const n = bulkQueuedRows().length;
@@ -640,13 +644,12 @@ function bulkReviewState() {
     title: `Apply to ${keys.length} integration${keys.length === 1 ? '' : 's'}?`,
     okLabel: keys.length ? `Apply to ${keys.length}` : 'Apply',
     changes: bulkReviewChanges(),
-    // WHAT HAPPENS AFTER THE BUTTON, said before it (15 Sep, user call — *"when we apply, why
-    // are they in unpublished state? it is not the correct communication"*). A cohort write
-    // SAVES on every surface it reaches; going on air stays each integration's own deliberate
-    // act from its own page, which is the 2 Sep call that took publish off this bar. Somebody who
-    // has just confirmed `Apply to 12 integrations?` has every reason to think it is live, so the
-    // caption says otherwise while the act is still a question — not in a toast after it.
-    foot: 'Saved on each integration · on air when it is published',
+    // RETIRED 16 Sep (user call — *"Saved on each integration · on air when it is published —
+    // remove this text from step 2"*). It was here for one day to answer *"why are they in
+    // unpublished state"*, and what actually answered that was the WORD: the status line reads
+    // `Changes not on air` now instead of borrowing `Unpublished` from a different state, and the
+    // receipt says `not on air yet`. With those two true, a sentence on the review was the third
+    // telling — on the one screen whose whole job is the list, not a lesson about the model.
     emptyText: keys.length
       ? 'Nothing to change on these integrations.'
       : 'No integrations in this change — tick at least one above.',

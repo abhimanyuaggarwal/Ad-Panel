@@ -146,7 +146,7 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
 .aud-hd { display: flex; align-items: baseline; gap: 10px; flex: none; }
 /* The evidence's own section label, to the pixel — `.rvw-sh` is sticky over a scroller it does
    not have here, so only that comes off. */
-.aud-hd .rvw-sh { position: static; padding: 11px 0 8px; }
+.aud-hd .rvw-sh { position: static; padding: 11px 0 6px; }
 /* The count is a NUMBER, not a heading: it sheds the label's caps and tracking and sits in
    tabular figures, so `2 of 3` reads at a glance instead of shouting `2 OF 3`. */
 .aud-count {
@@ -157,7 +157,7 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
 .aud-hd .zlink { font-size: 10.5px; font-weight: 650; letter-spacing: 0; }
 .aud-list {
   flex: 0 1 auto; min-height: 0; overflow-y: auto;
-  padding: 4px 0 2px; border-top: 1px solid #f1f3f7;
+  padding: 2px 0; border-top: 1px solid #f1f3f7;
   /* A list cut off mid-row says "there is more" by accident; the review's own two-layer cap says
      it on purpose — a white fade that scrolls WITH the names over a shadow pinned to the box, so
      the shadow shows only while something is still below. */
@@ -178,16 +178,15 @@ main { padding: 24px 26px 60px; max-width: 1760px; margin: 0 auto; width: 100%; 
 .aud-r .shp-box { flex: none; }
 .aud-n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .aud-s { flex: none; font-size: 10.5px; color: var(--ink-faint); white-space: nowrap; }
-/* THE WAY IN, HELD UNDER THE NAMES — so a surface picked from it lands on the line directly
-   above, where the eye already is. */
-.aud-add { flex: none; padding: 10px 0 0; margin-top: 4px; border-top: 1px solid #f1f3f7; }
+/* THE WAY IN HEADS THE COLUMN (16 Sep) — one place at three names and at sixty-seven. Under
+   them it rode down the column as the cohort grew and at twenty it was pinned against the
+   dialog's floor with its results forced to open upward over the very list they add to: a control
+   whose position AND whose direction both depended on how many surfaces you had picked. Here
+   neither does, and the results open downward over the names the way every typeahead in this
+   panel does. */
+.aud-add { flex: none; padding: 6px 0 9px; }
 .aud-add .lookup input { padding: 7px 11px; font-size: 12.5px; border-radius: 8px; }
-/* THE RESULTS STAND WHERE THERE IS ROOM, and by default that is below — the column is the size
-   of its names, so the space under the field is the dialog's own empty air and the menu covers
-   nothing. `.up` is set by the screen when the column has grown tall enough that below would mean
-   outside the dialog; then it opens over the tail of a list long enough to have one. */
 .aud-add .lk-menu { top: calc(100% + 5px); bottom: auto; max-height: 232px; }
-.aud-add .lookup.up .lk-menu { top: auto; bottom: calc(100% + 5px); }
 .aud-add .lk-title { font-size: 12px; font-weight: 600; }
 .aud-add .lk-sub { font-family: inherit; font-size: 10.5px; }
 .aud-add .lk-item { padding: 6px 9px; }

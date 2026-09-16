@@ -99,8 +99,9 @@ this config have an opinion here at all?* and takes the setting off the sheet. B
 absence when the sheet closes, because the model has one state for "follows the default".
 
 The config's own acts sit at the top right of the sheet, where the config is open in front of you:
-its **on/off switch**; the ⋯ holding *Delete config* sits at the foot, hard left and opening
-upward, which is where every platform puts a dialog's rare and irreversible act. (Dropping every override was in that menu
+its **on/off switch**; a vertical ⋮ holding *Delete config* is the last thing in the act row, just
+right of the primary — a rare, irreversible act kept one step off the path without being exiled to
+the opposite corner. (Dropping every override was in that menu
 for a day and left: unticking the three section boxes in the rail is the same act in plain sight,
 and a menu item duplicating what is already on screen only makes the one item that isn't harder to
 find.) The cards on the page keep the switch alone — on or off is the one decision worth making at a glance,
@@ -118,6 +119,17 @@ from the control it belongs to. The nine controls draw as the page's strip of gl
 on their label's line rather than as a grid of labelled tiles — the same setting on the card behind
 the sheet and inside it should not be two different things — and the only control that still takes
 a line of its own is the three colours, which are half a form anywhere.
+
+**A config with nothing set yet says what to do, not what it is** — and says it without the
+model's own vocabulary. A mark, a heading and one line: *Nothing changed yet · Pick a setting on
+the left to change it just for this config. Everything else stays the same as the default.* Two
+earlier versions failed for opposite reasons. *Follows the default in everything* was true and
+useless — a config with no overrides follows the default by definition, so it described the
+emptiness rather than resolving it. *No settings overridden yet* resolved it in a word that names
+a MECHANISM to somebody who only wants to know whether anything is different: `overridden` is how
+the model stores this, not how a reader thinks about it. What stands now carries the whole of
+sparse overrides — change one thing, everything else stays as it was — in words nobody has to be
+taught.
 
 **Up to twenty configs per integration**, and the block is built for it: eight cards show, the rest
 sit behind a counted *Show all 20 configs*, and once there are five or more the head carries a
@@ -240,13 +252,16 @@ print its answer as a byline you could not touch. The changes are the left colum
 **Integrations** is the right, divided by one rule — two siblings built the same way, a
 micro-label on one baseline over a list, because this screen has no boxes in it.
 
-The column holds the cohort and nothing else: one name per line, each a tick. **Rows never
+The column holds the cohort and nothing else: a counted head, a search, and one name per line,
+each a tick. The search heads the column so that its place and the direction its results open
+never depend on how long the list is. **Rows never
 leave it** — take a surface out and it stays where it was with an empty box, faint, counted
 (`· 2 of 3`), one click from being back in; `All` beside the count puts every one of them back
 while there is one to put back. To add a surface that was never ticked on the list you search for
 it in the field under the names — type, pick, and it joins the list directly above the field,
-which clears itself for the next one. An empty field offers nothing; the results lead with what
-can be added and carry what is already in the change greyed beneath, saying so.
+which clears itself for the next one — and the new name is scrolled to, however far down the
+list it lands. An empty field offers nothing; the results lead with what can be added and carry
+what is already in the change greyed beneath, saying so.
 
 Everything counted re-counts as the audience moves — the title, the change list, the spreads
 inside it (`3 different values`), the caveats beside them (`2 carry no special deals`), the
@@ -273,9 +288,11 @@ The two forms pick a lever and answer it once for everyone. What differs between
 how a lever is reached, and that follows from how many there are.
 
 Both sheets are titled for the act they are, in the bulk bar's own two words — **Ad behaviour**
-and **Player behaviour** — and both state their audience once, at the button's shoulder:
-*Applies to all 3 integrations*, with the count in the page's own weight. Neither title carries
-the count or the names; the review's own column lists every one of them a screen on.
+and **Player behaviour** — and both state the whole act once, at the button's shoulder: *Changes
+will be applied to the player behaviour of all 3 integrations*, with the count in the page's own
+weight. Neither title carries the count or the names; the review's own column lists every one of
+them a screen on. On the player sheet the one control that decides what is on the sheet rides
+that title row, so both sheets open on a name, a rule, and a way in.
 
 **Both sheets share one row grammar**, and it is three states deep: a field starts CLOSED (its
 name, with `Set` arriving under the cursor), opens with its control UNSET, and queues once a

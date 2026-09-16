@@ -241,14 +241,17 @@ function reviewWhoRowHtml(k, on) {
     </div>`;
 }
 
-// THE HEAD COUNTS NOTHING UNTIL A COUNT SAYS SOMETHING. With every row ticked the number is the
-// one already standing in the title two lines above (`Apply to 3 integrations?`), and a screen
-// this small cannot afford to print the same figure twice; the moment one is out, `2 of 3` is a
-// fact the title does not carry, and it appears. `All` keeps the same company: it is there for
-// exactly as long as it would do something.
+// THE COUNT IS ALWAYS ON (16 Sep, user call — *"always show the count of integrations
+// selected"*). It came off for a day because with every row ticked it repeats the figure in the
+// title; the call is that a column of names should say how many it is holding without anybody
+// counting them, and that is right — the title is a question about the act, this is the list's
+// own report, and a list that reports only sometimes is a list you have to check. It still says
+// `2 of 3` the moment one is out, because that is the fact the title cannot carry. `All` is the
+// part that stays conditional: it is a way back, and it is there for exactly as long as there is
+// something to come back from.
 function reviewWhoCount(aud, A) {
   const on = A.roster.filter(id => aud.has(id)).length;
-  return on === A.roster.length ? '' : `${on} of ${A.roster.length}`;
+  return on === A.roster.length ? `${on}` : `${on} of ${A.roster.length}`;
 }
 
 function reviewWhoRows(aud, A) {
@@ -285,8 +288,18 @@ function reviewWhoSearch(aud, q) {
 // visual language this screen threw out on 11 Sep — *"a section is a label and a hairline, not a
 // bordered box with a filled band"* — so it read as a widget pasted onto a document. It is built
 // the way the evidence beside it is built now: the same micro-label in the same register on the
-// same baseline, a hairline, the rows, a hairline, the way in. The two columns are siblings, and
-// the only rule between them is the one that divides them.
+// same baseline, then the way in, then the names. The two columns are siblings, and the only
+// rule between them is the one that divides them.
+//
+// THE SEARCH HEADS THE COLUMN (16 Sep, user call — *"what if we had 20 integrations already
+// selected, how will the search bar be placed and its results be shown?"*). Under the names it
+// rode up and down the column as the cohort grew, and at twenty it was pinned against the
+// dialog's floor with its results forced to open upward over the very list they add to — a
+// control whose position and whose direction both depended on how many surfaces you had picked.
+// Above them it is in one place at three and at sixty-seven, its results open downward over the
+// list the way every typeahead in this panel does, and the only thing that changes with the count
+// is how far the names scroll. A picked name still lands at the end of the list and is scrolled
+// to, so it is seen wherever the list happens to be.
 function reviewWhoHtml(aud, A, onPick) {
   const allOn = A.roster.every(id => aud.has(id));
   return `
@@ -296,13 +309,13 @@ function reviewWhoHtml(aud, A, onPick) {
         <span class="bqs-gap"></span>
         <button type="button" class="zlink aud-all"${allOn ? ' hidden' : ''}>All</button>
       </div>
-      <div class="aud-list">${reviewWhoRows(aud, A)}</div>
       <div class="aud-add">${lookupHtml({
         placeholder: 'Add an integration…',
         search: q => reviewWhoSearch(aud, q),
         emptyText: q => (q ? `No integration matches “${q}”` : 'Type a name, property or platform'),
         onPick,
       })}</div>
+      <div class="aud-list">${reviewWhoRows(aud, A)}</div>
     </aside>`;
 }
 
@@ -474,21 +487,5 @@ function reviewChanges(opts) {
       sync();
     };
 
-    // WHICH WAY THE RESULTS OPEN, decided each time they are asked for rather than once in CSS.
-    // The card is the size of its names, so the field rides down the column as the cohort grows:
-    // below it is open air until the list is long enough to reach the dialog's floor, and only
-    // then does the menu have to open over its own tail. Down is preferred at equal room —
-    // covering nothing beats covering the list — so it flips only when below is genuinely too
-    // short AND above is roomier.
-    const REVIEW_WHO_MENU = 160;
-    const lk = q('.aud-add .lookup');
-    const place = () => {
-      const d = q('.dlg.rvw').getBoundingClientRect();
-      const f = lk.getBoundingClientRect();
-      const below = d.bottom - f.bottom;
-      lk.classList.toggle('up', below < REVIEW_WHO_MENU && f.top - d.top > below);
-    };
-    lk.querySelector('input').addEventListener('focus', place);
-    lk.querySelector('input').addEventListener('input', place);
   });
 }

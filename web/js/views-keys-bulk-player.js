@@ -314,7 +314,7 @@ function pbFootSync() {
   if (c) c.textContent = n ? `${n} change${n === 1 ? '' : 's'}` : '';
   // The audience half of this foot moved to `.bulk-applies` at the button's shoulder.
   const who = dialogRoot().querySelector('.bulk-applies');
-  if (who) who.innerHTML = bulkAppliesNote();
+  if (who) who.innerHTML = bulkAppliesNote('player behaviour');
   const btn = document.getElementById('pb-apply');
   if (btn) btn.disabled = !PB.picked.length;
 }
@@ -455,11 +455,18 @@ function pbPickGroups() {
 }
 
 function pbAddHtml(groups) {
-  return `
-    <div class="pb-add">
-      <span class="pb-add-l">Change settings</span>
-      ${pickerHtml(groups, PB_PICK, { ph: 'Choose settings…', cta: !PB.picked.length })}
-    </div>`;
+  // IT RIDES THE TITLE ROW (16 Sep, user call — *"can that be cleanly placed alongside the header
+  // near the title Player behaviour"*), which also settles what to call it. It had a label of its
+  // own, `Change settings`, standing beside a face reading `Choose settings…` — and the user's
+  // other call was that the label should read `Choose settings` too, which would have put the
+  // same two words on screen twice, a hand's width apart. Up here the control has the title row
+  // for context and needs no label at all: the FACE says it, once. (Same subtraction the config
+  // sheet's rail made when its own `Overrides` label came off.)
+  //   The 15 Sep reason for bringing it DOWN into the column is unharmed: it was hoisted above
+  // the BODY then, floating over both columns with the card's head 110px lower. In the title row
+  // it is part of the header, the two columns start level, and its menu still escapes because the
+  // body is not the scroller — the rows are.
+  return pickerHtml(groups, PB_PICK, { ph: 'Choose settings…', cta: !PB.picked.length });
 }
 
 // WHO RECEIVES THE PICKER'S ANSWERS. Untick takes a setting off the sheet exactly as the row's
@@ -549,11 +556,14 @@ function renderPBScreen() {
   }).join('');
   dialogRoot().innerHTML = `
     <div class="dlg-veil"><div class="dlg bulk pbx steady">
-      <h3>Player behaviour</h3>
+      <div class="pbx-head">
+        <h3>Player behaviour</h3>
+        <span class="bqs-gap"></span>
+        ${pbAddHtml(groups)}
+      </div>
       <div class="dlg-body">
         <div class="bulk-split">
           <div class="bulk-fields">
-            ${pbAddHtml(groups)}
             ${PB.err ? `<div class="pb-err">${esc(PB.err)}</div>` : ''}
             <div class="pb-rows">${secs || sheetAnatomyHtml(groups, PB_PICK)}</div>
           </div>
@@ -562,7 +572,7 @@ function renderPBScreen() {
       </div>
       <div class="dlg-foot">
         <span class="rvw-count">${n ? `${n} change${n === 1 ? '' : 's'}` : ''}</span>
-        <span class="bulk-applies">${bulkAppliesNote()}</span>
+        <span class="bulk-applies">${bulkAppliesNote('player behaviour')}</span>
         <button class="btn ghost" onclick="cancelPBScreen()">Cancel</button>
         <button class="btn" id="pb-apply" ${PB.picked.length ? '' : 'disabled'} onclick="pbApply()">Apply</button>
       </div>
@@ -662,13 +672,12 @@ function pbReviewState() {
     title: `Apply to ${keys.length} integration${keys.length === 1 ? '' : 's'}?`,
     okLabel: keys.length ? `Apply to ${keys.length}` : 'Apply',
     changes: pbChanges(),
-    // WHAT HAPPENS AFTER THE BUTTON, said before it (15 Sep, user call — *"when we apply, why
-    // are they in unpublished state? it is not the correct communication"*). A cohort write
-    // SAVES on every surface it reaches; going on air stays each integration's own deliberate
-    // act from its own page, which is the 2 Sep call that took publish off this bar. Somebody who
-    // has just confirmed `Apply to 12 integrations?` has every reason to think it is live, so the
-    // caption says otherwise while the act is still a question — not in a toast after it.
-    foot: 'Saved on each integration · on air when it is published',
+    // RETIRED 16 Sep (user call — *"Saved on each integration · on air when it is published —
+    // remove this text from step 2"*). It was here for one day to answer *"why are they in
+    // unpublished state"*, and what actually answered that was the WORD: the status line reads
+    // `Changes not on air` now instead of borrowing `Unpublished` from a different state, and the
+    // receipt says `not on air yet`. With those two true, a sentence on the review was the third
+    // telling — on the one screen whose whole job is the list, not a lesson about the model.
     emptyText: keys.length
       ? 'Nothing to change — every answer on the sheet is what these integrations already hold.'
       : 'No integrations in this change — tick at least one above.',

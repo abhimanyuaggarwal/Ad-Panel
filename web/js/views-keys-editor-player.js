@@ -861,15 +861,18 @@ function shHeadActsHtml() {
     </span>`;
 }
 // THE DESTRUCTIVE ACT SITS WITH THE ACTS (15 Sep, user call — *"the 3 dot can be moved to the
-// bottom near the button where it is ideally placed across platforms"*). It rode the title for a
-// round, beside the switch, which put a menu in a row that is otherwise the config's NAME and its
-// one glanceable state. Every platform puts a dialog's rare and irreversible act at the foot,
-// hard left, as far from the primary as the frame allows — so that is where it goes, and the menu
-// opens upward because there is nothing below it.
+// bottom near the button"*, then *"could be placed at the right side of button on the bottom and
+// 3 dot could be vertical"*). It rode the title for a round, which put a menu in a row that is
+// otherwise the config's NAME and its one glanceable state; then the foot's far left, which is
+// where a dialog's rare act often goes — but a lone glyph in the opposite corner from every other
+// control reads as orphaned. It sits after the primary now, the last thing in the act row, and it
+// is a VERTICAL ellipsis: a horizontal one beside a row of horizontal buttons is one more dash in
+// a line of them, where the vertical reads as a handle. The menu opens upward and hangs from its
+// right edge, because there is nothing below it and nothing to its right.
 function shFootMenuHtml() {
   if (!SH || SH.mode !== 'config') return '';
   return `<span class="rmenu up sh-menu">
-      <button type="button" class="row-kebab" onclick="rmenuToggle(event, this)" aria-label="More actions">⋯</button>
+      <button type="button" class="row-kebab" onclick="rmenuToggle(event, this)" aria-label="More actions">⋮</button>
       <div class="rmenu-list">
         <div class="eh-item danger" onclick="rmenuShut(this); shRemove()">Delete config</div>
       </div>
@@ -943,6 +946,14 @@ function shCfgBodyHtml(defs, eff) {
   // it now, ticked and counted, so the pane says the one thing the rail cannot: what this config
   // currently does. Which, with nothing ticked, is follow the default.
   const groups = shPickGroups(defs, eff);
+  const empty = `
+    <div class="sh-blank">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5"
+        stroke-linecap="round"><path d="M4 7h7M15 7h5M4 17h3M11 17h9"/><circle cx="13" cy="7" r="2.1"/><circle cx="9" cy="17" r="2.1"/></svg>
+      <b>Nothing changed yet</b>
+      <span>Pick a setting on the left to change it just for this config.
+        Everything else stays the same as the default.</span>
+    </div>`;
   return `
     <aside class="sh-rail">
       <div class="sh-search">
@@ -955,7 +966,7 @@ function shCfgBodyHtml(defs, eff) {
       <div class="sh-rail-list">${shRailListHtml(groups)}</div>
     </aside>
     <div class="sh-pane">
-      ${secs || '<div class="sh-follows">Follows the default in everything</div>'}
+      ${secs || empty}
     </div>`;
 }
 // ---------- THE PICKER: WHICH SETTINGS THIS CONFIG OVERRIDES ----------
@@ -1433,12 +1444,12 @@ function shFootHtml() {
   const isNew = SH.mode === 'new';
   return `
     <div class="dlg-foot sh-foot">
-      ${shFootMenuHtml()}
       <span class="eh-gap"></span>
       ${n || waiting || isNew ? '<button type="button" class="btn ghost" onclick="shCancel()">Cancel</button>' : ''}
       <button type="button" class="btn" onclick="shDone()">${isNew
         ? 'Create config'
         : (n ? `Apply ${n} change${n === 1 ? '' : 's'}` : (waiting ? 'Apply' : 'Close'))}</button>
+      ${shFootMenuHtml()}
     </div>`;
 }
 

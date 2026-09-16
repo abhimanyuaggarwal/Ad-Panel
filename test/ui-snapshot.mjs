@@ -156,7 +156,7 @@ async function capture(label) {
   await click('#bulk-bar .btn.small', 1); await snap('bulk-player');
   // The checklist both sheets share: a box per setting, a box per section, the menu standing
   // open while you work, and the four the platform refuses greyed among them.
-  await click('.pb-add .shpick-face'); await snap('bulk-player-picker');
+  await click('.pbx-head .shpick-face'); await snap('bulk-player-picker');
   await click('.shp-opt:not(.off)', 0); await snap('bulk-player-picked');
   // A picked setting lands CLOSED, exactly as a break's lever does (15 Sep) — `Set` on hover,
   // click to open — so both cohort sheets are one grammar: closed → open/unanswered → queued.

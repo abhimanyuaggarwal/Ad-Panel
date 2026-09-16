@@ -59,31 +59,34 @@
    inherited from `.dlg.bulk.steady` above, and matched by the review both of them end on. */
 
 /* ---------- PLAYER BEHAVIOUR: pick the setting, then answer it (15 Sep) ---------- */
-/* WHAT THIS ACT WRITES, BESIDE THE TITLE. It rides the kicker, so it is a byline by
-   position — but it is the sheet's subject, not a label for it, so it takes the body ink and
-   a touch more weight than the names it replaced. */
-/* RETIRED 15 Sep with the kicker itself (`pb-says`): the sheet's title is `Player behaviour` and
-   nothing else, and who it writes to is stated once, in the foot beside the act. */
+/* RETIRED 15 Sep: `pb-says`, the kicker that said what this act writes. The title is
+   `Player behaviour` and nothing else; who it writes to is stated once, in the foot beside the
+   act (`.bulk-applies`). RETIRED 16 Sep with it: `.pb-add-l`, the picker's own
+   `Change settings` label — in the header band the face says it, once.
 
-/* THE WORK STARTS HIGHER (15 Sep, user call). With the block under the title gone there is
-   nothing between the heading and the two columns, so the gap closes to the heading's own. */
-.dlg.bulk.pbx h3 { margin-bottom: 14px; }
-
-/* The strip that adds a question. Same anatomy as the config sheet's `Override a setting`,
-   the cohort's verb on it — and since 15 Sep it sits INSIDE the left column, so its top edge
-   lines up with the queue card's across the split (user call) instead of floating above both.
-   The rows scroll under it; it does not move. */
-.pb-add {
-  display: flex; align-items: center; gap: 12px; flex: 0 0 auto;
-  padding: 0 0 12px; border-bottom: 1px solid var(--line);
+   THE HEADER BAND (16 Sep, user call — *"can that be cleanly placed alongside the header near
+   the title"*): the sheet's name, and the one control that decides what is on the sheet, on one
+   line with a rule under them. It is the shape the ad sheet's title-plus-tabs already has, so
+   the two cohort sheets open the same way — and it settles what to call the control, because a
+   label beside a face that already reads `Choose settings…` would have put the same two words on
+   screen a hand's width apart.
+   The 15 Sep reason for bringing the picker DOWN into the left column is unharmed: it was
+   hoisted above the BODY then, floating over both columns with the queue card's head 110px
+   lower. In the title row it is part of the header, the two columns start level, and the menu
+   still escapes — the body is not the scroller, the rows are. */
+.pbx-head {
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 0 12px; margin: 2px 0 12px; border-bottom: 1px solid var(--line);
 }
+.pbx-head h3 { margin: 0; }
 /* The menu is the catalogue — twenty-one settings in three groups — so it is given the room
    to be read rather than the room the sheet happens to have. It can only take that room
-   because the body below stopped clipping it: the scroller moved off `.dlg-body` and onto
-   the rows alone, which is the one box the menu is not inside. */
-.pb-add .sel-menu { max-height: min(420px, calc(100vh - 300px)); }
-.pb-add-l { font-size: 12.5px; font-weight: 500; color: var(--ink); }
-.pb-add .select { min-width: 300px; padding: 7px 11px; font-size: 12.5px; font-weight: 500; }
+   because the body below does not clip it: the scroller sits on the rows alone, which is the
+   one box the menu is not inside. */
+.pbx-head .shpick-menu { max-height: min(420px, calc(100vh - 300px)); }
+/* The face is the widest thing in the band after the title, and it holds its width so the rule
+   under it does not move as the sheet fills. */
+.pbx-head .shpick { flex: 0 0 300px; }
 
 .dlg.bulk.pbx .dlg-body { overflow: visible; display: flex; min-height: 0; }
 /* The split is now a flex ITEM as well as a flex container, so it has to be told to take the

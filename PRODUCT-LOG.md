@@ -1,5 +1,84 @@
 # Player Console — the Integrations Panel (StreamAds repo) — v1
 
+**THE PLAYER SHEET'S HEADER BAND, AND WHAT THE FOOT SAYS (16 Sep, four user calls).**
+*"The Change settings should be Choose settings"* · *"can that be cleanly placed alongside the
+header near the title Player behaviour"* · *"Applies to all 2 integrations should be Changes will
+be applied to the player/ad behaviour of all 2 integrations — in both"* · *"Saved on each
+integration · on air when it is published — remove this from step 2"*.
+
+- **The picker rides the title row, and loses its label there.** Renaming `Change settings` to
+  `Choose settings` would have put the same two words on screen a hand's width apart — the strip's
+  label beside a face already reading `Choose settings…`. Up beside the heading the control has
+  the title row for context and needs no label at all: the FACE says it, once. (`.pb-add-l`
+  retired — the same subtraction the config sheet's rail made when `Overrides` came off it.) The
+  two cohort sheets now open the same way: a name, a rule, and the one control that decides what
+  is on the sheet. The 15 Sep reason for bringing the picker DOWN is unharmed — it was hoisted
+  above the BODY then, floating over both columns with the queue card's head 110px lower; in the
+  title row it IS the header, the columns start level, and the menu still escapes because the
+  body is not the scroller.
+- **The foot says what is being written, not just who to.** `Changes will be applied to the
+  player behaviour of all 3 integrations` — each sheet passes its own subject, so the line
+  standing beside the button is the whole act in one place. `Applies to all 3 integrations` left
+  the other half of the sentence to a title at the far end of the dialog.
+- **Step 2 gives back its consequence line.** `Saved on each integration · on air when it is
+  published` was there for one day to answer *"why are they in unpublished state"* — and what
+  actually answered that was the WORD: the status line reads `Changes not on air` now instead of
+  borrowing `Unpublished` from a different state, and the receipt says `not on air yet`. With
+  those two true, a sentence on the review was the third telling, on the one screen whose whole
+  job is the list.
+
+**THE AUDIENCE COLUMN: THE COUNT IS ALWAYS ON, AND THE SEARCH HEADS IT (16 Sep, two more).**
+*"In step 2, in the RHS where we show the integrations and search, always show the count of
+integrations selected"* · *"what if we had 20 integrations already selected — how will the search
+bar be placed and its results be shown when typing? Think of this edge case as well."*
+
+- **`INTEGRATIONS · 3`, always.** The count came off for a day because with every row ticked it
+  repeats the figure in the title; the call is that a column of names should say how many it is
+  holding without anybody counting them, and that is right — the title is a question about the
+  ACT, this is the list's own report, and a list that reports only sometimes is one you have to
+  check. It still says `2 of 3` the moment one is out. `All` is the part that stays conditional:
+  it is a way back, and it is there for as long as there is something to come back from.
+- **The edge case was real, and it had two halves.** Under the names, the field rode down the
+  column as the cohort grew: at twenty it was pinned against the dialog's floor with its results
+  forced to open UPWARD over the very list they add to — a control whose position AND whose
+  direction both depended on how many surfaces you had picked. It heads the column now. Measured
+  at twenty: the field sits at a fixed y whatever the count, the menu opens downward and lands
+  99px INSIDE the dialog's floor rather than over the names, ten hits with the addable ones
+  leading, the list scrolls under it, and a picked name still lands at the end and is scrolled
+  into view — `20` → `21` in the head as it goes. The flip logic is deleted, not configured.
+
+Verified: `npm test` 183 passed · `npm run check` syntax ok · the snapshot walk 86 screens, no
+console errors · headless drives at 3 and at 20 selected, and the whole journey through to a
+write.
+
+**THE CONFIG SHEET, FIFTH CUT — an empty state, a flush search, and the ⋮ where a hand expects it
+(16 Sep, three user calls).**
+
+- **`Follows the default in everything` is gone**, and what replaced it is an EMPTY STATE rather
+  than a fact: a mark (two sliders — settings is what the left column holds), a heading and one
+  line. The old line was true and useless; a config with no overrides follows the default BY
+  DEFINITION, so it described the emptiness instead of resolving it.
+  **Then the replacement was rewritten too** (16 Sep — *"`No settings overridden yet` change this
+  it is not understood by layman user who are non technical"*). `Overridden` names a MECHANISM — a
+  sparse value laid over a default — to somebody who only wants to know whether anything is
+  different yet. It reads **Nothing changed yet · Pick a setting on the left to change it just for
+  this config. Everything else stays the same as the default.** That is the whole of sparse
+  overrides, in words nobody has to be taught, and the measure is set so the two sentences break
+  over two lines rather than three with one word stranded.
+- **The search spans the rail and lines up with the list under it.** It was a filled pill whose own
+  10px inset started its glyph 4px right of the section boxes and whose right edge stopped 4px
+  short of the rows' — a box visible on all four sides sitting in a column of transparent rows and
+  agreeing with none of them. Its inset is the list's own now (6px), and the list gave up the
+  gutter it kept on the right: field and rows start and end on the same two lines (measured: icon
+  321 / box 320, both right edges 519).
+- **The ⋮ moved right of the primary and turned vertical.** The foot's hard left is where a
+  dialog's rare act often goes, but a lone glyph in the opposite corner from every other control
+  reads as orphaned. It is the last thing in the act row now, and VERTICAL — a horizontal ellipsis
+  beside a row of horizontal buttons is one more dash in a line of them, where the vertical reads
+  as a handle. The menu opens upward, hanging from its right edge.
+- **183 passed.** Delete re-checked end to end from the new position; the empty state checked on
+  both a new config and an existing one with nothing overridden.
+
 **THE TWO COHORT SHEETS BECOME ONE PRODUCT (15 Sep, three user calls in a row).**
 *"Sets the default player on all 3 selected integrations — remove this"* · *"Applies to all 3
 selected — make this more prominent and more clear, currently it is not clear"* (*"same goes for

@@ -1005,9 +1005,16 @@ tbody tr.grp-more:hover td { background: #fdf6e2; }
    together read as a mistake rather than as a field over a list. A search is a well of type, so
    it is drawn as one — a soft fill, no border at rest, and the border arriving only on focus,
    where it means something. */
+/* IT SPANS THE RAIL, AND ITS CONTENTS LINE UP WITH THE LIST'S (15 Sep, user call — *"the search
+   settings looks not clean … there are space or padding in both left and right side"*). It was a
+   filled pill whose own 10px inset started its glyph 4px right of the section boxes under it and
+   whose right edge stopped 4px short of the rows', so a box that is visible on all four sides sat
+   in a column of transparent rows agreeing with none of them. The inset is now the list's own
+   (6px, the section head's), and the list gave up the gutter it was keeping on the right, so the
+   field and every row beneath it start and end on the same two lines. */
 .sh-search {
   flex: 0 0 auto; position: relative; display: flex; align-items: center; gap: 7px;
-  height: 32px; margin: 0 0 6px; padding: 0 10px;
+  height: 32px; margin: 0 0 6px; padding: 0 6px;
   border: 1px solid transparent; border-radius: 9px; background: #f2f4f8;
   transition: border-color .12s, box-shadow .12s, background .12s;
 }
@@ -1021,7 +1028,7 @@ tbody tr.grp-more:hover td { background: #fdf6e2; }
 .sh-search input::placeholder { color: #8f98a9; }
 /* The foot's menu: hard left, opening upward, and quiet until pointed at — a rare act should be
    findable without being the loudest thing in the act row. */
-.sh-foot .sh-menu { margin-right: auto; }
+.sh-foot .sh-menu { margin-left: 2px; }
 /* A bare ellipsis at the foot of a dialog reads as a stray glyph. It gets the footprint of the
    buttons beside it — a 30px target that lights on hover — without their weight. */
 .sh-foot .row-kebab {
@@ -1031,18 +1038,39 @@ tbody tr.grp-more:hover td { background: #fdf6e2; }
 .sh-foot .row-kebab:hover { background: #f2f4f8; color: var(--ink); }
 .sh-foot .rmenu.open .row-kebab { background: #f2f4f8; color: var(--ink); }
 .rmenu.up .rmenu-list { top: auto; bottom: calc(100% + 6px); }
-.rmenu.up.sh-menu .rmenu-list { left: 0; right: auto; }
+.rmenu.up.sh-menu .rmenu-list { right: 0; left: auto; }
+/* A vertical ellipsis wants a narrower, taller footprint than a horizontal one. */
+.sh-foot .row-kebab { width: 28px; line-height: 1; letter-spacing: 0; }
 .sh-search-x {
   flex: none; width: 16px; height: 16px; border: 0; border-radius: 50%; background: #e7eaf1;
   color: var(--ink-soft); font-size: 12px; line-height: 1; cursor: pointer; padding: 0;
 }
 .sh-search-x:hover { background: #d9dee8; color: var(--ink); }
 .sh-noq { padding: 14px 7px; font-size: 12px; color: var(--ink-faint); }
-.sh-rail-list { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
+.sh-rail-list { flex: 1; min-height: 0; overflow-y: auto; }
 .sh-pane { min-width: 0; min-height: 0; overflow-y: auto; padding-right: 4px; padding-bottom: 4px; }
-/* A config that has taken nothing over says what it DOES, which the rail beside it cannot: it
-   follows the default. Not an instruction — the ticks are one column away and lit. */
-.sh-follows { font-size: 12.5px; color: var(--ink-faint); padding: 10px 2px; }
+/* AN EMPTY PANE IS AN EMPTY STATE, NOT A FACT (16 Sep, user call — *"`Follows the default in
+   everything` — remove this text and add a simple and communicative text that says choose settings
+   from lhs … along with a clean indicative logo how mature platforms do"*). The line it replaced
+   was true and useless: a config with no overrides follows the default BY DEFINITION, so the
+   sentence described the emptiness instead of telling anyone what to do with it. A mark, a
+   heading and one line — the shape every mature product uses for a surface that is waiting — and
+   the mark is two sliders, because settings is what the left column holds.
+   IN WORDS A NON-TECHNICAL READER OWNS (16 Sep, user call — *"`No settings overridden yet` change
+   this it is not understood by layman user who are non technical"*). `Overridden` is this model's
+   word, not a reader's: it names a MECHANISM (a sparse value laid over a default) to somebody who
+   only wants to know whether anything is different yet. The heading says the state in four plain
+   words and the line says the rule underneath it — pick one thing to change, everything else
+   stays as it was — which is the whole of sparse overrides without the term. */
+.sh-blank {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; height: 100%; min-height: 240px; padding: 24px; text-align: center;
+}
+.sh-blank svg { width: 30px; height: 30px; color: #c2c9d6; margin-bottom: 10px; }
+.sh-blank b { font-size: 13.5px; font-weight: 650; color: var(--ink); }
+/* Wide enough that the two sentences break into two lines rather than three with one word
+   stranded on the last — a measure, not a guess: the longer sentence sets at ~350px here. */
+.sh-blank span { max-width: 368px; font-size: 12.5px; line-height: 1.55; color: var(--ink-faint); }
 
 /* THE CHECKLIST WITH NO SHELL. Same rows, same boxes, same receiver — the face, the drop, the
    border and the shadow all belong to a control that opens, and this one never does. */
