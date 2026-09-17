@@ -349,8 +349,14 @@ once published, an immutable **snapshot** on air. Only snapshots reach the playe
   refuses nothing: whatever it does, its units always have somewhere to ask.
 - **A template publishing does NOT version the ad setups under it.** They did not change. But
   they are told: `templateNewsFor(setupId)` lists every template beneath a setup that has gone
-  on air since that setup last published — version, person, moment — drawn at the head of the
-  setup's card. Silence there was the one hole in the plane's promise; a version bump would
+  on air since that setup last published AND inside `NEWS_WINDOW_MS` (one hour, 17 Sep user
+  call — it used to clear only on the setup's own next publish, which may never come) — ONE
+  entry per template, at the version serving now (17 Sep: it listed every publish since, so
+  one template that moved twice read as two templates) — version, person, moment, and the
+  `fields` that changed, which the page names with its own `fieldName` — drawn at the head of
+  the setup's card. The block says
+  the consequence too, because `liveConfig` resolves the template from its own live snapshot:
+  the new version is already serving, and the setup owes no publish for it. Silence there was the one hole in the plane's promise; a version bump would
   have been a second bug (ten publishes for one typo, ten histories full of a change nobody
   made in them).
 - `liveConfig(apiKey)` joins the live integration with its live setup, resolves the drive

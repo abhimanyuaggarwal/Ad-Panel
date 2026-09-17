@@ -306,6 +306,14 @@ async function viewTemplateForm(id) {
   // template gets every one of them by handing over the same four things.
   if (id) {
     await loadPublish('template', id, TPL_ORIGINAL.name);
+    // The blast radius IS this object's point (17 Sep) — the same two numbers the
+    // Connected card counts, in the server's own words, read at the moment of the act.
+    PUB.reach = () => {
+      const units = tplUnitCount();
+      const setups = TPL_ORIGINAL?.setupCount || 0;
+      if (!units) return '';
+      return `${units} ad unit${units === 1 ? '' : 's'} in ${setups} ad setup${setups === 1 ? '' : 's'} pick${units === 1 ? 's' : ''} this up`;
+    };
     PUB.dirty = () => JSON.stringify(tplPayload(FORM.data)) !== TPL_SAVED_SIG;
     PUB.saveNow = opts => tplSaveClicked(opts);
     // A restore rewrites the draft server-side, so the page is re-read, never patched.

@@ -85,6 +85,13 @@ function suGlobalsHtml(meta) {
 // settings and Placements, with the count as its glimpse — the one number you can act on
 // from a closed row, since it says whether there is anything on the shelf at all. A row is
 // a door into the room, so the way to change one is one click and never ambiguous.
+// THE DOOR OPENS A SECOND TAB (17 Sep, user call). The setup editor holds unsaved form
+// state, and a shelf row is a thing you consult WHILE configuring — following it in place
+// would spend the edit to read a URL. So every door out of this shelf (a template row, the
+// news rows above it, the empty state's own link) carries `target="_blank"`, and the setup
+// stays exactly where it was. The read-only footnote that used to sit under the rows went
+// the same day — the rows are plainly not editable, and a line saying so was text the
+// principle already spends nothing on.
 // A TEMPLATE UNDER THIS SETUP WENT OUT (16 Sep, user call). The setup's own version
 // history is about its own content, so a template publishing does not bump it — the setup
 // did not change. But it must not pretend nothing happened either: what the units fire DID
@@ -92,18 +99,43 @@ function suGlobalsHtml(meta) {
 // and find nothing. So the news sits at the head of the card, above everything the setup
 // owns, and says who moved what and when — a fact, not a warning, in the amber the console
 // keeps for "true and worth knowing" rather than the red it keeps for refusals.
+//
+// IT ANSWERS THE READER'S THREE QUESTIONS, IN THEIR ORDER (17 Sep, user call — *"I don't
+// know and am unable to understand"*). The first cut said what had happened and then, in the
+// same breath, why the version rail was silent: `no version of this setup moved` is the
+// console explaining its own bookkeeping, which is the reader's third question at best and
+// nobody's first. What they actually need, in order, is WHAT MOVED (which template, which
+// setting), WHETHER IT REACHES THEM (yes — already, because `liveConfig` resolves a template
+// from its OWN live snapshot at serve time, so a publish there lands on every live setup
+// pointing at it without one of them republishing), and WHETHER TO ACT (no).
+//
+// THEN MADE QUIET (17 Sep, same call — *"should not be too prominent and cluttery and big"*).
+// Understanding it and being shouted at by it are different problems, and the first cut fixed
+// the first by spending two headings, a fill and a border on it. So the whole explanation is
+// ONE lead line — `already live, nothing to do`, the answer, said once for the block rather
+// than per row — over rows carrying only name, what changed, and who. The card is gone: an
+// amber rule in the margin, no fill, no border, small type. It is a note in the margin, which
+// is what it always was. (`already live, nothing to do` is scoped to this news — the setup
+// may still have its own draft waiting, and `Changes not on air` beside it speaks for that.)
 function suTplNewsHtml() {
   const news = SETUP_ORIGINAL?.templateNews || [];
   if (!news.length) return '';
-  const one = n => `<a class="tn-r" href="#templates/${n.id}">
-      <span class="tn-n">${esc(n.name)}</span><span class="tn-v">v${n.v}</span>
+  // WHAT CHANGED, IN THE PAGE'S OWN WORDS. Two fields read as two names; more than that is
+  // a count, because a line listing five is a paragraph and the door is right there.
+  const what = n => {
+    const fs = n.fields || [];
+    if (!fs.length) return '';
+    if (fs.length > 2) return `${fs.length} settings`;
+    return fs.map(fieldName).join(', ');
+  };
+  const one = n => `<a class="tn-r" href="#templates/${n.id}" target="_blank" rel="noopener">
+      <span class="tn-n">${esc(n.name)}</span>
+      ${what(n) ? `<span class="tn-f">${esc(what(n))}</span>` : ''}
       <span class="tn-w">${esc(n.actor || '')} · ${relWhen(n.ts)}</span>
     </a>`;
   return `
     <div class="tn-sec">
-      <div class="tn-h">${news.length === 1 ? 'A template this setup uses went on air'
-        : `${news.length} templates this setup uses went on air`} since it last published —
-        what its ad units request changed, and no version of this setup moved.</div>
+      <div class="tn-h">Updated under this setup — already live, nothing to do</div>
       <div class="tn-t">${news.map(one).join('')}</div>
     </div>`;
 }
@@ -126,7 +158,7 @@ function suTplRefHtml() {
   const prop = FORM.data.property;
   const row = t => `
     <a class="tr-r${t.on === false ? ' off' : ''}" href="#templates/${t.id}"
-      title="Open in Templates">
+      target="_blank" rel="noopener">
       <span class="tr-id">${providerBadge(t.provider)}<span class="tr-nm">${esc(t.name)}</span>${t.on === false
         ? '<span class="stat off sm">Off</span>' : ''}</span>
       <span class="tr-u mono">${esc(t.url)}</span>
@@ -138,10 +170,7 @@ function suTplRefHtml() {
       ${n ? `<div class="tr-t">${mine.map(row).join('')}</div>`
         : `<div class="tr-empty">No template is visible to ${esc(prop)} — its ad units request
             through their provider’s standard. Templates are made in
-            <a class="banner-link" href="#templates">Templates</a>.</div>`}
-      <div class="tr-foot">Read-only — a template is edited in
-        <a class="banner-link" href="#templates">Templates</a>, where its whole reach is counted.
-        An ad unit picks one in the settings under it.</div>
+            <a class="banner-link" href="#templates" target="_blank" rel="noopener">Templates</a>.</div>`}
     </div>`;
 }
 
@@ -201,6 +230,13 @@ async function viewSetupForm(id) {
     const [{ setup }] = await Promise.all([API.getSetup(id), loadPublish('setup', id, '')]);
     SETUP_ORIGINAL = setup;
     PUB.name = setup.name;
+    // The same clause the template page hands over (17 Sep), one hop up the chain: a
+    // setup's reach is the integrations serving it, and only the ones ON AIR are moved by
+    // this act — exactly the set `publishObject` counts for its own discarded warning.
+    PUB.reach = () => {
+      const live = SETUP_ORIGINAL?.usedByLive || 0;
+      return live ? `${live} integration${live === 1 ? '' : 's'} on air pick${live === 1 ? 's' : ''} this up` : '';
+    };
     PUB.dirty = () => JSON.stringify(setupPayload(FORM.data)) !== SU_SAVED_SIG;
     PUB.saveNow = opts => saveSetupClicked(opts);
     // A restore rewrites the draft server-side, so the editor is re-read, never patched.

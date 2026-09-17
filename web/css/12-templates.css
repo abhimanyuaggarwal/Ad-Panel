@@ -186,25 +186,25 @@ tr.tpl-off .tpl-name > span, tr.tpl-off .tpl-u { opacity: .5; }
 .cx-empty { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--ink-faint); }
 
 /* ---------- the ad setup's template news ---------- */
-/* A FACT, NOT A WARNING. Something true and worth knowing moved under this setup, and the
-   console's amber is for exactly that (the `Changes not on air` line's own colour); red is
-   kept for refusals. It sits at the head of the card because it is the one thing on the
-   page that the page's own `On air · v3` chip cannot account for. */
-.tn-sec {
-  margin-bottom: 18px; padding: 11px 14px 12px;
-  background: #fdfaf0; border: 1px solid #f0e4bf; border-radius: 9px;
-}
-.tn-h { font-size: 12px; line-height: 1.5; color: #7a6220; }
-.tn-t { display: flex; flex-direction: column; margin-top: 7px; }
+/* A NOTE IN THE MARGIN, NOT A CARD (17 Sep, user call — "should not be too prominent and
+   cluttery and big"). The filled, bordered amber box it started as read as an alert asking
+   to be dealt with, when the whole content of it is `nothing to do`. What survives of the
+   amber is a rule in the margin — enough to say which family of fact this is, not enough to
+   compete with the page's own controls. It ages out after an hour either way. */
+.tn-sec { margin-bottom: 16px; padding: 1px 0 1px 11px; border-left: 2px solid #e8d49a; }
+.tn-h { font-size: 11.5px; line-height: 1.5; color: var(--ink-faint); }
+.tn-t { display: flex; flex-direction: column; margin-top: 2px; }
 .tn-r {
-  display: flex; align-items: baseline; gap: 10px; padding: 4px 6px; margin: 0 -6px;
-  border-radius: 6px; text-decoration: none; color: inherit;
+  display: flex; align-items: baseline; gap: 9px; padding: 2px 6px; margin: 0 -6px;
+  border-radius: 5px; text-decoration: none; color: inherit;
 }
-.tn-r:hover { background: rgba(255,255,255,.7); }
+.tn-r:hover { background: var(--bg-soft, #f7f8fb); }
 .tn-r:hover .tn-n { color: var(--accent); }
-.tn-n { font-size: 12.5px; font-weight: 650; color: #5f4c14; }
-.tn-v { font-size: 11px; font-weight: 700; color: #8a6d1f; font-variant-numeric: tabular-nums; }
-.tn-w { margin-left: auto; font-size: 11.5px; color: #9a8a5e; }
+.tn-n { font-size: 12px; font-weight: 600; color: var(--ink); }
+/* What moved, in the same ink as any other stated fact — the name is the figure, this is
+   the fact beside it, and neither is a warning. */
+.tn-f { font-size: 11.5px; color: var(--ink-soft); }
+.tn-w { margin-left: auto; font-size: 11px; color: var(--ink-faint); }
 
 /* ---------- the ad setup's read-only shelf ---------- */
 /* The templates a unit on this setup may point at, folded into the setup page's own head
@@ -236,9 +236,8 @@ tr.tpl-off .tpl-name > span, tr.tpl-off .tpl-u { opacity: .5; }
 .tr-u { min-width: 0; font-size: 11.5px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tr-scope { font-size: 11.5px; color: var(--ink-faint); text-align: right; white-space: nowrap; }
 .tr-r.off .tr-nm, .tr-r.off .tr-u { opacity: .5; }
-.tr-empty, .tr-foot { font-size: 11.5px; line-height: 1.55; color: var(--ink-faint); }
+.tr-empty { font-size: 11.5px; line-height: 1.55; color: var(--ink-faint); }
 .tr-empty { padding: 6px 0 2px; }
-.tr-foot { margin-top: 10px; padding-top: 9px; border-top: 1px solid #eef0f5; }
 
 /* ---------- the save review ---------- */
 .tpl-rvw { margin-bottom: 14px; }

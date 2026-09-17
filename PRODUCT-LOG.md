@@ -1,5 +1,61 @@
 # Player Console — the Integrations Panel (StreamAds repo) — v1
 
+**THE TEMPLATE NEWS SAYS WHAT IT MEANS, AND THE SHELF OPENS A SECOND TAB (17 Sep, user call —
+*"what does it mean and should I do anything about it? I don't know and am unable to understand"*).**
+Three changes to the ad setup's relationship with the Templates room, all one complaint: the page
+talked about itself instead of to the reader.
+
+- **The line answers the reader's three questions, in their order.** It used to read *"A template
+  this setup uses went on air since it last published — what its ad units request changed, and no
+  version of this setup moved."* The second half is the console explaining its own bookkeeping: true,
+  and nobody's first question. It is now two lines — **what moved** (*"A template your ad units use
+  was updated"*), then **what it means and what is owed** (*"It is already live — your ad units
+  request the new version now. Nothing to do here; open it to see what changed."*).
+- **"Already live" is a fact, not reassurance.** `liveConfig` resolves a template from its OWN live
+  snapshot at serve time, so publishing one lands on every live ad setup pointing at it without any
+  of them republishing. The old copy never said this, which is exactly why the line read as a warning
+  with a missing instruction. `Nothing to do here` is scoped to the news — a setup may still have its
+  own draft waiting, and the `Changes not on air` line beside it speaks for that.
+- **It lives for ONE HOUR, then goes** (user call — *"a read-only text that stays a couple of hours
+  and then disappears"*, then *"make it 1 hr"*). Its old clearing rule was the setup's own next
+  publish, which may never come; a line reading `nothing to do` that sits for weeks is how people
+  learn to skip the amber. The cost, said once and accepted: most page loads fall outside the hour,
+  so it reaches whoever is already working when it happens and nobody else. The template's page keeps
+  the full record for anyone asking later. The seeded world now re-points `GAM standard` twenty
+  minutes before it hands over, because a one-hour state is invisible in a world whose publishes are
+  five days old — and the test that used to count every row on a setup now reads per template, since
+  a total would have been measuring the fixture.
+- **It names the SETTING, not a version number.** `v3` is not a fact anybody can act on; `Request
+  URL` is the difference between "that matters to me" and "that doesn't". The changed field keys ride
+  along and the page names them with its own `fieldName`, so the note and the change review can never
+  call one field two things. Three or more becomes `3 settings` — the door is right there.
+- **Then made quiet** (user call — *"should not be too prominent and cluttery and big"*). Being
+  understood and being shouted at are different problems, and the first cut fixed the first by
+  spending two headings, a fill and a border. The card is gone: an amber rule in the margin, no fill,
+  no border, 11.5px. The whole explanation is ONE lead line — `already live, nothing to do`, said
+  once for the block rather than per row — over rows carrying name, what changed, and who.
+- **One row per template, at the version now serving.** `templateNewsFor` listed every publish since,
+  so one template that went out twice rendered as *"2 templates this setup uses went on air"* — a head
+  count its own rows contradicted, the very flaw the reach list was rebuilt to fix one room over. The
+  latest publish since is the whole entry; the steps between are that template's own history, one
+  click away. Pinned by a test.
+- **The shelf's doors open in a new tab.** A template row, the news rows, and the empty state's link
+  all carry `target="_blank"`. The setup editor holds unsaved form state and this shelf is a thing you
+  consult WHILE configuring — following a row in place spent the edit to read a URL.
+- **The publish dialog names who it lands on — the claim that this loop was already closed was
+  wrong.** `publishObject` has always computed the blast radius (`3 ad units in 4 ad setups pick this
+  up` for a template, the integrations serving a setup for a setup) and handed it back in `warnings`.
+  Nothing has read it since the 11 Sep cut deleted the amber block those warnings rode in. Measured on
+  a real publish: the person changing one template's Request URL saw `Replaces v1 on air` and a
+  one-row diff, while the act moved three ad units across four ad setups the instant they clicked.
+  The reach is now a clause on the KICKER — `Replaces v1 on air · 3 ad units in 4 ad setups pick this
+  up` — which brings back no block and keeps publish the version sheet it is supposed to be. Handed
+  over per editor as `PUB.reach`, so the shared file stays ignorant of what it is moving, and computed
+  from the page's own counts: the number has to be known before the act, not reported after it.
+- **The read-only footnote went.** *"Read-only — a template is edited in Templates, where its whole
+  reach is counted. An ad unit picks one in the settings under it."* Rows with no controls are plainly
+  not editable; the sentence was text the principle spends nothing on.
+
 **A BREAK ANSWERS ONE QUESTION FIRST (16 Sep, user call — *"once I enable a pre-roll or mid-roll
 I have two options by default — values and configurations to be taken from the Ad Setup, or
 customize; in that case the existing levers will come, and I will always have the option to switch

@@ -10,7 +10,7 @@
 
 import {
   resetState, createSetup, createKey, createTag, createTemplate,
-  setGamUnits, setAccounts, getKey, getSetup, seedPublish, updateSetup,
+  setGamUnits, setAccounts, getKey, getSetup, seedPublish, updateSetup, updateTemplate,
 } from '../store.js';
 import { BASE_UNITS, PENDING_UNITS } from './gamunits.js';
 
@@ -589,6 +589,16 @@ export function resetWorld(opts = {}) {
   bendDefault({ tagTimeoutMs: 1500 });
   seedPublish('setup', 'as_1', { actor: 'Priya (ad ops)', hoursAgo: 2, note: 'Trial rolled back — starts read slow' });
   stamp(getSetup('as_1'), 2, 'Priya (ad ops)');
+
+  // A TEMPLATE THAT MOVED IN THE LAST HOUR (17 Sep). The note an ad setup shows when a
+  // template under it goes out lives for one hour (user call), so a world whose template
+  // publishes are five days old is a world where that state cannot be seen at all.
+  // Somebody else re-points `GAM standard` twenty minutes ago — which is the case exactly:
+  // a shared thing moved by another person, already serving on every setup pointing at it,
+  // none of which versioned. Its ad setups carry the note; the rest of the world is
+  // untouched, and the note ages out of this world too, twenty minutes before the hour.
+  updateTemplate(tplStandard, { url: 'https://ads.slike.example/vast?cb=[CACHEBUSTER]&ref=[REFERRER_URL]&vpos=pre' });
+  seedPublish('template', tplStandard, { actor: 'Rohit (monetization)', hoursAgo: 0.33 });
 
   // A named scenario, not a different world: the demo seven stay exactly as they
   // are (same ids, same slots) and volume is added on top, so paging and

@@ -235,20 +235,41 @@ export default async function run({ test, req, eq, assert }) {
   });
 
   await test('an ad setup is TOLD when a template under it goes out — and does NOT version', async () => {
-    const t = await byName('GAM standard');
+    // Read PER TEMPLATE, never as a total (17 Sep): the seeded world publishes `GAM standard`
+    // inside the news window on purpose, so the demo shows the state, and a test that counted
+    // every row on the setup would be measuring the fixture. `GAM low-latency` is the seed's
+    // never-published template, so its setups carry no row for it until this test puts it out.
+    const t = await byName('GAM low-latency');
     const target = t.setups[0];
+    const mine = s => (s.templateNews || []).filter(n => n.id === t.id);
     const before = (await req('GET', `/panel/setups/${target.id}`)).body.setup;
-    eq(before.templateNews.length, 0, 'nothing to report while the template is where it was');
+    eq(mine(before).length, 0, 'nothing to report while the template is where it was');
 
-    await req('PATCH', `/panel/templates/${t.id}`, { url: 'https://moved.example/vast?cb=[CACHEBUSTER]' });
     await req('POST', `/panel/templates/${t.id}/publish`);
 
     const after = (await req('GET', `/panel/setups/${target.id}`)).body.setup;
     eq(after.liveVersion, before.liveVersion, 'the ad setup did NOT move a version — it did not change');
     eq(after.unpublishedCount, before.unpublishedCount, 'and has no new work waiting');
-    eq(after.templateNews.length, 1, 'but it is told');
-    eq(after.templateNews[0].name, t.name, 'which template');
-    assert(after.templateNews[0].v >= 2 && after.templateNews[0].actor, 'with the version and who');
+    eq(mine(after).length, 1, 'but it is told');
+    eq(mine(after)[0].name, t.name, 'which template');
+    assert(mine(after)[0].v >= 1 && mine(after)[0].actor, 'with the version and who');
+    assert((mine(after)[0].fields || []).length, 'and WHAT changed — the fields, not just a number');
+  });
+
+  await test('a template that went out TWICE is ONE row, at the version now serving', async () => {
+    const t = await byName('GAM standard');
+    const target = t.setups[0];
+    for (const url of ['https://one.example/vast?cb=[CACHEBUSTER]', 'https://two.example/vast?cb=[CACHEBUSTER]']) {
+      await req('PATCH', `/panel/templates/${t.id}`, { url });
+      await req('POST', `/panel/templates/${t.id}/publish`);
+    }
+    const news = (await req('GET', `/panel/setups/${target.id}`)).body.setup.templateNews;
+    // The head says `N templates ... were updated`, so N counts TEMPLATES. Two publishes of
+    // one template is one template that moved; the steps between are its own history.
+    eq(news.length, 1, 'one template that moved twice is one row, not two');
+    eq(news[0].name, t.name, 'named');
+    eq(news[0].v, (await byName('GAM standard')).liveVersion,
+      'and it reports the version that is serving NOW');
   });
 
   await test('a setup that has published SINCE the template went out has nothing to report', async () => {

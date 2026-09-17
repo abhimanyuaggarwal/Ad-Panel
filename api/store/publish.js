@@ -513,6 +513,9 @@ export function seedPublish(kind, id, { actor = 'Priya (ad ops)', hoursAgo = 0, 
 }
 
 // ---------- WHAT MOVED UNDERNEATH AN AD SETUP (16 Sep, user call) ----------
+// How long a template publish stays news on the ad setups under it (17 Sep, user call).
+const NEWS_WINDOW_MS = 60 * 60 * 1000;
+
 // An ad setup's version history is about the setup's own content, so a template publishing
 // does not bump it — the setup did not change, and filling ten histories with a change
 // nobody made in them is what makes a history unreadable. But silence was the actual bug
@@ -536,11 +539,35 @@ export function templateNewsFor(setupId) {
     if (!tpl) continue;
     // The template's own publishes, after this setup's last one. A template that has never
     // been published has nothing to report — its units are asking the standard either way.
-    for (const v of versionsOf(tag.tplId)) {
-      if (!v.snapshot) continue;
-      if (since && v.ts <= since) continue;
-      out.push({ id: tpl.id, name: tpl.name, v: v.v, ts: v.ts, actor: v.actor });
-    }
+    //
+    // ONE ROW PER TEMPLATE, AT THE VERSION NOW SERVING (17 Sep, user call — the line was
+    // unreadable). Listing every publish since made one template that went out twice read as
+    // `2 templates this setup uses went on air`: a head count the rows contradicted, which is
+    // the very flaw the reach list was rebuilt to fix one room over. What a person can act on
+    // is WHICH template moved and what it is asking NOW — the steps in between are that
+    // template's own history, one click away on the row. So the latest publish since is the
+    // whole entry, and the count is a count of templates.
+    //
+    // AND ONLY WHILE IT IS NEWS (17 Sep, user call — *"a read-only text that stays a couple
+    // of hours and then disappears"*, then *"make it 1 hr"*). Its old clearing rule was this
+    // setup's next publish, which may never come: a line that says `nothing to do` and then
+    // sits for weeks is how people learn to stop reading the amber. It ages out instead. The
+    // cost the user accepted, said once: most page loads fall outside the hour and show
+    // nothing, so this catches whoever is already working when it happens and nobody else.
+    // The full record is on the template's own page either way, which is where a question
+    // asked later belongs.
+    const fresh = Date.now() - NEWS_WINDOW_MS;
+    const mine = versionsOf(tag.tplId).filter(v => v.snapshot
+      && !(since && v.ts <= since)
+      && Date.parse(v.ts) >= fresh);
+    if (!mine.length) continue;
+    const last = mine[mine.length - 1];
+    // WHAT MOVED, NOT JUST THAT SOMETHING DID (17 Sep, user call). `v3` is a number nobody
+    // can act on; `Request URL` is the difference between "that matters to me" and "that
+    // doesn't". The keys travel raw and the page names them with its own `fieldName`, so
+    // the note and the change review can never call one field two things.
+    const fields = [...new Set((last.changes || []).map(c => c.field))];
+    out.push({ id: tpl.id, name: tpl.name, v: last.v, ts: last.ts, actor: last.actor, fields });
   }
   return out.sort((a, b) => b.ts.localeCompare(a.ts));
 }

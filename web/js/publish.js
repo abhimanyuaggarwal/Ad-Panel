@@ -205,10 +205,25 @@ async function publishClicked() {
   const live = PUB.liveVersion != null;
   // THE REVIEW SCREEN, not a paragraph (2 Sep): publishing is the act that moves
   // traffic, so what is about to move is grouped by break and read before it goes.
+  // WHO THIS LANDS ON, SAID AT THE MOMENT IT BECOMES TRUE (17 Sep, user call — I had
+  // claimed this loop was closed because the SERVER computes it; it does, in
+  // `publishObject`'s `warnings`, and the UI has thrown that away since the 11 Sep cut
+  // deleted the amber block those warnings rode in. So a person changing one template's
+  // URL saw `Replaces v1 on air` and nothing else, while the act moved 3 ad units across
+  // 4 ad setups instantly — templates resolve from their own live snapshot at serve time,
+  // so no setup republishes and none of them can warn anybody either.
+  //
+  // It does NOT bring the deleted block back: that call stands (publish is the version
+  // sheet, the list and the act, nothing else). The reach goes in the KICKER — the line
+  // that already exists to say where this lands — so the screen gains a clause, not a
+  // region. `reach` is a function any editor may hand over, because the count is the
+  // page's own fact and this file stays ignorant of what kind of object it is moving.
+  const reach = typeof PUB.reach === 'function' ? PUB.reach() : '';
+  const lands = live ? `replaces v${PUB.liveVersion} on air` : 'first version — goes on air';
   const res = await reviewChanges({
     title: live ? `Publish “${PUB.name}”` : `Put “${PUB.name}” on air`,
     changes: PUB.unpublished,
-    kicker: live ? `replaces v${PUB.liveVersion} on air` : 'first version — goes on air',
+    kicker: reach ? `${lands} · ${reach}` : lands,
     okLabel: live ? 'Publish' : 'Go on air',
     cancelLabel: 'Cancel',
     emptyText: 'Nothing to publish — what is on air is what you see.',
@@ -249,6 +264,10 @@ async function publishClicked() {
 // and they made publish a different-looking object from the version sheet it is supposed
 // to BE. The screen is now the list and the act, whichever door opened it. The API still
 // returns `warnings` and the savers still hand them back — nothing reads them today.
+// What that cut took with it, unnoticed, was the one warning that was not a lecture: the
+// BLAST RADIUS a publish names (`3 ad units in 4 ad setups pick this up`). It came back on
+// 17 Sep as a clause on the publish kicker, computed from the page's own counts rather than
+// read off the response — it has to be known BEFORE the act, not reported after it.
 
 async function restoreClicked(v) {
   let pre;
@@ -304,9 +323,9 @@ async function restoreClicked(v) {
 }
 
 async function pubReload() {
-  const { onRestored, dirty, saveNow } = PUB;
+  const { onRestored, dirty, saveNow, reach } = PUB;
   await loadPublish(PUB.kind, PUB.id, PUB.name);
-  Object.assign(PUB, { onRestored, dirty, saveNow });
+  Object.assign(PUB, { onRestored, dirty, saveNow, reach });
   FORM.rerender();
 }
 
