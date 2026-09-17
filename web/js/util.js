@@ -55,6 +55,15 @@ function hbPartners() {
   return hbAnswers().filter(x => x !== 'off');
 }
 
+// The vendors a unit's Ad provider may name (16 Sep, user call), from meta, with the words
+// below as the floor — same rule as the header-bidding answers above. EMPTY IS NOT IN THE
+// LIST and never will be: "nobody has said" is absence, and the control offers it as its
+// own way back (`Not set`) rather than as a vendor called nothing.
+function adProviders() {
+  const fromMeta = KL_META && KL_META.adProviders;
+  return (fromMeta && fromMeta.length) ? fromMeta : Object.keys(LABELS.adProvider);
+}
+
 const LABELS = {
   property: { TOI: 'TOI', ET: 'ET', NBT: 'NBT' },
   platform: { mweb: 'Mweb', desktop: 'Desktop', android: 'Android', ios: 'iOS' },
@@ -73,7 +82,11 @@ const LABELS = {
     play: 'Play / pause', progress: 'Progress bar', volume: 'Volume', fullscreen: 'Fullscreen',
     quality: 'Quality', captions: 'Captions', speed: 'Speed', pip: 'Picture in picture', share: 'Share',
   },
-  expandInMini: { true: 'True', false: 'False' },
+  // `True`/`False` said the payload, not the row: the control for this has always been
+  // a Yes/No seg (`views-keys-editor-player.js`), and the change review said On/Off
+  // because nothing read this map. Three words for one answer — it wears the control's
+  // own pair now, which is what a diff has to agree with (16 Sep).
+  expandInMini: { true: 'Yes', false: 'No' },
   endOfVideo: { loop: 'Loop', upnext: 'Play next', replay: 'Replay + related' },
   preload: { none: 'None', metadata: 'Metadata', auto: 'Full' },
   qualityCapCellular: { none: 'No cap', '480p': '480p', '720p': '720p' },
@@ -103,6 +116,9 @@ const LABELS = {
   pause: { yes: 'Yes', no: 'No', size: 'Auto' },
   // Whose sound is quiet while the content keeps playing under an ad (11 Sep).
   mute: { ad: 'Ad', content: 'Content' },
+  // Does the idle player's banner step aside while a video ad runs (16 Sep, back from
+  // the 8 Sep cut)? A plain Yes/No, because the row already asks the whole question.
+  hideOnInStreamAd: { true: 'Yes', false: 'No' },
   // Header bidding (10 Sep): the partners in the user's own spelling, compact because
   // these five sit in one seg on every slot. `Auto` borrows the setup's answer — the
   // same grammar `Content pause` uses for "each unit's own", so an inherited answer and
@@ -113,6 +129,12 @@ const LABELS = {
   // parsed. THREE providers since 27 Aug — SLike behaved exactly like CAN (a pasted
   // VAST URL answering with video), so it was a fourth name buying nothing.
   tagProvider: { ima: 'IMA', gpt: 'GPT', can: 'CAN' },
+  // WHOSE DEMAND FILLS THE UNIT (16 Sep, user call) — a different question from
+  // `tagProvider` directly above, which says how the unit is REQUESTED. These are the
+  // vendors' own spellings, said full because they sit in a settings row, not a badge.
+  // Meta answers with the list (`adProviders`); this spells it, so the control never
+  // paints raw keys at anyone against an API that predates the field.
+  adProvider: { gam: 'GAM', taboola: 'Taboola', colombia: 'Colombia', slike: 'Slike' },
 };
 
 // Video tags fit the three breaks; display tags fit the squeeze-back, and also sit
@@ -587,6 +609,11 @@ function showVal(field, v) {
   // rather than `without Quality`. Only the two list-valued fields are routed, because they are
   // the two the generic `join(', ')` below was getting wrong; everything else already reads.
   if (PLAYER_LIST_FIELDS.includes(field) && typeof pbWord === 'function') return pbWord(field, v);
+  // A YES/NO FIELD SAYS ITS OWN WORDS (16 Sep). `On`/`Off` is the right generic for a
+  // switch, but a field whose row asks a question answers it the way the row does —
+  // `Hide during in-stream ads: Yes` — so a change review and the control it came from
+  // never read differently. Only fields with a true/false map in LABELS take this path.
+  if (typeof v === 'boolean' && LABELS[field] && LABELS[field][v]) return LABELS[field][v];
   if (v === true) return 'On';
   if (v === false) return 'Off';
   if (Array.isArray(v)) return v.join(', ') || '—';
@@ -630,11 +657,16 @@ const FIELD_NAMES = {
   podAds: 'Total Target Impressions',
   nextAd: 'Waterfall fill order',
   times: 'Schedule', hold: 'Display duration', perSession: 'Total Target Impressions',
+  // The rotation's two new answers (16 Sep, user call). `Repeats per show` says how many
+  // banners one entry in the Schedule is worth — `Repeat` alone would have been read
+  // against `Repeat interval` above it, which is the mid-roll's cadence, not this.
+  perShow: 'Repeats per show', hideOnInStreamAd: 'Hide during in-stream ads',
   tagTimeoutMs: 'Request timeout', behaviour: 'Ad behaviour',
   headerBidding: 'Header bidding',
   // The player's JSON (31 Aug, AD-JSON-SCOPE): the break's giving-up point, a cadence
   // that stops, the idle player's rotation, a banner's own facts, playback timing.
   fillTimeoutSec: 'Total timeout',
+  adProvider: 'Ad provider',
   displaySlot: 'Ad placement', pause: 'Content pause', mute: 'Mute',
   showAfterSec: 'Request delay', closeAfterSec: 'Close button', hideAfterSec: 'Auto-hide',
   direct: 'Special',
@@ -660,7 +692,16 @@ const FIELD_NAMES = {
   // "Waterfall order" (5 Sep — waterfall in place of fallback everywhere): the tiers
   // set the sequence (Direct, then the primary, then the waterfall), and the waterfall
   // is the one ordered thing left.
-  drive: 'Delivery controls', ask: 'Waterfall order', tries: 'Waterfall depth',
+  // HOW DEEP EACH PARTNER GOES joined the order 16 Sep (user call): one row, `Waterfall`,
+  // holds the whole fall — who is asked, in what order, and how many of each partner's
+  // own sources are tried. The two fields keep their own names in a diff, because a
+  // reorder and a cap are different decisions even when one control makes both.
+  drive: 'Delivery controls', ask: 'Waterfall order', depth: 'Depth per partner',
+  // The FLAT depth — one count over the whole walk, the ceiling at the ladder's foot. The
+  // same key also names the GLOBAL waterfall's own depth in a diff, where it IS that
+  // ladder's one depth — so one word serves both, and `Depth per partner` is the only
+  // name that has to distinguish itself.
+  tries: 'Waterfall depth',
   // The waterfall's own diff words (5 Sep; one word 7 Sep, user call). `ad sources` is
   // the source itself moving between its three answers — its own units, the waterfall,
   // or none (8 Sep) — where `indirect` is the UNITS of a break serving its own.

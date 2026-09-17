@@ -1,7 +1,7 @@
 // store/keys.js — integrations (the product room's object): identity, the player and
 // its custom configs, the drive (per-break quick decisions), the section switches, and
 // the seam that refuses a switch no published demand could fill.
-import { DRIVE_FIELDS, askWord, driveAsk, driveWalkRungs, effectiveBehaviour, normalizeCuepoints, slotGroupDefs } from './ladders.js';
+import { DRIVE_FIELDS, askWord, driveAsk, driveDepth, driveWalkRungs, effectiveBehaviour, normalizeCuepoints, slotGroupDefs } from './ladders.js';
 import { isPublished } from './publish.js';
 import { duplicateSetup, setupSection } from './setups.js';
 import { ANALYTICS_LEVELS, AUTOPLAY, CONTROLS_MODES, DOCK_POSITIONS, END_SCREENS, FIELD_WORDS, HEADER_BIDDING, MAX_POD_ADS, MAX_RUNGS, MAX_SECTIONS, MIDROLL_EVERY_MAX, MIDROLL_EVERY_MIN, MIDROLL_MODES, PLATFORMS, PLAYBACK_RATES, PLAYER_CONTROLS, PLAYER_FIELDS, PLAYBACK_KINDS, PLAYBACK_MODES, PREROLL_TIMING, PROPERTIES, PROVIDER_WORD, Refusal, SLOT_TYPES, SLOT_WORD, TAG_PROVIDERS, WEB_PLATFORMS, WORST_CASE_WARN_MS, deepCopy, fieldWord, keyString, state, updateStamp } from './state.js';
@@ -289,6 +289,31 @@ const DRIVE_WRITERS = {
   // The surface's switch over THIS break's direct tier: absence is on, so only the off
   // answer is stored — dropping it follows the setup again.
   direct: (v, errs, out) => { if (v === false) out.direct = false; },
+
+  // HOW DEEP EACH PARTNER GOES (16 Sep, user call). A map, partner → a count of that
+  // partner's own sources — sparse, so a partner left out is walked all the way down and
+  // absence is never written. Zero is refused BY NAME rather than stored: a partner asked
+  // zero times is a partner switched off, and that decision already has a control (the
+  // ask list). An unknown partner is refused the same way `ask` refuses one.
+  depth: (v, errs, out) => {
+    if (!v || typeof v !== 'object' || Array.isArray(v)) {
+      errs.push({ field: 'drive', message: 'the waterfall depth is a count per ad partner' });
+      return;
+    }
+    const bad = Object.keys(v).filter(p => !TAG_PROVIDERS.includes(p));
+    if (bad.length) {
+      errs.push({ field: 'drive', message: `${bad.map(p => `“${p}”`).join(', ')} is not an ad partner — ${TAG_PROVIDERS.map(p => PROVIDER_WORD[p]).join(', ')}` });
+      return;
+    }
+    for (const [p, n] of Object.entries(v)) {
+      if (n === 0) {
+        errs.push({ field: 'drive', message: `${PROVIDER_WORD[p]} asked zero times is ${PROVIDER_WORD[p]} switched off — switch it off in the waterfall order instead` });
+        return;
+      }
+      intIn(n, 'depth', 1, MAX_RUNGS, errs);
+    }
+    if (!errs.length) out.depth = driveDepth(v);
+  },
 
   tries: (v, errs, out) => { out.tries = intIn(v, 'tries', 1, MAX_RUNGS, errs); },
   start: (v, errs, out) => { out.start = oneOf(v, 'start', PREROLL_TIMING, errs); },

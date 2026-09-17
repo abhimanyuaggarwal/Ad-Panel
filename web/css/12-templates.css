@@ -1,0 +1,258 @@
+/* 12-templates.css — THE TEMPLATES ROOM (16 Sep). Loaded by index.html only, after 10,
+   so it is the last word on its own subject and borrows everything else.
+
+   THE PAGE IS THE INTEGRATION PAGE'S SHAPE (16 Sep, user call): `.ehead.with-rail` →
+   `.detail` → `.form.keyform` card on the left, `.rail` on the right. The card, the rows,
+   the fields, the rail and the whole type scale are INHERITED — that is the point, and it
+   is why this file is short. Only the four things a template has and an integration does
+   not are below: a locked provider drawn as a fact, the macro strip, the Visible to chip
+   row, and the connected rail's rows. The list borrows the other two lists' table the
+   same way, plus one acts column for the only act a row carries.
+   (11 is the front door's own plate and is loaded by login.html alone; this file takes
+   the next free number rather than reordering a cascade that is load-order dependent.) */
+
+/* ---------- the list ---------- */
+/* Fixed layout, for the reason §10 gives the other two: auto layout treats the header
+   widths as hints and re-deals the slack by content, which is how a name column ends up
+   70px narrower than it asked for. The URL is the one column that takes the slack — it
+   is the longest value here and the one read character by character. */
+.card table.t-tpls { table-layout: fixed; }
+.card table.t-tpls th:nth-child(1) { width: 21%; }
+.card table.t-tpls th:nth-child(3) { width: 14%; }
+.card table.t-tpls th:nth-child(4) { width: 13%; }
+.card table.t-tpls th:nth-child(5) { width: 170px; }
+/* Status closes the row on the slack, the way it does on both other lists. */
+.card table.t-tpls th:last-child, .card table.t-tpls td:last-child { text-align: right; }
+
+.tpl-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.tpl-name > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tpl-u {
+  display: block; font-size: 11.5px; color: var(--ink-soft);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* A template that is not on air still reads as a row — only its identity and its URL
+   recede, so the columns that say why it matters (visible to, connected) keep their ink,
+   and the Status column carries the word. */
+tr.tpl-off .tpl-name > span, tr.tpl-off .tpl-u { opacity: .5; }
+.tpl-vis { gap: 7px; }
+.tpl-vis .pbadge + .pbadge { margin-left: -4px; }
+.tpl-conn { font-size: 12.5px; color: var(--ink-soft); white-space: nowrap; cursor: help; }
+.tpl-conn b { font-weight: 650; color: var(--ink); }
+
+/* ---------- the provider, as the provider's own chip ---------- */
+/* `.pvd` is how IMA / GPT / CAN are marked in every ladder, lookup row and list; the one
+   place it was not a chip was the field where you CHOOSE it, which made the choice look
+   like a different kind of fact from the thing it chooses. Three providers is a set you
+   show, so the choice is the same three chips — unpicked ones recede, the answer is lit. */
+.prov-pick { display: flex; align-items: center; gap: 6px; height: 30px; }
+.prov-pick .pvd {
+  font: inherit; font-size: 10px; font-weight: 700; letter-spacing: .04em;
+  cursor: pointer; opacity: .4; transition: opacity .12s, box-shadow .12s;
+}
+.prov-pick .pvd:hover { opacity: .75; }
+.prov-pick .pvd.on { opacity: 1; box-shadow: 0 0 0 1px currentColor inset; }
+
+/* Where the choice is refused (units already request through this template) the row is the
+   one chip, wearing `fixed` — the same mark, the same place, and no control promising a
+   menu it would never open. The whole reason is on its hover (tooltip policy: a refusal
+   reason is one of the three things title= is for). */
+.prov-fact { display: flex; align-items: center; gap: 8px; height: 30px; cursor: help; }
+.prov-fact i {
+  font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+
+/* ---------- visible to: the house checklist, at field width ---------- */
+/* `pickerHtml`'s own control, sized to sit as the row's third field beside Name and
+   Provider — the integration Details card's `Name · Property · Platform` rhythm. */
+.tpl-visfield { min-width: 210px; }
+/* `.shpick`'s own `min-width: 300px` is sized for a sheet's catalogue face; as a field
+   beside Name and Provider it takes a field's width, so the min has to be released too. */
+.tpl-visfield .shpick { width: 210px; min-width: 0; }
+/* On a sheet the face is a PROMPT (`Choose settings…`) and reads faint by design. Here it
+   is the ANSWER, so it carries the same ink as the value in the Name box next to it. */
+.tpl-visfield .shpick-t { color: var(--ink); }
+.vis-why { display: block; color: #8a6d1f; }
+
+/* ---------- inside the Details card ---------- */
+/* The macro strip and the Visible to chips live INSIDE the card, each under the field it
+   belongs to, so each is scoped to the card's own rhythm rather than standing as a zone of
+   its own. The row after an inline aid keeps the card's own row gap, which the aid would
+   otherwise swallow. */
+.macro-strip + .frow, .tpl-inactive + .frow { margin-top: 20px; }
+
+/* ---------- the request URL and its macros, as one band ---------- */
+/* THE PAGE HAS ROOM, SO THE LONG VALUE TAKES SOME (16 Sep, user call — *"make the request
+   url and add macro more clean and take up some space since we have a lot"*). Everything
+   else on this card is a short answer in a 30px box; the Request URL is the thing a person
+   actually reads character by character, and at the same 30px/12.5px it was the least
+   legible field on a page with 400px of empty white under it.
+   The band gives the URL and its macros their own air and binds them into one object — the
+   value, and the parts you build it from — separated from the three short answers above by
+   space rather than by another rule. */
+.url-band { margin-top: 26px; }
+.url-band .frow { margin-bottom: 0; }
+/* The one field on the page that overrides `keyform`'s box, because it is the one field
+   whose content is longer than its label. */
+.url-band input#tpl-url { height: 40px; font-size: 13px; letter-spacing: -.1px; }
+
+/* ---------- the macro strip ---------- */
+/* The macros ARE a control (they insert into the URL), and the vocabulary is the player
+   team's — typing one by hand is the only way to get it wrong. Each chip leads with a `+`
+   so it reads as an act rather than a token, and carries on its hover what the player will
+   actually put there: the legend the deleted example line was for, at a tenth of the room.
+   Ghost, not filled — an aid under a control, never a second row of controls. */
+.macro-strip { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+.ms-l { font-size: 12px; color: var(--ink-faint); margin-right: 4px; }
+.mchip {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px;
+  font: inherit; font-size: 11.5px; font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  color: var(--ink-soft); background: none;
+  border: 1px solid var(--line); border-radius: 8px; padding: 0 11px; cursor: pointer;
+  transition: border-color .12s, color .12s, background .12s;
+}
+.mchip:hover { background: #fff; }
+.mchip i { font-style: normal; font-weight: 700; font-size: 13px; color: var(--ink-faint); }
+.mchip:hover { border-color: var(--accent); color: var(--accent); }
+.mchip:hover i { color: var(--accent); }
+
+/* ---------- off, said under the URL it is about ---------- */
+/* THE EXAMPLE LINE IS GONE (16 Sep, user review — the page read cluttered). It rendered the
+   URL a second time with example values in the macros' places: the longest, densest, small-
+   est-type thing on a page whose whole job is four short answers, and an aid nobody asked
+   for sitting under the field it was glossing. What survives is the one line that is NEWS —
+   the URL above is not what the connected units are firing — printed only while the
+   template is off. */
+.tpl-inactive { margin: 10px 0 0; font-size: 11.5px; color: #8a6d1f; }
+
+/* ---------- visible to ---------- */
+/* One row, four answers, under the card's own `Visible to` label. All properties sits
+   first and apart, because it is the answer most templates want and the one the others
+   are measured against. */
+.vis-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.vis-div { width: 1px; align-self: stretch; background: var(--line); margin: 2px 4px; }
+.vchip {
+  display: inline-flex; align-items: center; gap: 7px;
+  font: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink-soft);
+  background: #fff; border: 1px solid var(--line); border-radius: 999px;
+  padding: 5px 13px 5px 6px; cursor: pointer;
+  transition: border-color .12s, color .12s, background .12s;
+}
+.vchip:hover { border-color: #d4d9e3; }
+.vchip .pbadge { margin: 0; }
+.vchip.on { border-color: var(--accent); color: var(--accent); background: rgba(28,79,214,.05); }
+.vchip.on:hover { border-color: var(--accent); }
+/* LOCKED IS LIT AND QUIET. A property connected units stand on cannot be dropped — but
+   that is not an option being refused, it is an answer that cannot be withdrawn, and it
+   only bites at the moment somebody tries. A permanent mark for a rule that fires on one
+   click would be furniture, and the rail beside it already says where the usage is. So:
+   the cursor says no, the hover names the count, and the click puts the reason on the
+   line that explains the answer anyway. */
+.vchip.locked { cursor: not-allowed; }
+.vis-say { margin-top: 10px; font-size: 12px; color: var(--ink-faint); }
+.vis-why { color: #8a6d1f; }
+
+/* ---------- the second card: connected ---------- */
+/* UNIT-FIRST: the row is the ad unit (what fires the URL, and what the head counts), and
+   the ad setups it sits in are its address. A heading row because the two columns are
+   different kinds of thing — the read-only shelf on the ad setup page reads the same way.
+   The unit's name is fixed-width so the addresses all start on one x down the card; the
+   addresses wrap as chips, because a unit can sit in several places and a truncated list
+   of them would be the one thing on this card a person cannot act on. */
+.cx-count { font-size: 11.5px; font-weight: 500; color: var(--ink-faint); }
+.cu-t { --cu-cols: minmax(200px, 300px) minmax(0, 1fr); margin-top: -2px; }
+.cu-h {
+  display: grid; grid-template-columns: var(--cu-cols); gap: 24px;
+  padding: 0 0 7px; border-bottom: 1px solid var(--line);
+  font-size: 9.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.cu-r {
+  display: grid; grid-template-columns: var(--cu-cols); gap: 24px;
+  align-items: baseline; padding: 9px 0;
+}
+.cu-r + .cu-r { border-top: 1px solid #eef0f5; }
+.cu-n { font-size: 12.5px; font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.cu-w { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+/* An address is a chip and a door: the property it is on, and the ad setup's name. */
+.cu-s {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 3px 10px 3px 4px; border: 1px solid var(--line); border-radius: 999px;
+  font-size: 12px; color: var(--ink-soft); text-decoration: none; background: #fff;
+  transition: border-color .12s, color .12s;
+}
+.cu-s:hover { border-color: var(--accent); color: var(--accent); }
+.cu-s .pbadge { width: 18px; height: 18px; flex: 0 0 18px; border-radius: 5px; font-size: 8px; }
+.cx-empty { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--ink-faint); }
+
+/* ---------- the ad setup's template news ---------- */
+/* A FACT, NOT A WARNING. Something true and worth knowing moved under this setup, and the
+   console's amber is for exactly that (the `Changes not on air` line's own colour); red is
+   kept for refusals. It sits at the head of the card because it is the one thing on the
+   page that the page's own `On air · v3` chip cannot account for. */
+.tn-sec {
+  margin-bottom: 18px; padding: 11px 14px 12px;
+  background: #fdfaf0; border: 1px solid #f0e4bf; border-radius: 9px;
+}
+.tn-h { font-size: 12px; line-height: 1.5; color: #7a6220; }
+.tn-t { display: flex; flex-direction: column; margin-top: 7px; }
+.tn-r {
+  display: flex; align-items: baseline; gap: 10px; padding: 4px 6px; margin: 0 -6px;
+  border-radius: 6px; text-decoration: none; color: inherit;
+}
+.tn-r:hover { background: rgba(255,255,255,.7); }
+.tn-r:hover .tn-n { color: var(--accent); }
+.tn-n { font-size: 12.5px; font-weight: 650; color: #5f4c14; }
+.tn-v { font-size: 11px; font-weight: 700; color: #8a6d1f; font-variant-numeric: tabular-nums; }
+.tn-w { margin-left: auto; font-size: 11.5px; color: #9a8a5e; }
+
+/* ---------- the ad setup's read-only shelf ---------- */
+/* The templates a unit on this setup may point at, folded into the setup page's own head
+   sections. It is a REFERENCE, so it is quieter than anything you can set: no controls, a
+   row that is only a door, and a foot that says where the editing lives. */
+.tr-sec { padding: 2px 0 14px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+.tr-sec.closed { padding-bottom: 6px; }
+.tr-sec .shead { margin-bottom: 2px; }
+.tr-n {
+  font-size: 11px; font-weight: 700; color: var(--ink-faint);
+  background: var(--bg-soft, #f7f8fb); border: 1px solid var(--line);
+  border-radius: 999px; padding: 1px 8px;
+}
+.tr-t { display: flex; flex-direction: column; margin-top: 4px; }
+.tr-r {
+  display: grid; grid-template-columns: minmax(180px, 250px) minmax(0, 1fr) 120px;
+  gap: 18px; align-items: center; padding: 7px 8px; margin: 0 -8px;
+  border-radius: 7px; text-decoration: none; color: inherit;
+}
+.tr-r + .tr-r { box-shadow: inset 0 1px 0 #eef0f5; }
+.tr-r:hover { background: var(--bg-soft, #f7f8fb); box-shadow: none; }
+.tr-r:hover + .tr-r { box-shadow: none; }
+.tr-r:hover .tr-nm { color: var(--accent); }
+.tr-id { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.tr-nm {
+  font-size: 12.5px; font-weight: 600; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tr-u { min-width: 0; font-size: 11.5px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-scope { font-size: 11.5px; color: var(--ink-faint); text-align: right; white-space: nowrap; }
+.tr-r.off .tr-nm, .tr-r.off .tr-u { opacity: .5; }
+.tr-empty, .tr-foot { font-size: 11.5px; line-height: 1.55; color: var(--ink-faint); }
+.tr-empty { padding: 6px 0 2px; }
+.tr-foot { margin-top: 10px; padding-top: 9px; border-top: 1px solid #eef0f5; }
+
+/* ---------- the save review ---------- */
+.tpl-rvw { margin-bottom: 14px; }
+/* THE SPINE, TURNED ON ITS SIDE. Same row, same three parts, same classes — stacked,
+   because two 60-character URLs side by side in a 440 frame are two stubs and a knot.
+   The was-side keeps its recede and the now-side keeps its ink, so which is which is
+   still read off treatment rather than off position. */
+.tpl-rvw .rvw-row.stack { display: block; }
+.tpl-rvw .rvw-row.stack .rvw-what { display: block; margin-bottom: 4px; }
+.tpl-rvw .rvw-row.stack .rvw-was,
+.tpl-rvw .rvw-row.stack .rvw-now {
+  display: block; text-align: left; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere;
+}
+.tpl-rvw .rvw-row.stack .rvw-was { text-decoration: line-through; text-decoration-color: #d4d9e3; }
+.tpl-rvw .rvw-row.stack .rvw-now { font-weight: 600; color: var(--ink); }
+.tpl-reach { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 8px; }
+.tpl-reach b { font-weight: 650; color: var(--ink); }

@@ -1,5 +1,414 @@
 # Player Console — the Integrations Panel (StreamAds repo) — v1
 
+**A BREAK ANSWERS ONE QUESTION FIRST (16 Sep, user call — *"once I enable a pre-roll or mid-roll
+I have two options by default — values and configurations to be taken from the Ad Setup, or
+customize; in that case the existing levers will come, and I will always have the option to switch
+back to the Ad Setup configuration via a confirmation dialog"*).** The ad behaviour card's left
+column is now two steps: `[ As set up │ Custom ]` under the break tabs, and the levers only under
+Custom.
+
+- **The fault was a state with nowhere to live.** A break switched on opened straight into six
+  levers, each showing a value — `Immediate`, `1`, `All`, `Amazon+Prebid` — with nothing on screen
+  to say whether that value was **decided here** or merely **inherited from the ad setup**. The
+  distinction existed in the data all along (the drive is sparse; absence means follow the setup)
+  and was legible in exactly one place: whether a ghost `Reset to setup` button at the bottom right
+  was greyed. A state you can only read off the enabledness of a button is not on the screen.
+- **Two steps, the shape the ad setup already teaches.** This is `suSrcPick`'s grammar (8 Sep, and
+  the 11 Sep "it is too disjointed" call): step one stands alone on the panel's own left edge, and
+  step two only exists while step one says so — "which lever" is not a question about a break that
+  decides nothing. One control learned once, read in both rooms.
+- **CUSTOM IS A MODE, NEVER A SNAPSHOT.** Taking Custom copies nothing. Every lever still writes
+  sparse, and every lever left alone still follows the setup **live** — so ad ops adding a tag next
+  week still joins the walk this break describes. Seeding the fields with today's values would
+  freeze the break at a moment and break the promise the card was built on (*"there is no unmappable
+  Custom state"*).
+- **Which is why the mode is session state and not payload** (the `SU_SRC_BACK` reasoning). The
+  server has one truth per break — the sparse drive — and a second field meaning "opened the levers
+  but decided nothing" would be a lie in the payload, since it resolves to nothing. A break holding
+  decisions **is** custom and reads as custom on any reload; a break holding none **is** following
+  the setup, which is exactly what it does. `DRIVE_CUSTOM` is a `Set` that dies with the tab.
+- **As set up is a STATEMENT, not greyed levers.** The rows are the lever rows' own grammar
+  (`lr rule`, ghost grip, the same 168px label column) with the control swapped for the value, so
+  the two modes share one label edge and one value edge and switching moves nothing sideways —
+  a parallel grid here would have been a second alignment system on one screen, the fault the row
+  grammar was introduced to end (21 Aug). Only two things change: the row breathes less (reading is
+  not editing) and a **value** reads as a value while an **absence** reads as an absence —
+  `2 placements differ` and `no special deals` stay dim; `Prebid` and `1` do not.
+- **Every lever has a fact, in the lever's own seat.** The first cut left the waterfall out of the
+  statement, on the grounds that the right-hand column already counts the walk — but that made the
+  fact list open on Special while the lever list opens on the Waterfall, so switching modes
+  reshuffled the card as well as swapping its contents. The rows now mirror one-for-one, same order,
+  same seats: the mode switch swaps controls for values **in place** and nothing moves. The
+  waterfall's line is the setup's own **partner order**, a different grain from the resolved walk on
+  the right (per placement, per pod, repeating a partner as often as the ladder does) — the decision
+  on the left and its consequence on the right, which is the arrangement Custom already uses. With no
+  decision on this surface the depth is `All`, said in the lever's own word rather than a second
+  vocabulary for the same answer.
+- **BOTH DIRECTIONS CONFIRM, IN THE AD SETUP'S OWN DIALOG** (user call — *"the switch between
+  custom to as setup should be via a confirmation clean dialog box, use the same that is being used
+  in the ad setup"*). The first cut confirmed only the destructive way back, reasoning that taking
+  Custom loses nothing so a dialog there would be a question with no stake. But the ad setup's
+  source seg confirms **every** change (`suSrcPick`), and one control learned once has to behave
+  the same in both rooms — a seg that sometimes asks and sometimes does not is two controls wearing
+  one shape. The body is the move: where it lands, then `from → to`; going back adds the counted
+  drop and wears the danger weight, taking Custom drops nothing and does not.
+- **The CTA is the switch's own word** (user call — *"yes go back should not be the CTA when
+  switching from custom to as setup, it should be the same switch"*). `Yes, go back` and
+  `Yes, switch` were a **second vocabulary** invented for an act the control already names: the seg
+  says `As set up` and `Custom`, the move line says `Custom → As set up`, and then a button said a
+  third thing. The button now carries the **destination**, spelled exactly as the segment spells it,
+  so the dialog reads as the switch being thrown rather than as an escape hatch out of one. One
+  title now serves both directions (`Switch this break's settings?`) because the move line already
+  says which way — a title per direction was the same duplication one level up.
+- **The resolved column's rule now reaches the bottom** (user call — *"the right separator line is
+  not fully drawn"*). Pre-existing, not new to this cut: the divider is `.tc-right`'s own
+  `border-left`, and `.two-col`'s `align-items: start` — which is what pins the resolved list to
+  the top beside a much taller stack of levers — left that box only as tall as its own content, so
+  the line stopped partway down (measured 98px short on a post-roll, 236px on a pre-roll in Custom)
+  and read as a line someone forgot to finish. `align-self: stretch` overrides the alignment for
+  that column alone: the box runs the row's full height and draws its rule end to end while the
+  content still flows from the top. At narrow widths the media query drops the border and stacks
+  the columns as before.
+- **`Reset to setup` is gone from the footer.** The seg at the top is the way back now, it
+  confirms, and it names what it drops. Two controls over one concept is what this cut was called
+  to remove; `Apply to all breaks` keeps the footer, and only while there are other breaks to take
+  it. (The snapshot harness's `.pchip` step was repaired in passing — the partner strip became the
+  `.wfd-r` ladder on 16 Sep and that step had been missing its target.)
+
+Verified: `npm test` 204 passed · `npm run check` syntax ok · `node test/ui-snapshot.mjs` 88 screens
+with no missing target on this card · headless drives of all four break tabs in both modes, the two
+mirroring row for row (pre-roll 6 facts ↔ 6 levers · mid-roll 6 ↔ 6 · post-roll 5 ↔ 5 · out-stream
+its own two) · the label edge at x=73 and the value edge at x=251 measured identical in both modes ·
+the round trip through the confirm (facts → ladder → confirm names `1 decision` → facts) · a break
+carrying saved decisions opening on **Custom** with `DRIVE_CUSTOM` cleared, and the untouched break
+beside it still reading **As set up**.
+
+**TEMPLATES BECOME A ROOM (16 Sep, user call — *"move the ad unit template as a separate page
+parallel to Ad setup … attach its visibility to one or more property … if I change anything in the
+ad unit template it gets changed across wherever its being connected"*).** Ad unit templates left
+the head of the ad setup page and became the third room, `#templates`, beside Integrations and Ad
+Setups.
+
+- **Why a room and not a better section.** The fold at the top of the ad setup editor said the
+  wrong thing twice. A template is not a property of the setup you happened to open — it is shared
+  by every setup that points at it — and a section on one setup's page structurally cannot answer
+  the only two questions anybody has about a shared thing: **where MAY this be used**, and **where
+  IS it used**. The room is built around exactly those two, and nothing else.
+- **VISIBLE TO is the first answer, and it is a SET.** `properties[]` on the template; `[]` is
+  every property, the answer said by absence, so every payload written when this was a single
+  `property` string still reads as it did (the string is still accepted on the wire and mapped:
+  `'All'` → `[]`, `'TOI'` → `['TOI']`). Naming every property **collapses** back to `[]`, because
+  on screen those are one answer — light all three chips and the All chip lights — and one shape
+  per meaning is the rule. A chip row rather than a select: with three properties a dropdown hides
+  three options behind a control the same size, and a select cannot say a set at all.
+- **CONNECTED is the second answer, and it is the rail.** The ad setup page already spends its
+  right column on consequence (the version rail), so a reader arrives knowing what that column is
+  for. Connected is the same kind of fact — not something you set, something you are told —
+  grouped by property, every row a door into that ad setup, each carrying the units it holds.
+  Keeping it beside the URL field is the whole point: the blast radius is legible **while** you
+  type, not after you save. It is one hop deeper than `usedBy` ever went (`usedBy` counts the tags;
+  `setups`/`setupCount`/`propertiesInUse` count the ad setups those tags sit in).
+- **Everything connected stays visible.** Visibility may always widen; narrowing is refused where
+  it would leave a connected ad setup outside the visible set — naming the property, the count of
+  ad setups on it, and the two ways out. The alternative (letting it narrow and showing the
+  exception) means an ad setup holding a template its own room can no longer show, and nobody able
+  to find the way back. Refusing keeps one invariant instead of one more state to explain. The chip
+  refuses **where it sits**: it stays lit, the cursor says no, and the reason lands on the line
+  under the row that explains the answer anyway.
+- **Visibility governs the PICK, never the serving.** A unit already pointing at a template keeps
+  requesting through it — which is the reason the narrowing refusal has to exist rather than a
+  silent fallback. In the ad setup's ladder the picker now greys an out-of-scope template **in
+  place**, with the reason (*"Visible to TOI only — this ad setup is on ET"*), rather than dropping
+  it: a missing row just looks like the template was deleted, and a named one can be acted on.
+- **ONE SAVE, ONE MOMENT — and the save IS the gate.** Templates have no publish plane, so an edit
+  is on air the moment it lands. The row's live toggle is therefore gone: the switch is a field
+  like the other three, and a save that moves the URL, the provider or the switch **while units are
+  connected** stops for a review first — THE CHANGE REVIEW's own row, the reach counted underneath,
+  and one line saying there is no publish step. A rename, or widening who may pick it, saves
+  quietly: a confirm nobody can fail is a confirm nobody reads.
+- **Two things the old dialog never had.** The macros became a **control** — chips that insert at
+  the caret, because the vocabulary is the player team's and a hand-typed one is a refused save —
+  and the page shows the **example request**, the same string with example values in the macros'
+  places, labelled and with the substitutions marked so it can never read as a fact about traffic.
+- **One bug fixed on the way.** "In use" was walking `sections[].slots[].rungs` only, so a tag that
+  lived **only** in the global waterfall, or only in the units a break had PARKED in `ownRungs`
+  after switching to the global waterfall, counted as unused and could be deleted out from under
+  it. There is one walk now — `setupTagIds` — and the reach, the delete refusals and the
+  visibility check all read it. Two cases pin it.
+**Round 2, same day — the clean-up pass (*"the UI can be refined and cleaned a bit more and the
+IA as well can be simplified"*).** Everything below is subtraction; nothing new was added.
+
+- **The rail went, and the cards with it.** Connected sat in a right rail, borrowed from the ad
+  setup page's version rail on the theory that the blast radius belongs beside the URL while you
+  type. Two things were wrong with that: it made a second column out of a page with five fields,
+  and it read as a different question when it is the SAME question as Visible to one line further
+  on — *may* point at it, *does* point at it. (It also hid under 1100px, where on this page it is
+  half the content.) The page is one column now, three zones on a hairline: **the request** →
+  **Visible to** → **Connected**. The two `.fieldset` cards went the same way — the 15 Sep
+  player-card call again: the lines were the clutter, not the layout.
+- **The Status column went off the list.** It printed `Live` on nearly every row — a column
+  carrying the default state out loud — and a template has no version for it to name, which is
+  the only reason the other two lists keep theirs. Off is the news, so off is the only thing
+  drawn: the row recedes and the name takes the tag.
+- **One number per cell.** `Connected` said "3 ad units · 4 ad setups"; two numbers side by side
+  make the reader work out which one they were scanning for. It says `4 ad setups` — the same unit
+  the Visible to column next door counts in — with the ad units on the row's hover and the full
+  breakdown on the template's own page. The provider filter pill went too: with the badge on every
+  row it was a control for something already visible.
+- **Things that said themselves twice.** The header's `Off` chip (the switch six lines below says
+  it, with the consequence attached — the chip belongs on the list, where the switch is not in the
+  room) · the Connected rows' property HEADINGS (a nesting level for four rows, repeating what each
+  row's badge already said) · `Macros the player fills` (five bracketed tokens under a URL field
+  say what they are) · `THE REQUEST` as a section title on a page that is nothing else · the
+  serving line's explanation while it is ON (the state word is the whole answer; the consequence
+  prints only where it is news).
+- **A locked provider is a FACT, not a greyed control.** The house greys an inapplicable field in
+  place, which is right for one that comes back — but a template with units on it can never retype
+  its provider, and at `.field.off`'s 38% the most identifying thing on the page was the faintest,
+  wearing a chevron that promised a menu it would never open.
+- **The name stopped taking the whole measure.** A thirteen-character name in a 900px input is a
+  field with nothing to say, and it pushed Provider to the far right edge where it belonged to
+  nothing. They are one row — what it is called, what it speaks — so the name takes a name's width.
+  The URL keeps the full measure, because a URL really is that long.
+- **The example line lost its panel** (a filled, bordered box gave a caption the weight of a second
+  input) and the macro chips lost their fill (an aid under a control, never a second row of
+  controls). Both still say exactly what they said.
+
+**Round 3, same day — the page wears the integration page's clothes** (*"connected can go on the
+right side only in a clean view and sleek view … what do you mean by the serving switch here … the
+look and feel of the page should be same as that of integration page"*).
+
+- **Round 2 went one step too far, and the user caught it.** Cutting the rail and the cards did
+  clean the page, but it also made this the one editor in the console with a shape of its own —
+  and the reason the rail was worth keeping was never "it fills the space", it is that every other
+  editor already spends its right column on *what this page is told* rather than *what you set*.
+  The page is `.ehead.with-rail` → `.detail` → one `.form.keyform` DETAILS card + `.rail` again.
+  `keyform` is the load-bearing part: it is the class the console's ONE TYPE SCALE is scoped to, so
+  a template's Name field is now the same object as an integration's rather than a lookalike at a
+  fourth scale. What round 2 *was* right about survives — one card, not two; no grouping heading
+  where a badge already says the property; no label over the macro chips; no `Live` chip in a
+  header that has a control saying the same thing.
+- **The connected rail is the VERSION RAIL's clothes, not a new object.** Same `.rail`, same
+  `.rail-head` eyebrow with a counted fact beside it, same borderless rows on the page's ground.
+  What differs is what marks a row: the version rail's dot says a state, and here the state is the
+  PROPERTY, which the console already has a badge for. The unit count is a numeral alone — beside
+  four rows all reading `1 unit`, the word is three repetitions of nothing, and the names are on
+  the row's hover.
+- **`Serving` is gone; the answer is ACTIVE │ INACTIVE, beside the name.** The user asked what the
+  switch meant, and that was the finding: `Serving` is a word this console uses nowhere else, and a
+  bare toggle states one end and leaves the reader to guess the other. The player-config sheet hit
+  the identical problem on 16 Sep and answered it with a two-position segment — this is the same
+  question about the same kind of object, so it gets the same control, in the seat every other
+  editor's header keeps for state (`On air · v1`). Plainly: **Active** and the units pointing at
+  this template fire this URL; **Inactive** and they fire their provider's standard instead,
+  keeping their pick and their place. Inactive says exactly that under the example, where the URL
+  it is about is, and the example itself recedes — an example of a request nobody is making would
+  otherwise be the most confident thing on the page. It stays a FIELD: it saves with everything
+  else, and flipping it while units are connected goes through the same review the URL does (the
+  review row says `Template · Active → Inactive`, the control's own words, never a second
+  vocabulary for one answer).
+
+**Round 4, same day — the page read cluttered, so it lost two more things** (*"the UI is too
+cluttered … what do you mean by the serving switch here"* → *"cut it from this page entirely"*).
+
+- **The on/off control left the page for the list row's ⋯.** Round 3 had answered the user's
+  question about `Serving` by making it a two-position `Active │ Inactive` segment beside the name;
+  the user's answer was that the control does not belong on the page at all, and that is the better
+  call. Turning a template off is not one of the things a template IS — this page is for what it is
+  called, what it asks through, and who may point at it. The page now STATES the answer (a read-only
+  `Off` chip in the header, the seat every other editor uses for state) and the ACT lives on the
+  list row, where the count it would move is in the column next door. It writes immediately, because
+  templates have no draft plane to save into, and asks first whenever anything is connected —
+  *"2 ad units will request through IMA's standard instead"*.
+- **The example line is gone.** It rendered the Request URL a second time with example values in
+  the macros' places: the longest, densest, smallest-type thing on a page whose whole job is four
+  short answers, and an aid nobody had asked for sitting directly under the field it was glossing.
+  What survives is the one line that is NEWS — the URL above is not what the connected units are
+  firing — and it prints only while the template is off.
+- **What the page is now:** one DETAILS card holding Name · Provider · Request URL (+ the macro
+  chips) · Visible to, and one Connected rail. Four answers and one fact.
+- **A note for whoever reads this next.** The breakage could not be reproduced from the files on
+  disk — every room rendered clean at 1024/1280/1440/1680/1920 with no console errors, `npm test`
+  green, no class collisions between `css/12` and the rest of the cascade, and `index.html` still
+  carrying its link and both script tags. The page was thinned on the strength of the review itself
+  rather than a reproduction. If it recurs, suspect a stale `index.html` in the browser (the two
+  scripts and `css/12` are new files, so an old cached shell renders the room unstyled and unrouted)
+  or a peer session mid-save — `views-keys-editor-ad-behaviour.js`, `views-keys-bulk-ads.js`,
+  `util.js` and `07-setup-editor.css` were all being written by another session during this round.
+
+**Round 5, same day — the third review, and a real bug** (*"the rhs is too cluttered, there is no
+padding on top and no matureness … the macros how are they accomodated in the URL is still not
+intuitive and i think it has bugs too, the provider should be a chip as used across pages and the
+visibility can be a dropdown with multiselect and its IA can be rethink"* → then *"show the ad unit
+templates in read only mode in the ad setup based on the visibility and property"*).
+
+- **The macro bug was real.** `selectionStart` on an input nobody has focused is **0**, not null —
+  so `el.selectionStart ?? el.value.length` never fired, and the first click on a macro chip put
+  the macro at position ZERO: `[PAGE_URL]https://ads.slike.example/…`. Reproduced before fixing.
+  The caret is remembered as the field is used (`tplUrlCaret` on focus/click/keyup/select), and
+  with no remembered caret the macro goes where a person means it — the END. Focus returns with
+  the caret after the macro, so typing `&cb=` then clicking a chip is one motion.
+- **The macros read as an act now.** Each chip leads with a `+` and carries on its hover what the
+  player will actually put there (*"a fresh random number on every request"*), with one quiet
+  `Add a macro` label. That is the legend the deleted example line was for, at a tenth of the room.
+- **The provider wears the provider's own chip.** `.pvd` is how IMA / GPT / CAN are marked in every
+  ladder, lookup row and list; the one place it was NOT a chip was the field where you CHOOSE it,
+  which made the choice look like a different kind of fact from the thing it chooses. Three
+  providers is a set you show — so the choice is those three chips, lit for the answer, and where
+  the choice is refused the row collapses to the one chip wearing `fixed`.
+- **Visible to is the house multiselect.** `pickerHtml` already IS a dropdown-with-checklist: a
+  face that says the answer, a menu that stays open while you work, a section box that takes
+  everything under it. The bespoke chip row it replaces was a fourth dialect for a question the
+  console had answered once, and it spent a whole row of the card saying what a 210px face says.
+  The model maps straight on: `[]` is every row ticked, and the section's own box IS the All
+  control. One catch found in testing — `pickerHtml` draws a refused row greyed AND UNTICKED,
+  which is right for a setting you may not choose and wrong for one that is chosen and may not be
+  UNchosen: `All properties` rendered as two grey empty boxes and a tick. So the lock is not an
+  `off` row; it fires on the click that would drop it, in place, the way the server refuses the
+  same move by name.
+- **THE IA, RETHOUGHT: two rows.** Row one is the three answers a template IS — Name · Provider ·
+  Visible to — which is exactly the `Name · Property · Platform` rhythm of the integration Details
+  card next door. Row two is the one long value, the Request URL, with its macros under it. The
+  four rows of three different control dialects that preceded it are what read as clutter.
+- **The rail grew up.** `.rail` pulls itself up 64px to ride beside the page header — right for the
+  version rail, whose filter belongs up there beside Save, and wrong here, so the pull is cancelled
+  and the column starts on the card's own top inset (15px), CONNECTED level with DETAILS. The group
+  head wore a property BADGE *and* the property's NAME — the same word twice in a 260px column; the
+  name alone now, as an eyebrow. Rows recede to the body weight with the count a bare tabular
+  numeral: a rail is read down, and four rows of bold under a bold head is what read as clutter.
+- **AND A READ-ONLY SHELF IN THE AD SETUP** (`suTplRefHtml`). The templates a unit on THIS setup may
+  point at — its own picker's list, filtered by provider-agnostic visibility against the setup's
+  property — folded into the setup page's own head sections beside Global settings and Placements,
+  with the count as its glimpse. Read-only on purpose: authoring moved to `#templates` precisely
+  because a shared thing edited from inside one setup reads as that setup's property. What it is
+  FOR is the other half of that call — an ops person building a ladder needs to know what is on the
+  shelf, and what URL a name stands for, without leaving the page. Every row is a door into the
+  room; the foot says where the editing lives.
+
+**Round 6, same day — three cuts from the fourth review** (*"Every ad setup can point at this
+template. remove this text … make the request url and add macro more clean and take up some space
+since we have a lot … the rhs the property name and logo should be prominent, currently it is
+smaller than the Integration font in it and that is a bad IA and UI"*).
+
+- **The line under Visible to said the face again, longer.** `All properties` in the control,
+  *"Every ad setup can point at this template"* underneath it: the same answer twice, once as a
+  value and once as prose. The line is empty now unless the field has just REFUSED something —
+  which is the one thing the face cannot say — so it appears only when it is news.
+- **The Request URL took the room the page had spare.** Every other answer on this card is short
+  and belongs in `keyform`'s 30px box; the URL is the one value a person reads character by
+  character, and at the same 30px/12.5px it was the least legible field on a page with 400px of
+  empty white beneath it. It is a 40px box at 13px now, banded with its macro strip so the two
+  read as one object — the value, and the parts you build it from — and the chips grew to a 28px
+  touch target with real gaps rather than the 2px-padded tokens they were.
+- **A parent must not read smaller than its children.** In the Connected rail the property head was
+  a 10px faint eyebrow standing over 12.5px ad setup names: the thing you scan the column BY
+  arriving quieter than the rows it heads. That was the same mistake the config sheet's section
+  boxes made on 15 Sep, and it came from over-correcting the round before, where the head had worn
+  BOTH a badge and the name and read as one word twice. Both are now true at once: badge AND name,
+  13/700 in full ink, with the rows receding to 12.5/500 beneath. One glance finds the property,
+  the second finds the row.
+
+**TEMPLATES JOIN THE PUBLISH PLANE (16 Sep, user question — *"shouldn't this also have a versioning
+concept, what if we change an ad unit template that's connected to 10 ad setups"*).** They found the
+one hole in the plane's promise, and it was real. Demonstrated before building: a published ad setup
+said `v3 · 0 unpublished` while the URL its units fired had changed under it.
+
+- **The hole.** A template resolved LIVE at the boundary, so saving one moved every ad setup pointing
+  at it — instantly, with no publish anywhere, and with each of those setups still swearing on its
+  own page and in its own version history that nothing had changed. Roll such a setup back to v2 and
+  you got v2's ladder with today's template URL.
+- **Three ways out, and why this one.** Bumping all ten setups would mean ten publishes for one typo
+  and ten histories full of a change nobody made in them — it destroys the reason to share at all.
+  Freezing the template into each setup's snapshot makes it a preset, not a template, and kills
+  "change one, change everywhere". So: **the template gets its own plane.** Save parks a draft and
+  nothing moves; Publish stamps a version and every connected unit moves in ONE act. The benefit of
+  sharing is kept whole, and nothing reaches a player unannounced.
+- **What that cost, in the model.** `liveConfig` reads the template's SNAPSHOT, not the draft. A
+  template with no published version is simply absent from `unittpl` and its units ask their
+  provider's standard — which is exactly what `on: false` used to mean, so **the `on` field went**
+  rather than living beside "off air" as a second way to say one thing (the 27 Aug `status` lesson,
+  one room over). It is refused by name now, pointing at Take off air. The seeded world publishes
+  two of its three templates and leaves `GAM low-latency` a draft, so the room shows both states on
+  day one.
+- **What it did NOT cost.** An ad setup's versions still describe the ad setup. A template publishing
+  does not bump them, because the setup did not change — but the setup is **told**: `templateNewsFor`
+  lists every template under it that has gone on air since it last published, with the version, the
+  person and the moment, drawn at the head of the card in the console's amber (a fact, not a
+  refusal). Silence was the actual bug; a version bump would have been a second one.
+- **No per-setup pinning, on purpose.** "Setup A wants v3, B wants v4" is not a version question —
+  it is two templates, and making the second one is cheap now. Pinning versions per holder is where
+  this model turns into a maze.
+- **The rail is Version history, and Connected is a card** (user call, same day). The first cut
+  of the plane put both in the rail as two sections, which made this the one editor whose right
+  column meant two things — on every other page the rail is versions and nothing else, and a reader
+  should not have to learn an exception here. Connected is what the template TOUCHES, which is
+  content, so it sits where content sits: a second card under Details, exactly as Player behaviour
+  sits under Details on an integration. It also gained the room it never had in a 260px column —
+  rows two to a line, names at full length instead of clipped.
+- **Connected is UNIT-FIRST, because the head has to add up** (user ask: *"the connected IA can it
+  be thought through and made better"*). Setup-first had a flaw a reader would eventually hit and
+  never un-see: the head counted AD UNITS and the rows counted AD SETUPS, so a unit deployed in
+  three setups made the rows exceed the head. On the seeded world the card said `3 ad units` over
+  rows adding to **5**. That breaks this room's own rule — the head's count is never a number the
+  rows cannot account for. The row is the AD UNIT now, which is both what `usedBy` counts and the
+  thing that actually fires the URL, and the ad setups it sits in ride along as its address, each a
+  chip and a door. The three questions the card exists for now read straight down it: how many will
+  my change move (the head), which ones (the left column), where are they (the right). A heading row
+  because the two columns are different kinds of thing — the read-only shelf on the ad setup page
+  reads the same way. `templateView` gained `units[]`; `setups[]` stays, because the visibility
+  refusal and the list's Connected column are both genuinely about setups.
+- **Where the acts sit.** The page wears the header state chip, Save, Publish and the version rail
+  every other editor wears — `keyform`, `pubStateChipHtml`, `publishClicked`, `restoreClicked`, all
+  shared, nothing new. Take off air sits in its ⋯ beside Delete, exactly where `Deactivate
+  integration` sits. `pubRailHtml` was split into `pubRailBodyHtml` + its column so ONE rail can
+  carry Connected and Version history as two sections rather than two rails standing side by side.
+  The list's **Status column came back**, and this time it earns the width: it names a version.
+- **The save review is gone, and that is the point.** It was carrying the blast radius because Save
+  WAS the release. The blast radius is now a publish warning counted server-side, shown on THE
+  CHANGE REVIEW — the same screen an ad setup publishes through. Two review screens for one act
+  would have been two places to keep one sentence true.
+
+- **Not built, deliberately.** No chooser on `#templates/new` (a copy of a template is a second
+  name for the same URL, which is the thing the room exists to stop), no template versioning (there
+  is no plane to version against), and no per-property URL overrides inside one template (that is
+  two templates, and the room now makes having two cheap).
+
+**TWO NEW OUT-STREAM ROWS (16 Sep, user call — *"in the outstream delivery settings in ad setup
+add hideOnInStreamAd … also nos of times we want to repeat the ad"*).** Out-stream delivery is six
+rows now: Header bidding · Schedule · Display duration · **Repeats per show** · Total Target
+Impressions · **Hide during in-stream ads** · Request timeout.
+
+- **`hideOnInStreamAd` reverses the 8 Sep cut.** That call said the switch had one sane answer
+  because an in-stream ad owns the screen and the player steps the banner aside on its own — true
+  of the players we had then, and an assumption the console was making on the publisher's behalf.
+  The row is a Yes/No seg, the default is `true` (exactly the old behaviour, so nothing already
+  live moves), and the answer rides the published payload with the rest of the rotation's facts.
+  The **short key `hideOnInStream` stays in `DEAD_BEHAVIOUR_FIELDS`** and still refuses — now
+  pointing at the full name rather than at nothing, because a dropped key reads as a switch that
+  was set. Fail closed over a spelling, exactly as over a cut field.
+- **`perShow` is the repeat count.** How many banners ONE entry in the Schedule is worth, back to
+  back, each held for `hold`. 1–10 (`OUTSTREAM_REPEAT_MAX`), default 1 — today's behaviour. It is
+  deliberately NOT the session total, and the two sit together on purpose: `perShow` × the number
+  of show times is what the schedule **asks for**, `perSession` is what it is **aiming at**. The
+  repeat row counts the first beside itself (*"9 banners a session"*, and only once a show is worth
+  more than one — at 1 there is no arithmetic the Schedule row hasn't already shown), and the save
+  warns over the target — *"9 shows, target 4"* — without ever blocking. Counted from what is on
+  screen, never estimated; a lever, not a wall.
+- **Why `perShow` and not `repeat`.** The ads JSON already spends `repeat` on the out-stream's
+  **list of moments** (FAQ Appendix 3, flag B) — this console's `times`. A field called `repeat`
+  meaning a count would have read as that list to the one team implementing both sides. On the
+  wire this is the JSON's `impression`, which the contract has always carried and always pinned at
+  1. `perShow` / `perSession` also says the pair out loud.
+- **One shared-code fix came with it.** `showVal` answered every boolean `On`/`Off` before it ever
+  looked at the field's own words, so a change review would have said `On` under a row reading
+  `Yes`. A field with a true/false map in `LABELS` now says its own pair. That surfaced a second,
+  older drift: `expandInMini` had `{ true: 'True', false: 'False' }` in `LABELS`, a Yes/No seg on
+  screen and `On`/`Off` in the review — three words for one answer, because nothing read the map.
+  It wears its control's pair now.
+- **185 passed** (three cases rewritten, two added — the plane, the version rail, both bounds and
+  the counted overshoot), `npm run check` ok, 86 screens captured with no console errors and only
+  the out-stream screen moved.
+
 **TWO ALIGNMENTS (16 Sep, user calls).**
 
 - ***"The choose settings drop down to align with changes to apply block."*** The player sheet's

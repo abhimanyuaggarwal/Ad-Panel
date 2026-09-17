@@ -70,6 +70,81 @@ function suGlobalsHtml(meta) {
     </div>`;
 }
 
+// ---------- AD UNIT TEMPLATES, READ-ONLY (16 Sep, user call — *"show the ad unit templates
+// in read only mode in the ad setup based on the visibility and property so that user can
+// view them while configuring"*) ----------
+//
+// The templates a unit on THIS setup may point at, which is the list its own picker draws
+// from: the provider it asks, and the properties the template's room named. Read-only on
+// purpose — authoring moved to `#templates` on 16 Sep precisely because a shared thing
+// edited from inside one setup reads as that setup's property. What it is FOR is the other
+// half of that call: an ops person building a ladder needs to know what is on the shelf
+// without leaving the page, and needs the URL a name stands for.
+//
+// It wears the page's own head-section fold (`suHeadRowHtml`), folded at rest like Global
+// settings and Placements, with the count as its glimpse — the one number you can act on
+// from a closed row, since it says whether there is anything on the shelf at all. A row is
+// a door into the room, so the way to change one is one click and never ambiguous.
+// A TEMPLATE UNDER THIS SETUP WENT OUT (16 Sep, user call). The setup's own version
+// history is about its own content, so a template publishing does not bump it — the setup
+// did not change. But it must not pretend nothing happened either: what the units fire DID
+// move, and the page that says `On air · v3` is exactly where somebody would look for that
+// and find nothing. So the news sits at the head of the card, above everything the setup
+// owns, and says who moved what and when — a fact, not a warning, in the amber the console
+// keeps for "true and worth knowing" rather than the red it keeps for refusals.
+function suTplNewsHtml() {
+  const news = SETUP_ORIGINAL?.templateNews || [];
+  if (!news.length) return '';
+  const one = n => `<a class="tn-r" href="#templates/${n.id}">
+      <span class="tn-n">${esc(n.name)}</span><span class="tn-v">v${n.v}</span>
+      <span class="tn-w">${esc(n.actor || '')} · ${relWhen(n.ts)}</span>
+    </a>`;
+  return `
+    <div class="tn-sec">
+      <div class="tn-h">${news.length === 1 ? 'A template this setup uses went on air'
+        : `${news.length} templates this setup uses went on air`} since it last published —
+        what its ad units request changed, and no version of this setup moved.</div>
+      <div class="tn-t">${news.map(one).join('')}</div>
+    </div>`;
+}
+
+function suTplVisible() {
+  const prop = FORM.data.property;
+  return SU_TPLS.filter(t => {
+    const ps = t.properties || [];
+    return !ps.length || ps.includes(prop);
+  });
+}
+
+function suTplRefHtml() {
+  const mine = suTplVisible();
+  const open = SU_HEAD_OPEN.has('tplref');
+  const n = mine.length;
+  const glimpse = n ? `<span class="tr-n">${n}</span>` : '';
+  const head = suHeadRowHtml('tplref', 'Ad unit templates', glimpse, open);
+  if (!open) return `<div class="tr-sec closed">${head}</div>`;
+  const prop = FORM.data.property;
+  const row = t => `
+    <a class="tr-r${t.on === false ? ' off' : ''}" href="#templates/${t.id}"
+      title="Open in Templates">
+      <span class="tr-id">${providerBadge(t.provider)}<span class="tr-nm">${esc(t.name)}</span>${t.on === false
+        ? '<span class="stat off sm">Off</span>' : ''}</span>
+      <span class="tr-u mono">${esc(t.url)}</span>
+      <span class="tr-scope">${(t.properties || []).length ? esc((t.properties || []).join(', ')) : 'All properties'}</span>
+    </a>`;
+  return `
+    <div class="tr-sec">
+      ${head}
+      ${n ? `<div class="tr-t">${mine.map(row).join('')}</div>`
+        : `<div class="tr-empty">No template is visible to ${esc(prop)} — its ad units request
+            through their provider’s standard. Templates are made in
+            <a class="banner-link" href="#templates">Templates</a>.</div>`}
+      <div class="tr-foot">Read-only — a template is edited in
+        <a class="banner-link" href="#templates">Templates</a>, where its whole reach is counted.
+        An ad unit picks one in the settings under it.</div>
+    </div>`;
+}
+
 // ---------- editor ----------
 
 // ---------- THE EDITOR'S OWN COPY OF A SAVED SETUP ----------
@@ -661,7 +736,8 @@ function renderSetupForm(meta) {
             ${selectHtml(d.presetName, meta.rulePresets.map(p => ({ v: p.name, label: p.name })), v => suStampPreset(v))}
           </div>` : ''}
         </div>
-        ${editing ? suTemplatesRowHtml() : ''}
+        ${editing ? suTplNewsHtml() : ''}
+        ${editing ? suTplRefHtml() : ''}
         ${suGlobalsHtml(meta)}
         ${suPlacementsSecHtml(meta)}
       </div>
@@ -674,9 +750,19 @@ function renderSetupForm(meta) {
 
 // A rung's savable facts: the payload is built field by field so it never ships
 // view-only keys — which means every real field has to be listed (the 19 Aug lesson).
+// WHAT A UNIT SENDS: its tag, its switch, and EVERY fact it carries — from meta's own
+// `rungFacts`, which is the server's `RUNG_FACTS` (16 Sep). This list was hand-copied here
+// and had fallen five days behind the screen: `mute` and `headerBidding` (both 11 Sep) were
+// editable on every unit in this room and dropped on the way out, so the control moved, the
+// row redrew, the save succeeded and the answer never left the browser. One list, read from
+// the one place that defines it. The spelling below is the floor, for an API that predates
+// the field — the same rule `hbAnswers()` follows.
+const RUNG_FACTS_FLOOR = ['adProvider', 'displaySlot', 'pause', 'mute', 'headerBidding', 'showAfterSec', 'closeAfterSec', 'hideAfterSec'];
+
 function rungPayload(r) {
   const out = { type: 'tag', on: r.on !== false, tagId: r.tagId };
-  for (const f of ['displaySlot', 'pause', 'showAfterSec', 'closeAfterSec', 'hideAfterSec']) {
+  const facts = (KL_META && KL_META.rungFacts && KL_META.rungFacts.length) ? KL_META.rungFacts : RUNG_FACTS_FLOOR;
+  for (const f of facts) {
     if (r[f] !== undefined) out[f] = r[f];
   }
   return out;

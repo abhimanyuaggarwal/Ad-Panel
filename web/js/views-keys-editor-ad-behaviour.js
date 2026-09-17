@@ -45,6 +45,17 @@ function clientLadder(i, t, gi = 0) {
 // `tries` this is exactly the setup's own walk: the positional cut first (a dead rung
 // holds its seat), then the dead drop. A `who` reorders, so positions lose meaning and
 // the setup's depth applies as a COUNT; `tries` is always a count of real tries.
+// The client mirror of `walkWithinDepth` (store/ladders.js): counted DOWN the walk, so
+// the primary — the first rung of its own partner — survives every cap of 1 or more.
+function clientWalkWithinDepth(walk, depth) {
+  if (!depth || !Object.keys(depth).length) return walk;
+  const seen = {};
+  return walk.filter(r => {
+    seen[r.provider] = (seen[r.provider] || 0) + 1;
+    return !depth[r.provider] || seen[r.provider] <= depth[r.provider];
+  });
+}
+
 function clientDriveWalk(i, t, gi = 0) {
   const plc = setupPlacement(i);
   if (!plc) return { walk: [], fellBack: false };
@@ -74,6 +85,7 @@ function clientDriveWalk(i, t, gi = 0) {
       walk = [...(primary ? [primary] : []), ...ordered];
     }
   }
+  if (!rot) walk = clientWalkWithinDepth(walk, d.depth);
   if (d.tries && !rot) walk = walk.slice(0, d.tries);
   return { walk, fellBack };
 }
@@ -139,48 +151,114 @@ function driveSet(t, f, val) {
 
 function provWord(p) { return label('tagProvider', p) || p; }
 
-// THE PARTNER CHIPS (27 Aug, user call — they replaced a generated dropdown).
+// THE WATERFALL LADDER (27 Aug as chips; re-cut 16 Sep, user call — *"Waterfall order
+// needs to be rescoped wherein I should be able to define the waterfall depth for each
+// IMA GPT and CAN as well"*).
 //
-// The dropdown could only offer the two shapes a dropdown can hold: "X only" and
-// "X first". Both are special cases of the thing product actually wants to say —
-// *these partners, in this order* — so the control became the sentence itself: one chip
-// per partner, dragged into the order they are asked, each with a switch. "IMA only" is
-// now IMA on and the rest off; "GPT first" is GPT dragged to the front.
+// The control began as a dropdown, which could only offer the two shapes a dropdown can
+// hold ("X only", "X first"); it became a strip of draggable chips, which said the whole
+// sentence — *these partners, in this order*. Today it takes the third decision too:
+// HOW MANY of each partner's own sources this break tries. So the chips stand up into a
+// LADDER, one partner per line, and the line reads the way the fall runs:
 //
-// The strip is still GENERATED from the companies behind this break, never a fixed list
+//     ⠿  1  IMA   ●on    [1][2][3][All]   of 5
+//     ⠿  2  GPT   ●on    [1][2][3][All]   of 2
+//        –  CAN   ○off   [ greyed      ]
+//
+// WHY A LIST AND NOT WIDER CHIPS (the 1 Sep "one line, always" call re-read). That call
+// was against WRAPPING and against re-homing a switched-off partner onto an "excluded"
+// shelf — the row must not reflow and nothing must move under the cursor. Three decisions
+// × three partners on one line is nine controls in a row: the clutter the same call was
+// protecting against. A vertical ladder keeps every guarantee the strip made (fixed
+// anatomy, a skipped partner dimmed IN PLACE, nothing re-homed, nothing changing width)
+// and adds the one a strip cannot: a waterfall drawn top-to-bottom IS its own order, so
+// the position number confirms what the eye already read rather than teaching it.
+//
+// AND THE OVERALL CAP CAME WITH IT (same day, user call — *"waterfall depth a global one
+// will stay"*). `Waterfall depth · 1 / 2 / 3 / Full` used to be its own row, counting the
+// WHOLE walk while knowing nothing about the partner order above it: one concept answered
+// twice, a card's width apart, with no drawn relationship — "IMA 2 and GPT 2, but 3 in
+// all" was a sum with no picture. It is the ladder's FOOT now, under a hairline, under the
+// partners it caps, with the resolved total counted beside it. Two grains, one block, and
+// the arithmetic between them on screen: how far each partner goes, then a ceiling over
+// the lot. The resolved column answers to both, per placement, as it always did.
+//
+// The ladder is still GENERATED from the companies behind this break, never a fixed list
 // to go stale when a partner joins. A partner with no demand anywhere in this break is
 // still drawn — greyed, in place, with the reason on it — because a control that
-// silently has two chips on one break and three on another teaches nothing.
+// silently has two rows on one break and three on another teaches nothing.
 
 // Every partner behind this break, in the setup's own ask order, plus the ones that
-// aren't there at all so the row reads the same on every break.
+// aren't there at all so the row reads the same on every break. `tags` counts each
+// partner's LIVE sources — the denominator the depth control is honest against, and the
+// reason an option above it greys instead of promising a try that cannot happen.
 function breakProviders(t) {
   const here = [];
+  const tags = {};
   for (const j of keySecs()) {
+    const mine = {};
     for (const r of clientLadder(j, t)) {
-      if (!r.opsOff && r.provider && !here.includes(r.provider)) here.push(r.provider);
+      if (r.opsOff || !r.provider) continue;
+      if (!here.includes(r.provider)) here.push(r.provider);
+      mine[r.provider] = (mine[r.provider] || 0) + 1;
     }
+    // Placements may hold different ladders; the control is one. The denominator is the
+    // DEEPEST any picked placement goes — a cap below it still bites everywhere, and a
+    // cap above it would be the one number on the page that promises what no section has.
+    for (const [p, n] of Object.entries(mine)) tags[p] = Math.max(tags[p] || 0, n);
   }
   const missing = (window.KL_PROVIDERS || []).filter(p => !here.includes(p));
-  return { here, missing };
+  return { here, missing, tags };
 }
 
-// What the chips show: the saved decision if there is one, otherwise the setup's own
-// arrangement — so the strip is a statement of what runs before it is a control.
+// What the ladder shows: the saved decision if there is one, otherwise the setup's own
+// arrangement — so it is a statement of what runs before it is a control.
 function askOrder(t) {
-  const { here, missing } = breakProviders(t);
+  const { here, missing, tags } = breakProviders(t);
   const saved = driveOf(t).ask;
   const on = saved ? saved.filter(p => here.includes(p) || missing.includes(p)) : [...here];
   const off = [...here, ...missing].filter(p => !on.includes(p));
-  return { on, off, here, missing, decided: !!saved };
+  return { on, off, here, missing, tags, decided: !!saved };
 }
 
-// ONE LINE, ALWAYS (1 Sep, user call): the strip is the three partners and nothing
-// else — active ones numbered and draggable, a switched-off one dimmed IN PLACE with a
-// strike, never re-homed under an "excluded" shelf that wrapped the row. The whole chip
-// is the switch; nothing changes width when it flips.
-function askChipsHtml(t) {
-  const { on, off, here } = askOrder(t);
+// The caps, sparse: a partner with no entry is walked all the way down, so `All` WRITES
+// NOTHING — dropping a cap is not "setting it back to full".
+function depthOf(t) { return driveOf(t).depth || {}; }
+
+function depthSet(t, p, n) {
+  const depth = { ...depthOf(t) };
+  if (n === 'all' || !n) delete depth[p];
+  else depth[p] = n;
+  driveSet(t, 'depth', Object.keys(depth).length ? depth : null);
+}
+
+// One partner's depth — and, where there is no depth to decide, THE REASON IN THE CONTROL'S
+// OWN SEAT (16 Sep, user call — *"CAN and GPT has one source nothing to cut, that is not
+// getting communicated properly in the UI since the depth is disabled"*).
+//
+// A partner with ONE source has no depth question: `1` and `All` are the same answer. The
+// seg greyed itself and put the reason on hover, which is a dead control and a secret — a
+// reader sees four numbers they cannot press and no cause given. So the seg does not stand
+// there at all: its cell says `only 1 source`, which is the reason and the fact at once, in
+// plain words, exactly where the control would have been.
+//   This is safe from the "nothing appears or vanishes" rule precisely because it does NOT
+// move: a partner's source count is fixed while the page is open, so this cell never
+// changes shape under the cursor. A switched-off partner keeps its greyed seg for the same
+// rule read the other way — that one would flip on every toggle, and the row already reads
+// as off from its dash, its grey mark and its switch.
+function depthCellHtml(t, p, n, isOn) {
+  const word = provWord(p);
+  if (n <= 1) return `<span class="wfd-why">${esc(n === 1 ? 'only 1 source' : 'no sources yet')}</span>`;
+  const cur = depthOf(t)[p] ?? 'all';
+  return accSeg(cur, [1, 2, 3, 'all'], ['1', '2', '3', 'All'],
+    o => `depthSet('${t}', '${p}', ${o === 'all' ? "'all'" : o})`,
+    isOn ? '' : `${word} is switched off — this break does not ask it`,
+    // Deeper than this partner goes: greyed where it sits, with the count as its reason.
+    o => (o !== 'all' && o > n ? `${word} has ${n} sources in this break` : ''));
+}
+
+function wfLadderHtml(t) {
+  const { on, off, here, tags } = askOrder(t);
   if (!here.length) return '<span class="sg-empty">No demand</span>';
   const dragKey = `ask-${t}`;
   registerDrag(dragKey, (from, to) => {
@@ -188,36 +266,58 @@ function askChipsHtml(t) {
     order.splice(to, 0, order.splice(from, 1)[0]);
     driveSet(t, 'ask', order);
   });
-  const chip = (p, i, isOn) => {
+  const row = (p, i, isOn) => {
     const absent = !here.includes(p);
+    const n = tags[p] || 0;
     const last = isOn && on.length === 1;
+    // Both directions of the switch can be settled rather than free, and each says so
+    // where it stands: the last partner on would leave the break asking nobody, and a
+    // partner with nothing behind it has nothing to switch on.
     const why = absent
-      ? `No ${provWord(p)} tags behind this break — switching it on changes nothing until ad ops add one`
+      ? `No ${provWord(p)} tags behind this break — ad ops add one in the ad setup`
       : last
         ? 'The only partner left on — a break that asks nobody would go dark'
         : '';
+    const canDrag = isOn && on.length > 1;
     return `
-      <span class="pchip ${isOn ? 'on' : 'skip'} ${absent ? 'absent' : ''}"${why ? ` title="${esc(why)}"` : ''}
-        ${isOn && on.length > 1 ? dragAttrs(dragKey, i) : ''}
-        onclick="${last || absent ? '' : `askToggle('${t}', '${p}')`}">
-        ${isOn && on.length > 1 ? '<span class="pchip-grip">⠿</span>' : ''}
-        <b class="pchip-n">${isOn ? i + 1 : '–'}</b>
-        <span class="pchip-t">${esc(provWord(p))}</span>
-      </span>`;
+      <div class="wfd-r ${isOn ? 'on' : 'skip'} ${absent ? 'absent' : ''}"
+        ${canDrag ? dragAttrs(dragKey, i) : ''}>
+        <span class="wfd-grip">${canDrag ? '⠿' : ''}</span>
+        <b class="wfd-n">${isOn ? i + 1 : '–'}</b>
+        <span class="wfd-p">${providerBadge(p)}</span>
+        <span class="toggle tiny ${isOn ? 'on' : ''} ${why ? 'held' : ''}"
+          ${why ? ` title="${esc(why)}"` : ''}
+          onclick="${why ? `toast('${esc(last ? 'One partner must stay on' : 'Nothing behind this break')}', 'warn')` : `askToggle('${t}', '${p}')`}"><span class="track"></span></span>
+        <span class="wfd-d">${depthCellHtml(t, p, n, isOn && !absent)}</span>
+      </div>`;
   };
+  // THE OVERALL CAP IS ITS OWN ROW AGAIN (16 Sep, third cut, user call — *"dont mingle the
+  // overall in the existing one it is getting confusing"*). It rode the ladder's foot for one
+  // round on the reasoning that drawing the two grains together would explain their
+  // relationship. It did the opposite: a ceiling sitting inside the partner list read as a
+  // fourth partner with a strange name, and the block stopped being one question. The
+  // partners are this control; the ceiling over all of them is `Waterfall depth`, the row
+  // directly under it.
   return `
-    <div class="pchips oneline">
-      ${on.map((p, i) => chip(p, i, true)).join('<i class="gsep">›</i>')}
-      ${off.map(p => chip(p, -1, false)).join('')}
+    <div class="wfd">
+      ${on.map((p, i) => row(p, i, true)).join('')}
+      ${off.map(p => row(p, -1, false)).join('')}
     </div>`;
 }
 
-// Switching one off writes the remaining order; switching one on appends it at the end,
-// which is where a partner you just added should be asked.
+// Switching one off writes the remaining order AND drops that partner's cap — a depth
+// for a partner nobody asks is a number with nothing to count. Switching one on appends
+// it at the end, which is where a partner you just added should be asked.
 function askToggle(t, p) {
   const { on, off } = askOrder(t);
   if (on.includes(p)) {
     if (on.length === 1) { toast('One partner must stay on', 'warn'); return; }
+    const depth = { ...depthOf(t) };
+    delete depth[p];
+    if (!FORM.data.drive) FORM.data.drive = {};
+    const slot = { ...(FORM.data.drive[t] || {}) };
+    if (Object.keys(depth).length) slot.depth = depth; else delete slot.depth;
+    FORM.data.drive[t] = slot;
     driveSet(t, 'ask', on.filter(x => x !== p));
   } else {
     void off;
@@ -244,7 +344,7 @@ function driveStampAll(t) {
     if (ask && !ask.some(p => provs.has(p))) { skipped.push(label('slotType', t2)); continue; }
     if (!FORM.data.drive) FORM.data.drive = {};
     const slot = { ...(FORM.data.drive[t2] || {}) };
-    for (const f of ['ask', 'tries']) {
+    for (const f of ['ask', 'depth', 'tries']) {
       if (d[f] === undefined) delete slot[f]; else slot[f] = deepCopy(d[f]);
     }
     if (Object.keys(slot).length) FORM.data.drive[t2] = slot;
@@ -405,13 +505,201 @@ function driveHbRowHtml(t) {
     </div>`, null, driveDirty(t, 'headerBidding'));
 }
 
+// ---------- STEP ONE: DOES THIS BREAK DECIDE ANYTHING OF ITS OWN? (16 Sep, user call) ----------
+// *"Once I enable a pre-roll or mid-roll I have two options by default — values and
+// configurations to be taken from the ad setup, or customize; in that case the existing
+// levers will come, and I will always have the option to switch back to the ad setup
+// configuration via a confirmation dialog."*
+//
+// THE FAULT WAS REAL. A break switched on opened straight into six levers, and every one
+// of them showed a value — `Immediate`, `1`, `All`, `Amazon+Prebid` — with nothing on
+// screen to say whether that value was DECIDED here or merely inherited from the ad setup.
+// The state existed (the drive is sparse: absence means follow the setup) but it was
+// legible in exactly one place — whether a ghost `Reset to setup` button at the bottom
+// right was greyed. A state you can only read off the enabledness of a button is not on
+// the screen, and the way back out of it was a footnote with no confirm and no count.
+//
+// NOW, the same two steps the ad setup's own source control teaches (8 Sep, suSrcPick):
+// step one is answered first, and step two only exists while step one says so.
+//
+//     [ As set up │ Custom ]                      ← step one, under the tabs
+//     Special        IMA                          ← as set up: the answers, READ-ONLY
+//     Start offset   Immediate
+//
+//     [ As set up │ Custom ]   3 of its own       ← custom: the levers, exactly as before
+//
+// CUSTOM IS A MODE, NEVER A SNAPSHOT. Taking Custom copies nothing: each lever still
+// writes sparse, and each lever left alone still follows the setup LIVE — so ad ops
+// adding a tag next week still joins the walk this break describes. Seeding the fields
+// with today's values would freeze the break at a moment and quietly break the promise
+// the whole card was built on ("there is no unmappable Custom state").
+//
+// WHICH IS WHY THE MODE IS SESSION STATE AND NOT PAYLOAD (the SU_SRC_BACK reasoning):
+// the server has ONE truth per break — the sparse drive — and a second field meaning
+// "opened the levers but decided nothing" would be a lie in the payload, since it
+// resolves to nothing. A break holding decisions IS custom and reads as custom on any
+// reload; a break holding none IS following the setup, which is exactly what it does.
+const DRIVE_CUSTOM = new Set();
+
+function driveCustom(t) {
+  return Object.keys(driveOf(t)).length > 0 || DRIVE_CUSTOM.has(t);
+}
+
+// Where the act lands, in the card's own words — the placements this card covers and the
+// break — so a confirm can never leave you wondering which one you just changed.
+function driveWhere(t) {
+  const secs = keySecs().map(j => FORM.data.sections[j]?.name).filter(Boolean);
+  const who = secs.length > 2 ? `${secs.length} placements` : secs.join(', ');
+  return `${who} · ${label('slotType', t)}`;
+}
+
+// BOTH DIRECTIONS CONFIRM, IN THE AD SETUP'S OWN DIALOG (16 Sep, user call — *"the switch
+// between custom to as setup should be via a confirmation clean dialog box, use the same
+// that is being used in the ad setup"*). The first cut confirmed only the destructive way
+// back, reasoning that taking Custom loses nothing so a dialog there would be a question
+// with no stake. The ad setup's source seg confirms EVERY change (`suSrcPick`), and one
+// control learned once has to behave the same in both rooms — a seg that sometimes asks
+// and sometimes does not is two controls wearing one shape.
+//   The body IS the move: where it lands, then `from → to`. Going back adds the count of
+// what it drops and wears the danger weight; taking Custom drops nothing and does not.
+//   THE CTA IS THE SWITCH'S OWN WORD (16 Sep, user call — *"yes go back should not be the
+// CTA when switching from custom to as setup, it should be the same switch"*). `Yes, go back`
+// and `Yes, switch` were a second vocabulary invented for an act the control already names:
+// the seg says `As set up` and `Custom`, the move line says `Custom → As set up`, and then a
+// button said a third thing. The button now carries the DESTINATION, spelled exactly as the
+// segment spells it — so the dialog reads as the switch being thrown, not as an escape hatch
+// out of one. The title asks the one question both directions share and the move line says
+// which way, which is why there is no longer a title per direction either.
+async function driveModePick(t, which) {
+  if ((which === 'custom') === driveCustom(t)) return;
+  const toCustom = which === 'custom';
+  const n = Object.keys(driveOf(t)).length;
+  const ok = await ask({
+    title: 'Switch this break\u2019s settings?',
+    body: `
+      <div class="src-cfm">
+        <div class="src-cfm-where">${esc(driveWhere(t))}</div>
+        <div class="src-cfm-move">
+          <span class="from">${toCustom ? 'As set up' : 'Custom'}</span>
+          <i class="arw" aria-hidden="true">\u2192</i>
+          <span class="to">${toCustom ? 'Custom' : 'As set up'}</span>
+        </div>
+        ${!toCustom && n ? `<div class="src-cfm-note">${n} decision${n === 1 ? '' : 's'} on this break ${n === 1 ? 'is' : 'are'} dropped.</div>` : ''}
+      </div>`,
+    okLabel: toCustom ? 'Custom' : 'As set up',
+    cancelLabel: 'Cancel',
+    danger: !toCustom && n > 0,
+  });
+  if (!ok) return;
+  if (toCustom) { DRIVE_CUSTOM.add(t); FORM.rerender(); return; }
+  DRIVE_CUSTOM.delete(t);
+  driveResetSlot(t);
+}
+
+// Step one, standing on the panel's own left edge with its counted consequence beside it
+// — the same anatomy the ad setup's source seg wears, so one control is learned once and
+// read in both rooms. The count is exactly what the way back drops, and the confirm names
+// the same number again.
+function driveModeHtml(t) {
+  const custom = driveCustom(t);
+  const n = Object.keys(driveOf(t)).length;
+  return `
+    <div class="dmode">
+      ${accSeg(custom ? 'custom' : 'setup', ['setup', 'custom'], ['As set up', 'Custom'],
+        o => `driveModePick('${t}', '${o}')`)}
+      <span class="dmode-f">${custom && n ? esc(`${n} of its own`) : ''}</span>
+    </div>`;
+}
+
+// ---------- AS SET UP: THE ANSWERS AS A STATEMENT, NOT AS LEVERS (16 Sep) ----------
+// Not a blank panel and not greyed controls — a fact list. Every line is read from the
+// attached setup exactly as the server resolves it, so the card SAYS what this break runs
+// before it offers to change it, and the eye crosses it in one pass instead of parsing
+// six controls to work out which of them was ever chosen. Tighter rhythm than the control
+// rows it stands in for, because reading is not editing.
+//
+// THE WATERFALL IS ONE OF THESE LINES (16 Sep, user call — it was left out for a round on
+// the reasoning that the right-hand column already shows it). What the column shows is the
+// RESOLVED walk, per placement and per pod; what the fact says is the setup's partner
+// ORDER. Different grains, and leaving the row out cost more than it saved: the fact list
+// and the lever list then opened on different rows, so switching modes reshuffled the card
+// instead of swapping its contents.
+// The fact rows are the LEVER ROWS' own grammar with the control swapped for the value
+// (`lr rule`, ghost grip, same 168px label column) — so the two modes share one label edge
+// and one value edge, and switching between them moves nothing sideways. Building a
+// parallel grid here would have been a second alignment system on one screen, which is
+// the exact fault the row grammar was introduced to end (21 Aug).
+function driveFactRow(l, v) {
+  return `<div class="lr rule fact"><span class="lr-grip ghost"></span><span class="lr-l">${esc(l)}</span><span class="lr-ctl form">${v}</span></div>`;
+}
+
+function driveFactsHtml(t) {
+  const base = slotBhv(0, t) || {};
+  const rows = [];
+  if (isRotation(t)) {
+    rows.push(driveFactRow('Banners', '<span class="sg-dim">take turns</span>'));
+  } else {
+    // THE SAME ROWS, IN THE SAME ORDER, AS THE LEVERS THEY STAND IN FOR (16 Sep, user call —
+    // standardisation). The list used to open on Special while the lever list opens on the
+    // Waterfall, so switching modes reshuffled the card as well as swapping its contents.
+    // Every lever now has a fact, in its own seat, saying what the setup answers for it.
+    //   The waterfall's line is the setup's own PARTNER ORDER, which is a different grain
+    // from the resolved walk in the right-hand column (that one is per placement, and per
+    // pod, and repeats a partner as often as the ladder does) — so this is not the fact
+    // twice, it is the decision on the left and its consequence on the right, which is the
+    // arrangement Custom already uses.
+    const partners = askOrder(t).here;
+    rows.push(driveFactRow('Waterfall', partners.length
+      ? `<span class="glimpse-walk">${partners.map(providerBadge).join('<i class="gsep">›</i>')}</span>`
+      : '<span class="sg-dim">no demand</span>'));
+    // With no decision on this surface the walk runs to the end of the ladder — said in
+    // the lever's own word (`All`), never a second vocabulary for the same answer.
+    rows.push(driveFactRow('Waterfall depth', '<span class="dfact-t">All</span>'));
+    // The same accessor the Special lever reads, so the fact and the control can never
+    // disagree about what the setup put behind this break.
+    const dFacts = keySecs().map(j => FORM.data.sections[j]).map(s2 => s2?.slots?.[t]?.direct).find(Boolean)
+      || KEY_ORIGINAL?.sections?.[0]?.slots?.[t]?.direct;
+    rows.push(driveFactRow(label('slotType', 'direct'), dFacts
+      ? `<span class="glimpse-walk">${(dFacts.walk || []).slice(0, 4).map(x => providerBadge(x.provider)).join('<i class="gsep">›</i>')}</span>`
+      : '<span class="sg-dim">no special deals</span>'));
+    if (t === 'midroll') {
+      // A VALUE READS AS A VALUE; AN ABSENCE READS AS AN ABSENCE. Only a real cadence is
+      // an answer this break has — "2 placements differ" and "set by interval" are the
+      // page declining to let one placement speak for the rest, and dressing them in the
+      // value's own weight would read as a setting somebody chose.
+      const cad = midCadence();
+      const one = cad.kind === 'ok' && !cad.differs && cad.base;
+      const word = cad.kind !== 'ok'
+        ? (cad.kind === 'interval' ? 'set by interval' : cad.kind === 'groups' ? 'several cadences' : 'no placement yet')
+        : cad.differs ? `${cad.count} placements differ` : cad.base || 'none set';
+      rows.push(driveFactRow('Cue points',
+        `<span class="${one ? 'dfact-t' : 'sg-dim'}"${cad.why ? ` title="${esc(cad.why)}"` : ''}>${esc(word)}</span>`));
+    }
+    if (t === 'preroll') {
+      rows.push(driveFactRow('Start offset', `<span class="dfact-t">${esc(base.start === 'deferred'
+        ? `delayed ${base.deferSec ?? 7} sec` : 'immediate')}</span>`));
+    }
+    rows.push(driveFactRow(fieldName('podAds'), `<span class="dfact-t">${esc(String(base.podAds ?? 1))}</span>`));
+  }
+  rows.push(driveFactRow(fieldName('headerBidding'),
+    `<span class="dfact-t">${esc(label('headerBidding', keyHbAsSetUp(t)))}</span>`));
+  return `<div class="dfacts">${rows.join('')}</div>`;
+}
+
+// The driving controls for one break: step one always, then either the setup's answers
+// read back or this break's own levers. "Reset to setup" is GONE from the footer — the
+// seg at the top is the way back now, it confirms, and it names what it drops; two
+// controls over one concept is the thing this cut was called to remove.
 function driveControlsHtml(t) {
+  const head = driveModeHtml(t);
+  if (!driveCustom(t)) return `${head}${driveFactsHtml(t)}`;
   if (isRotation(t)) {
     // A ROTATION HAS ALMOST NOTHING TO DECIDE (7 Sep, UAT P2 — this row was a sentence
     // explaining itself): no pod, no walk, no order. It has ONE answer since 11 Sep —
     // who else bids for the banner slot — so the shape is named and the one decision
     // stands under it.
-    return `<div class="sg-empty" style="padding:4px 0">Banners take turns</div>
+    return `${head}
+      <div class="sg-empty" style="padding:4px 0">Banners take turns</div>
       ${driveHbRowHtml(t)}`;
   }
   const d = driveOf(t);
@@ -419,7 +707,6 @@ function driveControlsHtml(t) {
   const usable = KL_META.slotTypes.filter(t2 => !isRotation(t2)
     && keySecs().some(j => clientLadder(j, t2).some(r => !r.opsOff)));
   const deferOff = (d.start ?? base.start) !== 'deferred';
-  const bent = Object.keys(d).length > 0;
   const dFacts = keySecs().map(j => FORM.data.sections[j]).map(s2 => s2?.slots?.[t]?.direct).find(Boolean)
     || KEY_ORIGINAL?.sections?.[0]?.slots?.[t]?.direct;
   const dOn = d.direct !== false;
@@ -433,11 +720,17 @@ function driveControlsHtml(t) {
       <span class="toggle tiny dead" onclick="toast('No special deals yet', 'warn')"
         title="No special deals yet — ad ops add them"><span class="track"></span></span>
       <span class="sg-empty">no special deals</span>`, null, driveDirty(t, 'direct'));
+  // THE WATERFALL FIRST, SPECIAL UNDER IT (16 Sep, user call). Special is tried BEFORE the
+  // waterfall when the break actually runs, so the old order was the serve order — but one
+  // switch stood above the card's whole subject, and a reader met the exception before the
+  // rule. The block that carries most of the thinking takes the top seat; Special keeps its
+  // fixed place directly beneath it, where its one switch reads as the tier it is.
   return `
-    ${directRow}
-    ${accRow('Waterfall order', askChipsHtml(t), null, driveDirty(t, 'ask'))}
-    ${accRow('Waterfall depth', accSeg(d.tries ?? 'all', [1, 2, 3, 'all'], ['1', '2', '3', 'Full'],
+    ${head}
+    ${accRow('Waterfall', wfLadderHtml(t), null, driveDirty(t, 'ask', 'depth'))}
+    ${accRow('Waterfall depth', accSeg(d.tries ?? 'all', [1, 2, 3, 'all'], ['1', '2', '3', 'All'],
       o => `driveSet('${t}', 'tries', ${o === 'all' ? 'null' : o})`), null, driveDirty(t, 'tries'))}
+    ${directRow}
     ${cueRowHtml(t)}
     ${t === 'preroll' ? accRow('Start offset', `${accSeg(d.start ?? base.start, ['start', 'deferred'],
       ['Immediate', 'Delayed'], o => `driveSet('${t}', 'start', '${o}')`)}
@@ -446,12 +739,9 @@ function driveControlsHtml(t) {
     ${accRow(fieldName('podAds'), accSeg(d.podAds ?? base.podAds ?? 1, [1, 2, 3], ['1', '2', '3'],
       o => `driveSet('${t}', 'podAds', ${o})`), null, driveDirty(t, 'podAds'))}
     ${driveHbRowHtml(t)}
-    <div class="zrow drive-foot">
-      ${usable.length > 1 ? `<button type="button" class="zlink" onclick="driveStampAll('${t}')">Apply to all breaks</button>` : '<span></span>'}
-      <button type="button" class="btn ghost sm drive-reset" ${bent ? '' : 'disabled'}
-        onclick="driveResetSlot('${t}')"
-        ${bent ? 'title="Drops every decision on this break"' : ''}>Reset to setup</button>
-    </div>`;
+    ${usable.length > 1 ? `<div class="zrow drive-foot">
+      <button type="button" class="zlink" onclick="driveStampAll('${t}')">Apply to all breaks</button>
+    </div>` : ''}`;
 }
 
 // WHERE THE MID-ROLL BREAKS FALL (3 Sep, user call). The cadence used to be the ad

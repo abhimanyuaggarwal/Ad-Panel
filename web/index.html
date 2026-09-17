@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="css/08-cards.css">
 <link rel="stylesheet" href="css/09-chrome.css">
 <link rel="stylesheet" href="css/10-surfaces.css">
+<link rel="stylesheet" href="css/12-templates.css">
 </head>
 <body>
 <div id="nav-progress"><div class="np-fill"></div></div>
@@ -35,6 +36,7 @@
       <nav id="nav">
         <a href="#keys" data-nav="keys"><span class="nav-ico">▤</span><span class="nav-t">Integrations</span><span class="nav-count" id="count-keys"></span></a>
         <a href="#setups" data-nav="setups"><span class="nav-ico">◈</span><span class="nav-t">Ad Setups</span><span class="nav-count" id="count-setups"></span></a>
+        <a href="#templates" data-nav="templates"><span class="nav-ico">◇</span><span class="nav-t">Templates</span><span class="nav-count" id="count-templates"></span></a>
       </nav>
       <span class="tb-gap"></span>
       <div id="me" class="me"></div>
@@ -48,9 +50,9 @@
      ARCHITECTURE.md §5). Everything is a global. Order matters only for top-level reads,
      which these files avoid: every cross-file call happens at runtime, after all load.
      util → api → controls → publish/review → tag lookup → setups (list, waterfall,
-     header bidding, rungs, placements, editor) → keys (list, bulk ads, bulk player,
-     editor load, editor ad behaviour, editor player, editor frame) → main (the router;
-     runs last). -->
+     header bidding, rungs, placements, editor) → templates (list, editor) → keys (list,
+     bulk ads, bulk player, editor load, editor ad behaviour, editor player, editor frame)
+     → main (the router; runs last). -->
 <script src="js/util.js"></script>
 <script src="js/api.js"></script>
 <script src="js/controls.js"></script>
@@ -63,6 +65,8 @@
 <script src="js/views-setups-rungs.js"></script>
 <script src="js/views-setups-placements.js"></script>
 <script src="js/views-setups-editor.js"></script>
+<script src="js/views-templates-list.js"></script>
+<script src="js/views-templates-editor.js"></script>
 <script src="js/views-keys-list.js"></script>
 <script src="js/views-keys-bulk-ads.js"></script>
 <script src="js/views-keys-bulk-player.js"></script>

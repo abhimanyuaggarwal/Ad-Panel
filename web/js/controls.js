@@ -922,16 +922,31 @@ function behaviourRowsHtml(t, a) {
   // no next-ad question. Structural, not a reveal.
   const cfg = a.rungCount ? a.rungCount() : 0;
   const ms = Number(a.v('tagTimeoutMs')) || 0;
-  // Out-stream: banners while nothing plays. Its show times are its own schedule. The
-  // in-stream switch went 8 Sep (user call — an in-stream ad owns the screen anyway),
-  // and its count wears the breaks' own words: Total Target Impressions, typed, because
-  // a rotation runs all session where a break picks from 1/2/3.
+  // Out-stream: banners while nothing plays. Its show times are its own schedule, each
+  // show worth `Repeats per show` banners, and its count wears the breaks' own words:
+  // Total Target Impressions, typed, because a rotation runs all session where a break
+  // picks from 1/2/3. THE IN-STREAM SWITCH IS BACK (16 Sep, user call) — the 8 Sep cut
+  // assumed every player steps the banner aside for a video ad, and that is an answer
+  // the publisher owns, not one the panel gets to make on their behalf. It sits under
+  // the counts because it is about what the banner does, not how many of them there are.
+  //
+  // WHAT THE SCHEDULE ACTUALLY ASKS FOR, counted from the two numbers above it (never
+  // estimated): shows × repeats. It sits on the repeat row so the reader sees it against
+  // the target on the next line and can tell which of the two to move. At one repeat
+  // there is no arithmetic to show — the Schedule row is already the whole answer — so
+  // the note stands only once a show is worth more than one banner.
+  const shows = Array.isArray(a.v('times')) ? a.v('times').length : 0;
+  const reps = Number(a.v('perShow')) || 0;
+  const asked = shows && reps > 1 ? shows * reps : 0;
   return `
     ${hbRow()}
     ${gap}
     ${row('times', 'Schedule', `${text('times', '8:00, 16:00')}`)}
     ${row('hold', 'Display duration', `${num('hold', 'sec')}`)}
+    ${row('perShow', fieldName('perShow'), `${num('perShow', '')}${note(asked ? `${asked} banner${asked === 1 ? '' : 's'} a session` : '')}`)}
     ${row('perSession', fieldName('perSession'), `${num('perSession', '')}`)}
+    ${row('hideOnInStreamAd', fieldName('hideOnInStreamAd'), seg('hideOnInStreamAd', [true, false], [label('hideOnInStreamAd', true), label('hideOnInStreamAd', false)]))}
+    ${gap}
     ${row('tagTimeoutMs', 'Request timeout', `${numSec('tagTimeoutMs')}${note(cfg ? `${cfg} × ${fmtMs(ms)}` : '')}`)}`;
 }
 

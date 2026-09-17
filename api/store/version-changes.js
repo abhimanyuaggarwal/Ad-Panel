@@ -4,15 +4,21 @@
 // Ladders are described by name (what joined, what left, what was switched) because a
 // field-level diff of an array says nothing a person can read.
 import { slotGroupDefs } from './ladders.js';
-import { DISPLAY_SLOT_WORD, HB_WORD, MUTE_WORD, PAUSE_WORD, PLAYER_FIELDS, RUNG_FACTS, SLOT_TYPES, SLOT_WORD, state } from './state.js';
+import { AD_PROVIDER_WORD, DISPLAY_SLOT_WORD, HB_WORD, MUTE_WORD, PAUSE_WORD, PLAYER_FIELDS, RUNG_FACTS, SLOT_TYPES, SLOT_WORD, state } from './state.js';
 
 // ---------- what changed, in words ----------
 // The rail's whole job is "what did this version do?", so a change is a WHERE and a
 // WHAT, never a JSON blob. Ladders are the one thing a flat diff cannot say usefully,
 // so they are described by name: what joined, what left, what was switched.
 
+// A field whose VALUE IS A MAP is ONE decision, not one per key (16 Sep). Flattened,
+// `preroll.depth` would break into `preroll.depth.ima` and print the partner key as if it
+// were the field — so the map stops here and its own word says it: "IMA 2, GPT 1".
+const FLAT_LEAVES = new Set(['depth']);
+
 function flat(v, prefix, out) {
-  if (v && typeof v === 'object' && !Array.isArray(v)) {
+  const last = prefix.split('.').pop();
+  if (v && typeof v === 'object' && !Array.isArray(v) && !FLAT_LEAVES.has(last)) {
     for (const [k, x] of Object.entries(v)) flat(x, prefix ? `${prefix}.${k}` : k, out);
   } else {
     out[prefix] = v;
@@ -30,6 +36,7 @@ function rungWords(rungs) {
 // Which fact speaks in words, and which word map says them. A fact with no entry here
 // prints its stored value as it stands (the clocks: a number is already the word).
 const RUNG_FACT_WORDS = {
+  adProvider: AD_PROVIDER_WORD,
   displaySlot: DISPLAY_SLOT_WORD,
   pause: PAUSE_WORD,
   mute: MUTE_WORD,
@@ -238,6 +245,20 @@ export function versionChanges(kind, before, after) {
   const out = [];
   const b = before || null;
   if (!b) return [{ where: '', field: 'First publish', from: '—', to: 'live' }];
+
+  // A TEMPLATE IS FLAT — four fields and no ladder — so it never reaches the section walk
+  // below, which would read `after.sections` and find nothing. `Visible to` says its list
+  // in the words the page uses; everything else is the value as it stands.
+  if (kind === 'template') {
+    const word = v => ((v || []).length ? v.join(', ') : 'All properties');
+    for (const f of ['name', 'provider', 'url']) {
+      if (b[f] !== after[f]) out.push({ where: '', field: f, from: b[f], to: after[f] });
+    }
+    if (JSON.stringify(b.properties || []) !== JSON.stringify(after.properties || [])) {
+      out.push({ where: '', field: 'properties', from: word(b.properties), to: word(after.properties) });
+    }
+    return out;
+  }
 
   for (const f of Object.keys(after)) {
     if (f === 'sections' || f === 'waterfall') continue;

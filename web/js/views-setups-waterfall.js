@@ -16,12 +16,18 @@
 //
 // THE SECTION IS THE LADDER, THE LEVERS LIVE AT THE LINK (6 Sep, user call — settings
 // in the section were settings for nobody until something followed it). The head
-// section holds ONLY the units; the levers — Waterfall order (the integration page's
-// own partner chips), Waterfall depth (the bulk sheet's own 1·2·3·Full seg) and
-// Content pause (Auto·Yes·No, Auto = each unit's own answer, the default) — appear
-// where they are consumed: on every break connected to the waterfall. They stay ONE
+// section holds ONLY the units; the levers — Waterfall order (partner chips), Waterfall
+// depth (a 1·2·3·Full seg) and Content pause (Auto·Yes·No, Auto = each unit's own answer,
+// the default) — appear where they are consumed: on every break connected to the waterfall. They stay ONE
 // set of global answers (stored on the waterfall itself), so setting them at any
 // connected break is the bulk edit — every follower moves together.
+//
+// THIS DEPTH IS THE GLOBAL LADDER'S OWN, AND STAYS FLAT (16 Sep): one shared ladder, one
+// number, every follower the same. The BREAK's depth went per-partner the same day
+// (`drive[t].depth` — see WATERFALL-DEPTH in docs/DECISION-RECORDS.md), which is a decision
+// about a break's own demand mix; this one is a decision about how far into one shared
+// ladder its followers reach. Two different questions, and the words stay apart:
+// `Waterfall depth` here, `Depth per partner` there.
 //
 // A CONNECTED BREAK SHOWS THE LEVERS, NOT THE LADDER (7 Sep, user call): the three
 // answers that are precise to this break, and one door — `View the waterfall` — that

@@ -186,14 +186,16 @@ export default async function run({ test, req, eq, assert, freshSetup, patchSlot
     assert(e.message.includes('Ad placement'), 'says where the answer lives now');
   });
 
-  await test('`Hide during in-stream` is gone, and the out-stream aims at a typed total', async () => {
+  await test('the out-stream aims at a typed total, and the short in-stream spelling is refused', async () => {
+    // The 8 Sep cut is reversed (16 Sep, user call) but the SHORT key stays dead: a
+    // payload carrying it would otherwise drop on the floor and read as a switch set.
     const dead = await req('PATCH', '/panel/setups/as_1/sections/0/behaviour',
       { slot: 'outstream', behaviour: { hideOnInStream: false } });
-    eq(dead.status, 400, 'the cut switch is refused, never silently dropped');
+    eq(dead.status, 400, 'the old spelling is refused, never silently dropped');
     const e = dead.body.errors.find(x => x.field === 'hideOnInStream');
     assert(e, 'names the field');
     assert(e.message.includes('Hide during in-stream'), 'in the words the screen used');
-    assert(e.message.includes('owns the screen'), 'and says why there is nothing to decide');
+    assert(e.message.includes('Hide during in-stream ads'), 'and says what it is called now');
     // Total Target Impressions: the breaks' own words, typed here because a rotation
     // runs all session where a break picks from 1/2/3.
     const ok = await req('PATCH', '/panel/setups/as_1/sections/0/behaviour',
@@ -207,6 +209,63 @@ export default async function run({ test, req, eq, assert, freshSetup, patchSlot
     const oe = over.body.errors.find(x => x.field === 'perSession');
     assert(oe && oe.message.includes('total target impressions'), 'named in the screen\'s words');
     assert(oe.message.includes('20'), 'next to the number allowed');
+  });
+
+  await test('the out-stream steps aside for an in-stream ad — unless the publisher says it does not', async () => {
+    const meta = (await req('GET', '/panel/meta')).body;
+    assert(meta.slotBehaviourFields.outstream.includes('hideOnInStreamAd'), 'the rotation carries the switch');
+    const b0 = (await req('GET', '/panel/setups/as_1')).body.setup.sections[0].slots.outstream.behaviour;
+    eq(b0.hideOnInStreamAd, true, 'and it defaults to hiding — what every player already did');
+    const off = await req('PATCH', '/panel/setups/as_1/sections/0/behaviour',
+      { slot: 'outstream', behaviour: { hideOnInStreamAd: false } });
+    eq(off.status, 200, 'a publisher whose player leaves the banner up can say so');
+    const b = (await req('GET', '/panel/setups/as_1')).body.setup.sections[0].slots.outstream.behaviour;
+    eq(b.hideOnInStreamAd, false, 'and that is what is stored');
+    const bad = await req('PATCH', '/panel/setups/as_1/sections/0/behaviour',
+      { slot: 'outstream', behaviour: { hideOnInStreamAd: 'maybe' } });
+    eq(bad.status, 400, 'anything that is not a yes or a no is refused');
+    const be = bad.body.errors.find(x => x.field === 'hideOnInStreamAd');
+    assert(be && be.message.includes('in-stream'), `named in the screen's words (got ${JSON.stringify(bad.body.errors)})`);
+    // The player is handed the answer with the rest of the rotation's facts — and only
+    // once it is published, like every other fact on this plane.
+    const set = await req('PATCH', '/panel/setups/as_7/sections/0/behaviour',
+      { slot: 'outstream', behaviour: { hideOnInStreamAd: false, perShow: 2 } });
+    eq(set.status, 200, 'set on the setup a live surface runs');
+    eq((await req('POST', '/panel/setups/as_7/publish')).status, 200, 'published');
+    const k = (await req('GET', '/panel/keys/key_3')).body.key;
+    const out = (await req('GET', `/panel/live/${k.key}`)).body.sections[0].slots.outstream;
+    eq(out.behaviour.hideOnInStreamAd, false, 'the player is told to leave the banner up');
+    eq(out.behaviour.perShow, 2, 'and how many banners one scheduled show is worth');
+    // And both are lines the version rail can say, on the placement that moved.
+    const notes = JSON.stringify((await req('GET', '/panel/setups/as_7/versions')).body);
+    assert(notes.includes('"field":"hideOnInStreamAd"'), 'the rail names the switch');
+    assert(notes.includes('"field":"perShow"'), 'and the repeat count');
+    assert(notes.includes('Out-stream'), 'against the slot it moved on');
+  });
+
+  await test('a scheduled show may repeat, and the arithmetic against the target is counted', async () => {
+    const b0 = (await req('GET', '/panel/setups/as_1')).body.setup.sections[0].slots.outstream.behaviour;
+    eq(b0.perShow, 1, 'one banner per show until someone asks for more');
+    const ok = await req('PATCH', '/panel/setups/as_1/sections/0/behaviour',
+      { slot: 'outstream', behaviour: { times: [30, 300, 600], perShow: 3, perSession: 4 } });
+    eq(ok.status, 200, 'a repeat count saves');
+    const b = (await req('GET', '/panel/setups/as_1')).body.setup.sections[0].slots.outstream.behaviour;
+    eq(b.perShow, 3, 'and is what one show is worth');
+    // Counted, never invented: three shows at three repeats is nine, against a target of four.
+    assert(ok.body.warnings.some(w => w.includes('9 shows') && w.includes('4')),
+      `the overshoot is a flag with both numbers in it (got ${JSON.stringify(ok.body.warnings)})`);
+    const under = await req('PATCH', '/panel/setups/as_1/sections/0/behaviour',
+      { slot: 'outstream', behaviour: { perSession: 12 } });
+    assert(!under.body.warnings.some(w => w.includes('shows, target')), 'and it is silent once the target covers them');
+    const over = await req('PATCH', '/panel/setups/as_1/sections/0/behaviour',
+      { slot: 'outstream', behaviour: { perShow: 11 } });
+    eq(over.status, 400, 'past the ceiling it is refused');
+    const oe = over.body.errors.find(x => x.field === 'perShow');
+    assert(oe && oe.message.includes('repeats per show'), 'named in the screen\'s words');
+    assert(oe.message.includes('10'), 'next to the number allowed');
+    const zero = await req('PATCH', '/panel/setups/as_1/sections/0/behaviour',
+      { slot: 'outstream', behaviour: { perShow: 0 } });
+    eq(zero.status, 400, 'and a show worth no banners is not a show');
   });
 
   await test('pod bounds are refused by name', async () => {

@@ -83,6 +83,17 @@ r.get('/panel/meta', handle((req, res) => {
     // Whose sound is quiet while content plays under an ad (11 Sep): Ad or Content.
     muteModes: store.MUTE_MODES,
     muteWords: store.MUTE_WORD,
+    // WHOSE DEMAND FILLS A UNIT (16 Sep) — the ops team's own note on each ad unit, from
+    // one vocabulary so a vendor added server-side reaches the control with no screen
+    // change. Empty is a real answer and is not in the list: absence IS "nobody has said".
+    adProviders: store.AD_PROVIDERS,
+    adProviderWords: store.AD_PROVIDER_WORD,
+    // EVERY FACT A UNIT CARRIES, IN ONE LIST (16 Sep) — the same `RUNG_FACTS` the response
+    // shape, the snapshot, the player's JSON and the version diff already read. The ad
+    // setup editor's save payload hand-copied its own five of them, so `mute` and
+    // `headerBidding` were set on screen and dropped on the way out for five days. A list
+    // that lives in one place cannot fall behind the room that writes it.
+    rungFacts: store.RUNG_FACTS,
     maxMidrollGroups: store.MAX_MIDROLL_GROUPS,
     templateMacros: store.TEMPLATE_MACROS,
     // Presets STAMP values at creation — a photocopy, never a live link. Editing a

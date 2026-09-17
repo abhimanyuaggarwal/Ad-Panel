@@ -203,12 +203,28 @@ export const PAUSE_WORD = { yes: 'Yes', no: 'No', size: 'Auto' };
 // the way a unit's own pause answer sits under the waterfall's one answer.
 export const MUTE_MODES = ['ad', 'content'];
 export const MUTE_WORD = { ad: 'Ad', content: 'Content' };
+// WHOSE DEMAND FILLS THIS UNIT (16 Sep, user call). NOT `TAG_PROVIDERS` — that says HOW the
+// unit is requested (the IMA/GPT client libraries, or a pasted CAN endpoint), which is a
+// fact about the protocol. This says WHO the ad comes from, which the config cannot derive:
+// a GAM line item may carry Taboola demand, and a pasted endpoint says nothing about who
+// answers it. So it is the ops team's own note on the unit — the one fact here a person
+// states rather than the panel computes.
+//
+// EMPTY BY DEFAULT, deliberately (the user's second option, taken). A default would be an
+// invented fact on every unit that has ever been saved, and a wrong vendor on a unit is
+// worse than a blank one: it reads as counted. A unit says nothing until someone says it.
+// To add a vendor, add it here and give it a word below — no screen changes.
+export const AD_PROVIDERS = ['gam', 'taboola', 'colombia', 'slike'];
+// The vendors' own spelling, so a refusal, a version line and the UI all agree.
+export const AD_PROVIDER_WORD = { gam: 'GAM', taboola: 'Taboola', colombia: 'Colombia', slike: 'Slike' };
 // A BREAK UNIT'S OWN FACTS, IN ONE LIST (11 Sep): the response shape, the snapshot, the
-// player's JSON and the version diff all copy these same seven, so a fact added here
+// player's JSON and the version diff all copy these same eight, so a fact added here
 // reaches every plane at once — four hand-copied lists carried the first five.
 // `headerBidding` (11 Sep) is the unit's answer in the slot's grammar (SLOT_HEADER_BIDDING:
 // `auto` borrows the BREAK's served answer); the player's JSON carries it RESOLVED.
-export const RUNG_FACTS = ['displaySlot', 'pause', 'mute', 'headerBidding', 'showAfterSec', 'closeAfterSec', 'hideAfterSec'];
+// `adProvider` (16 Sep) leads the list because it is the unit's WHO — and, unlike every
+// other fact here, it is sparse in the strong sense: absent means nobody has said.
+export const RUNG_FACTS = ['adProvider', 'displaySlot', 'pause', 'mute', 'headerBidding', 'showAfterSec', 'closeAfterSec', 'hideAfterSec'];
 // A MID-ROLL IS BREAK GROUPS (31 Aug, user call): up to 3, each with its own cadence
 // and its own ladder. One group is today's mid-roll, and draws no group chrome.
 export const MAX_MIDROLL_GROUPS = 3;
@@ -223,6 +239,19 @@ export const ADS_ACROSS_PODS_WARN = 6;
 // Two pods landing breaks closer than this many seconds apart feel relentless.
 export const PODS_TOO_CLOSE_SEC = 60;
 export const ROTATION_MAX = 5;
+// HOW MANY TIMES ONE SHOW PLAYS THE AD (16 Sep, user call). The rotation's schedule says
+// WHEN it shows; this says how many banners that one show is worth, back to back, each
+// held for `hold`. It is deliberately not the session total — `perSession` is that, and
+// the two multiply: a schedule of 3 at 2 repeats each is 6 impressions asked for, which
+// is counted on the row rather than guessed at. 1 is today's behaviour, so the default
+// changes nothing for anyone already live.
+//
+// IT IS `perShow`, NOT `repeat`, and the pair `perShow`/`perSession` is why: the ads JSON
+// already spends `repeat` on the out-stream's LIST OF MOMENTS (Appendix 3, flag B), which
+// is this panel's `times`. A field called `repeat` meaning a count would have read as that
+// list to the one team that has to implement both. On the wire this is the JSON's
+// `impression`, which the contract has always carried and always pinned at 1.
+export const OUTSTREAM_REPEAT_MAX = 10;
 export const MAX_SECTIONS = 5;
 export const MAX_RUNGS = 10; // 1 primary + 9 waterfall rungs (user call, 25 Aug — was 4)
 // ADS IN A ROW, AND HOW OFTEN BREAKS FALL. Both are answered twice — by the ad setup
@@ -246,9 +275,12 @@ export const FIELD_WORDS = {
   nextAd: 'where the next ad comes from',
   tagTimeoutMs: 'how long each tag waits',
   ask: 'the ad partners', tries: 'the waterfall depth', direct: 'special campaigns',
+  // The per-partner cap (16 Sep) — `tries` above is the flat one, which no screen writes.
+  depth: 'the waterfall depth per partner',
   headerBidding: 'header bidding',
   times: 'the show times', hold: 'the hold',
   refresh: 'the rotation', perSession: 'the total target impressions',
+  perShow: 'the repeats per show', hideOnInStreamAd: 'hiding during in-stream ads',
   fillTimeoutSec: 'when the break gives up',
   displaySlot: 'the display slot', pause: 'whether content pauses', mute: 'which sound is muted',
   showAfterSec: 'the request delay', closeAfterSec: 'when its close button appears',

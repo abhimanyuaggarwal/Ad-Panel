@@ -7,8 +7,9 @@
 
 const API_BASE = '';
 
-// The publish plane serves both kinds of object under two URL segments.
-const pubSeg = kind => (kind === 'key' ? 'keys' : 'setups');
+// The publish plane serves all three kinds of object under three URL segments (16 Sep:
+// ad unit templates joined it, so an edit reaches a player only when it is published).
+const pubSeg = kind => ({ key: 'keys', setup: 'setups', template: 'templates' })[kind];
 
 async function call(method, path, body) {
   let res;

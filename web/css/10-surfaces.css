@@ -52,41 +52,11 @@
 .fp-gseg button { font-size: 11px; padding: 3px 9px; }
 .fp-gfoot { display: flex; justify-content: flex-end; padding: 6px 4px 2px; margin-top: 4px; border-top: 1px solid var(--line); }
 
-/* ---------- AD UNIT TEMPLATES, AS THE CONFIG TABLE (4 Sep, user call) ---------- */
-/* The chips strip is gone: the section speaks the custom-config table's exact grammar —
-   an eyebrow title, ONE heading row, the name as a fixed identity column with a rule
-   dividing it from the facts it names (the URL it fires, the counted use), the rare act
-   behind a ⋯ at the right edge, and the add at the FOOT where the row it makes appears.
-   A row opens its own editor, so the whole row is the door. */
-/* A hairline closes the section, so templates and PLACEMENTS read as two rooms, not
-   one run-on strip (4 Sep, user call — "the communication is a bit cluttered here"). */
-.tpl-sec { padding: 2px 0 16px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
-.tpl-t { --tpl-cols: 220px minmax(260px, 1fr) 68px; }
-.tpl-h {
-  display: grid; grid-template-columns: var(--tpl-cols); gap: 18px; align-items: end;
-  padding: 0 0 6px; border-bottom: 1px solid var(--line); margin-bottom: 2px;
-  font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-  color: var(--ink-faint);
-}
-.tpl-r {
-  display: grid; grid-template-columns: var(--tpl-cols); gap: 18px; align-items: center;
-  padding: 8px 0; cursor: pointer;
-}
-.tpl-r + .tpl-r { border-top: 1px solid #eef0f5; }
-.tpl-r:hover { background: var(--bg-soft, #f7f8fb); }
-/* The identity column: its right rule runs through header and rows alike (pcfg's). */
-.tpl-id {
-  display: flex; align-items: center; gap: 8px; min-width: 0;
-  border-right: 1px solid var(--line); padding-right: 18px;
-}
-.tpl-h .tpl-id { border-right-color: transparent; }
-.tpl-n { font-size: 12.5px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tpl-url { min-width: 0; }
-.tpl-url .mono { display: block; font-size: 11.5px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* THE ROW'S SWITCH (4 Sep): state anchors the corner, always visible; the ⋯ reveals on
-   hover, exactly as the config rows do. A switched-off template keeps its row — name,
-   URL, counted use — dimmed in place; the switch and the ⋯ stay at full strength. */
-.tpl-r.off .tpl-id, .tpl-r.off .tpl-url { opacity: .45; }
+/* AD UNIT TEMPLATES LEFT THIS FILE (16 Sep). The table that stood at the head of the ad
+   setup page — `.tpl-sec/-t/-h/-r/-id/-n/-url`, its heading row, its identity column and
+   its row switch — went with the section, and the room that replaced it has its own
+   stylesheet (`css/12-templates.css`), reusing the two lists' table rather than a shape of
+   its own. Nothing here draws a template any more; the `.tpl-*` prefix belongs to 12. */
 
 /* ---------- PODS, ROW FACTS AND THE TEMPLATE FORM (3 Sep) ---------- */
 /* The pods strip stands even at one pod — that is what makes "everything is in pod 1"
@@ -95,20 +65,9 @@
 .pod-tabs { margin: 2px 0 10px; padding-left: 0; }
 
 
-/* The template form: the name takes the row, the provider is a fixed narrow column, and
-   the URL gets a row of its own instead of squeezing beside them. */
-.frow.tpl-form { margin-bottom: 12px; gap: 12px 14px; }
-.frow.tpl-form:last-of-type { margin-bottom: 0; }
-.frow.tpl-form .field.grow input[type=text] { width: 100%; }
-.field.tpl-prov { flex: 0 0 150px; min-width: 0; align-items: stretch; }
-.frow.tpl-form .field.grow { min-width: 0; }
-/* The select and the text input sit on one line, so they share one height. */
-/* The house select carries a 210px min-width for page rows; inside a 440px dialog its
-   field is 150px, so it must be allowed to fit the column it was given — without this
-   the Provider control spilled out through the dialog's right edge. */
-.frow.tpl-form .select { height: 36px; display: flex; align-items: center; min-width: 0; width: 100%; }
-.tpl-foot { display: flex; align-items: baseline; gap: 12px; margin-top: 14px; padding-top: 11px; border-top: 1px solid var(--line); }
-.tpl-foot .podl { margin-left: auto; }
+/* The template DIALOG's own rules (`.tpl-form`, `.tpl-prov`, `.tpl-foot`) went with the
+   dialog on 16 Sep — a template is a page now, and its fields are the page's ordinary
+   `.frow`/`.field`, with no 440px column to squeeze the provider into. */
 
 /* "+ Add placement" belongs beside the last tab, not mid-row on the auto margin. */
 .pl-tabs .stab.add { margin-left: 6px; }
@@ -145,8 +104,7 @@
 .pcfg-acts { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
 .pcfg-acts .btn.small { padding: 4px 10px; font-size: 11.5px; }
 .pcfg-acts .btn.small[disabled] { opacity: .45; cursor: not-allowed; }
-.tpl-r .row-kebab { opacity: 0; transition: opacity .12s; }
-.tpl-r:hover .row-kebab, .row-kebab:focus-visible, .rmenu.open .row-kebab { opacity: 1; }
+.row-kebab:focus-visible, .rmenu.open .row-kebab { opacity: 1; }
 .pcc-foot { display: flex; padding-top: 12px; }
 .slot-add.pcc-add { padding: 6px 14px; font-size: 12px; }
 .pcc-add[disabled] { opacity: .45; cursor: not-allowed; }
@@ -563,8 +521,8 @@
    waterfall's own blue so "follows the head of the page" needs no sentence. */
 .pl-glimpse { display: inline-flex; align-items: center; gap: 8px; vertical-align: middle; }
 .pl-glimpse .uchip.linked { background: #eef3fe; color: var(--accent); border-color: #c7d6f8; }
-.tpl-sec.closed, .gs-sec.closed, .pl-sec.closed { padding-bottom: 6px; }
-.tpl-sec .shead, .gs-sec .shead, .pl-sec .shead { margin-bottom: 2px; }
+.gs-sec.closed, .pl-sec.closed { padding-bottom: 6px; }
+.gs-sec .shead, .pl-sec .shead { margin-bottom: 2px; }
 /* Placements is the card's last section — same fold anatomy, no rule under it. */
 .pl-sec { padding: 2px 0 4px; }
 

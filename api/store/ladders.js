@@ -1,7 +1,7 @@
 // store/ladders.js — how a break BEHAVES and what it ASKS: slot behaviour fields and
 // their normalization, the drive fields, cue points, rung normalization, and the walks
 // (the setup's own walk, the walk after the drive decision, per pod).
-import { DISPLAY_SLOTS, DISPLAY_SLOT_WORD, MAX_POD_ADS, MAX_RUNGS, MIDROLL_EVERY_MAX, MIDROLL_EVERY_MIN, MIDROLL_MODES, MUTE_MODES, PAUSE_MODES, POD_NEXT_AD, PREROLL_TIMING, PREROLL_WAIT, PROVIDER_WORD, ROTATION_MAX, SLOT_HEADER_BIDDING, SLOT_KIND, TAG_PROVIDERS, URL_PROVIDERS, state } from './state.js';
+import { AD_PROVIDERS, AD_PROVIDER_WORD, DISPLAY_SLOTS, DISPLAY_SLOT_WORD, MAX_POD_ADS, MAX_RUNGS, MIDROLL_EVERY_MAX, MIDROLL_EVERY_MIN, MIDROLL_MODES, MUTE_MODES, OUTSTREAM_REPEAT_MAX, PAUSE_MODES, POD_NEXT_AD, PREROLL_TIMING, PREROLL_WAIT, PROVIDER_WORD, ROTATION_MAX, SLOT_HEADER_BIDDING, SLOT_KIND, TAG_PROVIDERS, URL_PROVIDERS, state } from './state.js';
 import { fmtSecs, intIn, oneOf, str } from './validate.js';
 
 
@@ -67,11 +67,17 @@ export const SLOT_BEHAVIOUR_FIELDS = {
   // break that arrives mid-playback has a "before" to fetch in, so mid- and post-roll.
   midroll: ['mode', 'cuepoints', 'firstAt', 'every', 'prefetchSec', 'podAds', 'nextAd', 'headerBidding', 'tagTimeoutMs', 'fillTimeoutSec'],
   postroll: ['prefetchSec', 'podAds', 'nextAd', 'headerBidding', 'tagTimeoutMs', 'fillTimeoutSec'],
-  // Out-stream: banners while nothing plays — its show times are its own repeat
-  // schedule, so it has no rotation refresh, and since 8 Sep no in-stream switch
-  // either. What is left is when it shows, how long it holds, how many it is aiming
-  // for, who bids for it, and how long one request waits.
-  outstream: ['times', 'hold', 'perSession', 'headerBidding', 'tagTimeoutMs'],
+  // Out-stream: banners while nothing plays — its show times are its own schedule, so
+  // it has no rotation refresh. What it has is when it shows, how long each banner
+  // holds, how many banners one show is worth (`perShow`), how many it is aiming for
+  // across the session, whether it steps aside for an in-stream ad, who bids for it,
+  // and how long one request waits.
+  // THE IN-STREAM SWITCH IS BACK (16 Sep, user call), under its full name
+  // `hideOnInStreamAd`. The 8 Sep cut reasoned that an in-stream ad owns the screen and
+  // the player steps the banner aside anyway — true of the players we had then, and not
+  // a decision the panel got to make for the ones we have now. The default is `true`,
+  // which IS that behaviour, so nothing already live moves.
+  outstream: ['times', 'hold', 'perShow', 'perSession', 'hideOnInStreamAd', 'headerBidding', 'tagTimeoutMs'],
 };
 
 // A cut field is refused BY NAME, with where the answer lives now (house rule).
@@ -91,10 +97,11 @@ export const DEAD_BEHAVIOUR_FIELDS = {
   // pod one was the guessable half. A display unit settles the break, as it always did
   // by default; where it sits on the player stays the unit's own fact.
   podBanner: ['Display ad position', 'a display unit settles the break \u2014 where it sits on the player is the ad unit\u2019s own Ad placement'],
-  // Cut 8 Sep, user call: the out-stream lives in the idle player, and an in-stream ad
-  // owns the screen while it runs — the player already steps the banner aside. A switch
-  // for it only ever had one sane answer, so it was a question with no decision in it.
-  hideOnInStream: ['Hide during in-stream', 'an in-stream ad owns the screen while it runs \u2014 the player steps the out-stream aside on its own'],
+  // Cut 8 Sep and BACK 16 Sep (user call) under its full name — so the short key is a
+  // dead spelling, not a dead idea. It is still refused rather than accepted quietly:
+  // a payload carrying the old key would otherwise drop on the floor and read as a
+  // switch that was set. The refusal says where the answer lives, as every cut does.
+  hideOnInStream: ['Hide during in-stream', 'the switch is back under its full name, \u201cHide during in-stream ads\u201d'],
 };
 
 // THE DRIVE DECISION (26 Aug, DRIVING-SCOPE). Local overrides — muted rungs, a local
@@ -117,15 +124,15 @@ export const DEAD_BEHAVIOUR_FIELDS = {
 // was pod, walk and order semantics, which a rotation genuinely has none of. Who bids for a
 // banner slot is not one of those — it is exactly what Prebid was built for.
 export const DRIVE_FIELDS = {
-  preroll: ['direct', 'ask', 'tries', 'start', 'deferSec', 'podAds', 'headerBidding'],
+  preroll: ['direct', 'ask', 'depth', 'tries', 'start', 'deferSec', 'podAds', 'headerBidding'],
   // WHERE THE BREAKS FALL (3 Sep, user call) joins the drive. The cadence was the ad
   // setup's alone; with the 1:1 promise a setup IS one integration's, so "this surface
   // breaks at 2:00 and 8:00" is a surface decision — stored sparse like the rest and
   // resolved over whatever the placement holds. It is refused where the mid-roll runs
   // MORE THAN ONE break group: several cadences are an arrangement, and one answer
   // cannot stand for all of them.
-  midroll: ['direct', 'ask', 'tries', 'podAds', 'mode', 'cuepoints', 'every', 'headerBidding'],
-  postroll: ['direct', 'ask', 'tries', 'podAds', 'headerBidding'],
+  midroll: ['direct', 'ask', 'depth', 'tries', 'podAds', 'mode', 'cuepoints', 'every', 'headerBidding'],
+  postroll: ['direct', 'ask', 'depth', 'tries', 'podAds', 'headerBidding'],
   outstream: ['headerBidding'], // takes turns — but bidders are asked for a banner slot too
 };
 
@@ -148,6 +155,42 @@ export function driveAsk(ask) {
   const out = [];
   for (const p of ask) if (TAG_PROVIDERS.includes(p) && !out.includes(p)) out.push(p);
   return out.length ? out : null;
+}
+
+// HOW DEEP EACH PARTNER GOES (16 Sep, user call — *"I should be able to define the
+// waterfall depth for each IMA GPT and CAN as well apart from rearranging them and
+// disabling a few of them"*). `depth` is a sparse map, partner → the most of that
+// partner's sources this break will try. A partner absent from it is asked all the way
+// down, which is why absence is never written: the map holds the caps and nothing else.
+//   It sits BESIDE `tries`, not instead of it: `tries` is one count over the whole walk and
+// is still cut last, so a break may say both "two IMA, then one GPT, then everything CAN
+// has" and "…and stop at three whatever happens". They are two grains of one question, and
+// the screens draw them as one block — the caps on the partners, the ceiling under them —
+// so "which one wins?" is answered by looking rather than by reasoning: the walk is cut by
+// the caps first, then by the ceiling, and the resolved walk is counted on screen.
+export function driveDepth(depth) {
+  if (!depth || typeof depth !== 'object' || Array.isArray(depth)) return null;
+  const out = {};
+  for (const [p, n] of Object.entries(depth)) {
+    if (TAG_PROVIDERS.includes(p) && Number.isInteger(n) && n >= 1) out[p] = n;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+// The caps applied to a walk, counted DOWN the walk — so the primary, being the first
+// rung of its own partner, survives every cap of 1 or more. A position is never cut by a
+// preference (the 31 Aug tier rule), and a cap of 0 does not exist: switching a partner
+// off is what the ask list is for, so it is refused rather than stored as a second way
+// of saying the same thing.
+function walkWithinDepth(walk, depth, provOf) {
+  const d = driveDepth(depth);
+  if (!d) return walk;
+  const seen = {};
+  return walk.filter(r => {
+    const p = provOf(r);
+    seen[p] = (seen[p] || 0) + 1;
+    return !d[p] || seen[p] <= d[p];
+  });
 }
 
 // The behaviour a surface actually runs: the placement's, with the drive's own two
@@ -180,11 +223,22 @@ export function normalizeSlotBehaviour(type, input, errors, warnings, prefix = '
     // it is refused by name rather than quietly serving nothing.
     b.times = inp.times === undefined ? [30] : normalizeCuepoints(inp.times, errs, 'times');
     b.hold = intIn(inp.hold ?? 20, 'hold', 5, 90, errs);
+    // HOW MANY BANNERS ONE SHOW IS WORTH (16 Sep, user call). The schedule says when a
+    // show happens; this says how many times the ad plays at each of them, each held for
+    // `hold`. 1 is what every rotation does today, so the default is not a change. On
+    // the wire it is the JSON's `impression`, pinned at 1 until now — never its `repeat`,
+    // which is the moments list this panel calls `times` (see OUTSTREAM_REPEAT_MAX).
+    b.perShow = intIn(inp.perShow ?? 1, 'perShow', 1, OUTSTREAM_REPEAT_MAX, errs);
     // TOTAL TARGET IMPRESSIONS (8 Sep, user call): the same words the breaks use for
     // their own count, because it is the same idea — how many impressions this slot is
     // aiming for. A break picks from 1/2/3; a rotation runs all session, so out-stream
     // TAKES A TYPED NUMBER instead of a fixed set. Still the JSON's totalImpression.
     b.perSession = intIn(inp.perSession ?? 2, 'perSession', 0, 20, errs);
+    // DOES IT STEP ASIDE FOR AN IN-STREAM AD (16 Sep, user call — back from the 8 Sep
+    // cut). `true` is the behaviour the cut assumed of every player, so absence keeps
+    // every live rotation exactly where it was; `false` is a publisher saying their
+    // player leaves the banner up, which the panel has no business overruling.
+    b.hideOnInStreamAd = oneOf(inp.hideOnInStreamAd ?? true, 'hideOnInStreamAd', [true, false], errs);
     if (inp.times !== undefined && !b.times.length) {
       errs.push({ field: 'times', message: 'The out-stream needs at least one show time' });
     }
@@ -257,6 +311,14 @@ export function normalizeSlotBehaviour(type, input, errors, warnings, prefix = '
     }
   }
 
+  // A ROTATION'S ARITHMETIC, COUNTED (16 Sep). The schedule and the repeat multiply into
+  // how many banners the session actually asks for; the target says how many it is aiming
+  // at. When the first overshoots the second the extra shows simply never run, which is
+  // worth seeing next to the two numbers that caused it. A flag, not a wall.
+  if (SLOT_KIND[type] === 'rotation') {
+    const asked = b.times.length * b.perShow;
+    if (b.perSession > 0 && asked > b.perSession) warns.push(`${asked} shows, target ${b.perSession}`);
+  }
   for (const e of errs) errors.push({ field: e.field, message: prefix + e.message });
   for (const w of warns) warnings.push(prefix + w);
   return b;
@@ -356,6 +418,19 @@ export function normalizeRungs(raw, family, errors, field, where, alsoTakes = nu
     }
     seenTags.add(tagId);
     const rung = { type: 'tag', tagId, on };
+    // WHOSE DEMAND FILLS THIS UNIT (16 Sep, user call) — asked of every unit, break and
+    // rotation alike, because a banner has a vendor too. It is the ops team's own note:
+    // `provider` above says how the unit is REQUESTED (IMA, GPT, a pasted CAN endpoint),
+    // which the config knows; who the demand comes FROM it cannot derive.
+    // SPARSE, AND EMPTY IS A REAL ANSWER: "nobody has said" is where every unit starts and
+    // where a cleared one returns, so an absent value stores nothing rather than a
+    // placeholder that would read as counted. A vendor we do not know is refused BY NAME
+    // with the ones we do listed — a typo here is a wrong vendor in every report that
+    // reads the unit, and it would never be caught by eye.
+    if (r.adProvider !== undefined && r.adProvider !== null && r.adProvider !== '') {
+      if (AD_PROVIDERS.includes(r.adProvider)) rung.adProvider = r.adProvider;
+      else errors.push({ field, message: `${where}: “${tag.name}” — “${r.adProvider}” is not an ad provider the console knows — ${AD_PROVIDERS.map(x => AD_PROVIDER_WORD[x]).join(', ')}` });
+    }
     // A BANNER CARRIES ITS OWN FOUR FACTS (31 Aug, AD-JSON-SCOPE): where on the page,
     // whether content pauses, and its lifecycle clocks — counted from the moment it
     // APPEARS, so each number stands alone. Type-based, never value-based: a GPT/display
@@ -530,6 +605,9 @@ export function driveWalkRungs(rungs, behaviour, drive, type) {
       walk = [...(primary ? [primary] : []), ...ordered];
     }
   }
+  // The per-partner caps bite BEFORE the flat count: `depth` says how far each partner
+  // is walked, `tries` (nothing writes it now — see driveDepth) stops the walk outright.
+  if (SLOT_KIND[type] !== 'rotation') walk = walkWithinDepth(walk, d.depth, rungProvider);
   if (d.tries && SLOT_KIND[type] !== 'rotation') walk = walk.slice(0, d.tries);
   return { walk, fellBack, vacuous };
 }

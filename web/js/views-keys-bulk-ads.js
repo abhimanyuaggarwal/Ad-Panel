@@ -221,33 +221,64 @@ function bulkTabRuns(t) {
   renderUnitScreen();
 }
 
-// One generic Who menu for a cohort — every company, since each integration resolves
-// the decision against its own setup and a miss is refused or falls back, named.
-// A cohort spans many setups, so the strip here is the whole vocabulary rather than
-// what one break carries — the same chips, applied uniformly. An integration that has
-// none of the switched-on partners falls back to its own arrangement and is named.
-function bulkAskChipsHtml(t) {
+// ONE GENERIC WATERFALL LADDER for a cohort — every company, since each integration
+// resolves the decision against its own setup and a miss is refused or falls back, named.
+// A cohort spans many setups, so the ladder here is the whole vocabulary rather than what
+// one break carries, and the depth seg has no counted denominator beside it: five
+// integrations hold five different numbers of IMA sources, and printing one of them would
+// be the page's one invented figure. The cap still means the same thing in all of them —
+// "at most this many of that partner" — which is exactly why a per-partner cap travels
+// across a cohort where the flat one could not.
+function bulkWfLadderHtml(t) {
   const d = slotDraft(t);
   const cur = d.dTouched.has('ask') ? d.dv.ask : uniformDrive(t, 'ask');
   const on = Array.isArray(cur) && cur.length ? cur : [...window.KL_PROVIDERS];
   const off = window.KL_PROVIDERS.filter(p => !on.includes(p));
+  const depth = (d.dTouched.has('depth') ? d.dv.depth : uniformDrive(t, 'depth')) || {};
   const dragKey = `bask-${t}`;
   registerDrag(dragKey, (from, to) => {
     const order = [...on];
     order.splice(to, 0, order.splice(from, 1)[0]);
     bulkDriveSet(t, 'ask', order);
   });
-  const chip = (p, i, isOn) => `
-    <span class="pchip ${isOn ? 'on' : 'skip'}" ${isOn && on.length > 1 ? dragAttrs(dragKey, i) : ''}
-      onclick="${isOn && on.length === 1 ? '' : `bulkAskToggle('${t}', '${p}')`}">
-      ${isOn && on.length > 1 ? '<span class="pchip-grip">⠿</span>' : ''}
-      <b class="pchip-n">${isOn ? i + 1 : '–'}</b>
-      <span class="pchip-t">${esc(provWord(p))}</span>
-    </span>`;
-  return `<div class="pchips oneline">
-    ${on.map((p, i) => chip(p, i, true)).join('<i class="gsep">›</i>')}
-    ${off.map(p => chip(p, -1, false)).join('')}
+  const row = (p, i, isOn) => {
+    const last = isOn && on.length === 1;
+    const canDrag = isOn && on.length > 1;
+    return `
+      <div class="wfd-r ${isOn ? 'on' : 'skip'}" ${canDrag ? dragAttrs(dragKey, i) : ''}>
+        <span class="wfd-grip">${canDrag ? '⠿' : ''}</span>
+        <b class="wfd-n">${isOn ? i + 1 : '–'}</b>
+        <span class="wfd-p">${providerBadge(p)}</span>
+        <span class="toggle tiny ${isOn ? 'on' : ''} ${last ? 'held' : ''}"
+          ${last ? ' title="The only partner left on — a break that asks nobody would go dark"' : ''}
+          onclick="${last ? `toast('One partner must stay on', 'warn')` : `bulkAskToggle('${t}', '${p}')`}"><span class="track"></span></span>
+        <span class="wfd-d">${accSeg(depth[p] ?? 'all', [1, 2, 3, 'all'], ['1', '2', '3', 'All'],
+          o => `bulkDepthSet('${t}', '${p}', ${o === 'all' ? "'all'" : o})`,
+          isOn ? '' : `${provWord(p)} is switched off — these breaks do not ask it`)}</span>
+      </div>`;
+  };
+  // The ceiling over the whole fall is its own lever (`Waterfall depth`, below) — not a line
+  // inside this one. Mingled, it read as a fourth partner with a strange name.
+  return `<div class="wfd">
+    ${on.map((p, i) => row(p, i, true)).join('')}
+    ${off.map(p => row(p, -1, false)).join('')}
   </div>`;
+}
+
+// The caps queue as their own field (`depth`) but have no row of their own: they ride the
+// Waterfall lever, exactly as `deferSec` rides `Start offset`. So `ask` is written
+// alongside — the order the caps were read against is part of the decision, and a cohort
+// write that sent caps without it would land them on five different arrangements.
+function bulkDepthSet(t, p, n) {
+  const d = slotDraft(t);
+  const cur = d.dTouched.has('depth') ? d.dv.depth : uniformDrive(t, 'depth');
+  const depth = { ...(cur || {}) };
+  if (n === 'all' || !n) delete depth[p]; else depth[p] = n;
+  if (!d.dTouched.has('ask')) {
+    const ask = uniformDrive(t, 'ask');
+    bulkDriveSet(t, 'ask', Array.isArray(ask) && ask.length ? ask : [...window.KL_PROVIDERS]);
+  }
+  bulkDriveSet(t, 'depth', Object.keys(depth).length ? depth : 'setup');
 }
 
 function bulkAskToggle(t, p) {
@@ -256,6 +287,12 @@ function bulkAskToggle(t, p) {
   const on = Array.isArray(cur) && cur.length ? [...cur] : [...window.KL_PROVIDERS];
   if (on.includes(p)) {
     if (on.length === 1) { toast('One partner must stay on', 'warn'); return; }
+    // A cap for a partner nobody asks is a number with nothing to count.
+    const depth = { ...((d.dTouched.has('depth') ? d.dv.depth : uniformDrive(t, 'depth')) || {}) };
+    if (depth[p]) {
+      delete depth[p];
+      bulkDriveSet(t, 'depth', Object.keys(depth).length ? depth : 'setup');
+    }
     bulkDriveSet(t, 'ask', on.filter(x => x !== p));
   } else {
     bulkDriveSet(t, 'ask', [...on, p]);
@@ -274,6 +311,10 @@ function driveWord(f, v) {
     return v.map(fmtCue).join(', ');
   }
   if (f === 'headerBidding') return v === undefined || v === null || v === 'setup' ? 'as set up' : label('headerBidding', v);
+  if (f === 'depth') {
+    if (!v || v === 'setup' || !Object.keys(v).length) return 'as set up';
+    return Object.entries(v).map(([p, n]) => `${provWord(p)} ${n}`).join(', ');
+  }
   if (f === 'tries') return !v || v === 'setup' ? 'full waterfall' : String(v);
   if (f === 'start') return v === 'deferred' ? 'delayed' : 'immediate';
   if (f === 'deferSec') return `${v}s`;
@@ -322,6 +363,18 @@ function bulkFieldDefs(t) {
   };
   if (isRotation(t)) return [hbDef];
   const defs = [
+    // THE FALL, PARTNER BY PARTNER (16 Sep, user call) — and the sheet's FIRST lever, because
+    // Special is the exception and this is the rule. It carries the ORDER and the per-partner
+    // caps; `Waterfall depth` under it is the ceiling over the whole walk, a separate lever
+    // because the two were confusing drawn as one (third cut, same day). `also` names the
+    // field this lever writes alongside its own, so the row opens, queues and clears as ONE
+    // thing — the pattern `start`/`deferSec` already uses.
+    { f: 'ask', label: 'Waterfall', also: ['depth'], ctl: () => bulkWfLadderHtml(t) },
+    {
+      f: 'tries', label: 'Waterfall depth',
+      ctl: () => accSeg(d.dTouched.has('tries') ? (d.dv.tries ?? 'setup') : undefined, [1, 2, 3, 'setup'], ['1', '2', '3', 'All'],
+        o => `bulkDriveSet('${t}', 'tries', ${o === 'setup' ? "'setup'" : o})`),
+    },
     {
       f: 'direct', label: label('slotType', 'direct'),
       ctl: () => {
@@ -334,12 +387,6 @@ function bulkFieldDefs(t) {
           ${withDeals < selectedKeys().length
             ? `<span class="st-chip">${selectedKeys().length - withDeals} without deals</span>` : ''}`;
       },
-    },
-    { f: 'ask', label: 'Waterfall order', ctl: () => bulkAskChipsHtml(t) },
-    {
-      f: 'tries', label: 'Waterfall depth',
-      ctl: () => accSeg(d.dTouched.has('tries') ? (d.dv.tries ?? 'setup') : undefined, [1, 2, 3, 'setup'], ['1', '2', '3', 'Full'],
-        o => `bulkDriveSet('${t}', 'tries', ${o === 'setup' ? "'setup'" : o})`),
     },
   ];
   if (t === 'preroll') {
@@ -440,7 +487,7 @@ function bulkQueuedRows() {
 // facts.
 function bulkFieldRowHtml(t, def, shownOff) {
   const d = slotDraft(t);
-  const queued = d.dTouched.has(def.f);
+  const queued = defFields(def).some(f => d.dTouched.has(f));
   const open = queued || d.open.has(def.f);
   const today = bulkRowTodayWord(t, def.f);
   if (!open) {
@@ -460,6 +507,11 @@ function bulkFieldRowHtml(t, def, shownOff) {
     </div>`;
 }
 
+// Every field a lever writes: its own, plus companions with no row of their own
+// (`Start offset` carries the seconds; `Waterfall` carries the per-partner caps). One
+// lever is one row, one queue state and one ×, however many fields it lands on.
+function defFields(def) { return [def.f, ...(def.also || [])]; }
+
 function bulkOpenField(t, f) {
   slotDraft(t).open.add(f);
   renderUnitScreen();
@@ -469,11 +521,17 @@ function bulkOpenField(t, f) {
 function bulkUnsetField(t, f) {
   const d = slotDraft(t);
   d.open.delete(f);
-  d.dTouched.delete(f);
-  delete d.dv[f];
-  if (f === 'start') { d.dTouched.delete('deferSec'); delete d.dv.deferSec; }
+  for (const g of bulkLeverFields(t, f)) { d.dTouched.delete(g); delete d.dv[g]; }
   if (f === 'cuepoints') delete BULK_TEXT.cuepoints;
   renderUnitScreen();
+}
+
+// The fields one lever owns, looked up from its own definition — so a companion is named
+// in exactly one place (`bulkFieldDefs`) and never again here.
+function bulkLeverFields(t, f) {
+  if (f === 'start') return ['start', 'deferSec'];
+  const def = bulkFieldDefs(t).find(x => x.f === f);
+  return def ? defFields(def) : [f];
 }
 
 function bulkFieldsHtml(t, shownOff) {
@@ -523,9 +581,7 @@ function bulkDropField(t, f) {
   } else {
     const d = slotDraft(t);
     d.open.delete(f);
-    d.dTouched.delete(f);
-    delete d.dv[f];
-    if (f === 'start') { d.dTouched.delete('deferSec'); delete d.dv.deferSec; }
+    for (const g of bulkLeverFields(t, f)) { d.dTouched.delete(g); delete d.dv[g]; }
   }
   renderUnitScreen();
 }
@@ -539,7 +595,16 @@ function bulkKeyWord(k, t, f) {
   if (f === 'direct') return driveWord('direct', d.direct !== false);
   // No decision on this surface = it follows its ad setup (tries and ask say so via
   // their own vocabularies; start and podAds have no absent word of their own).
-  if (d[f] === undefined && !['tries', 'ask', 'headerBidding'].includes(f)) return 'as set up';
+  if (d[f] === undefined && !['tries', 'ask', 'depth', 'headerBidding'].includes(f)) return 'as set up';
+  // ONE LEVER, ONE RESTING WORD (16 Sep): the Waterfall row writes the order and the caps,
+  // so its today-word has to answer for both — a surface carrying `IMA 2` under no order
+  // decision at all would otherwise rest on "as set up" while holding a cap.
+  if (f === 'ask') {
+    const order = driveWord('ask', d.ask);
+    const caps = driveWord('depth', d.depth);
+    if (caps === 'as set up') return order;
+    return order === 'as set up' ? caps : `${order} · ${caps}`;
+  }
   if (f === 'start') {
     return d.start === 'deferred' ? `delayed ${d.deferSec ?? 7}s` : driveWord('start', d.start);
   }

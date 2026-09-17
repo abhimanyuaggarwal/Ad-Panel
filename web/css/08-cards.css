@@ -131,7 +131,14 @@
    column takes the room the What-runs column can spare. */
 .two-col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 270px); gap: 20px; align-items: start; }
 .tc-left, .tc-right { min-width: 0; }
-.tc-right { border-left: 1px solid var(--line); padding-left: 22px; }
+/* THE DIVIDER IS THE COLUMN'S OWN BORDER, SO THE COLUMN HAS TO RUN THE FULL ROW (16 Sep).
+   `align-items: start` is what keeps the resolved list pinned to the top beside a much
+   taller stack of levers — but it also left this box only as tall as its own content, so
+   the rule it carries stopped partway down the card (98px short on a post-roll, 236px on a
+   pre-roll in Custom) and read as a line someone forgot to finish. `align-self: stretch`
+   overrides the alignment for THIS column alone: the box runs the row's full height and
+   draws its rule end to end, while the content inside still flows from the top. */
+.tc-right { border-left: 1px solid var(--line); padding-left: 22px; align-self: stretch; }
 .tc-right .cons-row { grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 7px 0; }
 .tc-right .cons-m { white-space: normal; }
 @media (max-width: 1180px) {

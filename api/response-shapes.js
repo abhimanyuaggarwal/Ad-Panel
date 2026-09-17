@@ -196,6 +196,11 @@ export function setupView(s) {
     usedByNames: used.map(k => k.name),
     usedByLive: used.filter(k => store.isPublished(k.id)).length,
     liveCounts: store.setupLiveCounts(s.id),
+    // WHAT MOVED UNDERNEATH IT (16 Sep, user call). A setup's own versions are about its
+    // own content, and a template publishing is not that — so this does NOT bump a version.
+    // But the setup must not pretend nothing happened either: every template its units
+    // point at that has gone out since this setup last published, newest first, named.
+    templateNews: store.templateNewsFor(s.id),
     ...publishView('setup', s),
   };
 }
@@ -215,10 +220,51 @@ export function tagView(t) {
 }
 
 // ---------- ad unit templates ----------
-// Plumbing behind a tag, not a room: a small list beside the tag library (31 Aug).
+// A ROOM OF ITS OWN since 16 Sep (it was "plumbing behind a tag, a small list beside the
+// tag library" from 31 Aug). A template's page asks two questions — where MAY this be
+// picked (`properties`, the author's decision) and where IS it picked (the reach below,
+// counted) — so the view carries the second one whole rather than a bare number.
+//
+// The reach is one hop deeper than `usedBy` ever went: a template is picked by a TAG,
+// and a tag sits in ad setups. `usedBy` keeps its old meaning (the tags, what the
+// delete refusal counts); `setups` and `propertiesInUse` are the reach the page draws.
 export function templateView(t) {
   const inTags = store.tagsUsingTemplate(t.id);
-  return { ...t, usedBy: inTags.length, usedByNames: inTags.map(x => x.name) };
+  const inSetups = store.setupsUsingTemplate(t.id);
+  return {
+    ...t,
+    // `properties: []` is every property — absence is the answer, on the wire as in the store.
+    properties: t.properties || [],
+    // A template publishes like an integration or an ad setup (16 Sep): live, its version,
+    // whether a draft is waiting. The list's Status column and the page's rail read this.
+    ...publishView('template', t),
+    usedBy: inTags.length,
+    usedByNames: inTags.map(x => x.name),
+    // THE AD UNITS ARE THE SUBJECT, AND THE AD SETUPS ARE WHERE THEY SIT (16 Sep, second
+    // pass on the Connected IA). A template is picked BY a unit, and the unit is what fires
+    // the URL — so `usedBy` counts units, and a list that counts setups instead can never
+    // reconcile with it: one unit deployed in three setups makes the rows add to more than
+    // the head. (Measured on the seeded world: head 3, rows 2+1+1+1 = 5.) Unit-first, the
+    // rows ARE the count, and where each one sits rides along as its address.
+    units: inTags.map(t => ({
+      id: t.id,
+      name: t.name,
+      setups: inSetups.filter(s => store.setupTagIds(s).has(t.id))
+        .map(s => ({ id: s.id, name: s.name, property: s.property })),
+    })),
+    // The ad setups a change here reaches — still counted, because the visibility refusal
+    // and the list's Connected column are both about setups, not units.
+    setups: inSetups.map(s => {
+      const held = store.setupTagIds(s);
+      const units = inTags.filter(t => held.has(t.id));
+      return {
+        id: s.id, name: s.name, property: s.property,
+        units: units.length, unitNames: units.map(t => t.name),
+      };
+    }),
+    setupCount: inSetups.length,
+    propertiesInUse: [...new Set(inSetups.map(s => s.property))],
+  };
 }
 
 

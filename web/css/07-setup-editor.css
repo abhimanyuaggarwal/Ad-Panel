@@ -117,6 +117,45 @@
 .pchip.skip .pchip-n { color: var(--ink-faint); }
 .pchip.absent { cursor: default; }
 
+/* ---------- STEP ONE ON A BREAK (16 Sep): as set up, or custom ----------
+   The seg stands on the panel's own left edge, under the tabs, with its counted
+   consequence beside it — the same anatomy the ad setup's source seg wears, so one
+   control is learned once and read in both rooms. */
+.dmode { display: flex; align-items: center; gap: 12px; padding: 2px 0 12px; }
+.dmode-f { font-size: 11.5px; color: var(--ink-faint); }
+
+/* AS SET UP — the setup's answers read back as a STATEMENT, never as greyed levers.
+   The rows ARE the lever rows (`lr rule`) with the control swapped for the value, so one
+   label edge and one value edge serve both modes and the switch moves nothing sideways.
+   Only two things change: the row breathes less (reading is not editing) and the value
+   wears one colour and one weight, whether it is a word, a number or a badge walk (8 Sep
+   — a fact line where set reads dark and default reads pale teaches that numbers matter
+   more than words, which is never what it meant). */
+.dfacts { display: flex; flex-direction: column; }
+/* ONE TYPE SCALE, ONE RHYTHM, BOTH MODES (16 Sep, user call — *"the as setup view is totally
+   off the place broken and with different text style"*). Two real faults, one cause.
+   (1) TYPE. `.lr-ctl` carries no font-size of its own, because until these rows every
+   value in it was a CONTROL — a seg button, an input, a toggle, a badge — and controls
+   size themselves. Bare text was the first thing put there that does not, so it fell
+   through to the panel's 15px container size and stood a size and a half above the 12.5px
+   label beside it and the 12px seg it replaced. The size is set HERE, on the row's value
+   column, not on one value class: whatever a future fact row holds, it lands on the card's
+   own scale.
+   (2) RHYTHM. The rows were 32px against the lever rows' 38, so switching modes re-laid
+   the whole card and the eye lost its place. Reading is not editing, but it is not a
+   different card either: same height, same label edge, same value edge, so the switch
+   swaps controls for values and moves NOTHING sideways or down. */
+.lr.rule.fact { height: 38px; cursor: default; }
+.lr.rule.fact .lr-ctl { font-size: 12.5px; }
+.lr.rule.fact .lr-l { color: var(--ink-soft); }
+/* One colour and one weight for every value, whether it is a word, a number or a badge
+   walk (the 8 Sep call — a fact line where set reads dark and default reads pale teaches
+   that numbers matter more than words, which is never what it meant). */
+.dfact-t { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+
+/* The way back drops decisions, so the confirm counts them — one line, under the move. */
+.src-cfm-note { margin-top: 12px; font-size: 12px; color: var(--ink-faint); }
+
 /* The break's one reset, bottom right — prominent enough to find, quiet enough to pass. */
 .drive-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
 .btn.sm { padding: 5px 12px; font-size: 12px; }
@@ -210,6 +249,95 @@
 .pchip.dragging { opacity: .45; }
 .pchip.drop-above { box-shadow: inset 2px 0 0 0 var(--accent); }
 .pchip.drop-below { box-shadow: inset -2px 0 0 0 var(--accent); }
+
+/* ---------- THE WATERFALL LADDER (16 Sep, user call) ---------- */
+/* The integration's own fall, one partner per line: order (grip + position), whether it is
+   asked (the switch), how deep it is walked (the seg) — then, under a hairline, the ceiling
+   over the whole thing. Read left to right as the sentence it is; read top to bottom as the
+   fall itself. It stands where `Waterfall order` and `Waterfall depth` were two rows a
+   card's width apart, and it is the card's FIRST row now.
+   Six fixed columns and no wrap: every guarantee the one-line chip strip made (1 Sep —
+   fixed anatomy, a skipped partner dimmed IN PLACE, nothing re-homed, nothing changing
+   width) holds down the list instead of across it.
+   AS NARROW AS IT CAN BE: the control column is 550px and every other control in the card
+   is 28-283px of it, so a ladder stretched to the full width would leave a hand's gap
+   between a partner and its own switch — two ends of one sentence read as two columns. */
+.wfd {
+  flex: 0 1 auto; width: max-content; max-width: 100%;
+  display: flex; flex-direction: column; gap: 1px; padding: 2px 0;
+}
+/* EVERY ROW IS ITS OWN GRID, so the slack has to be told where to go. The block is
+   `max-content` wide and the rows stretch to it, which means a row whose last cell is
+   narrower than the widest (a partner with nothing to cut says `only 1 source` where the
+   others hold a seg) has spare width to hand out — and `auto` columns take it, which shunted
+   that row's mark and switch right and broke the rails. The last column is `1fr` so the
+   slack always lands there, behind a flush-right cell where it shows as nothing. */
+.wfd-r {
+  display: grid; grid-template-columns: 12px 13px auto 28px 1fr;
+  align-items: center; gap: 8px; height: 28px; border-radius: 6px;
+  padding: 0 4px; margin: 0 -4px; user-select: none;
+}
+.wfd-r:hover { background: #f8fafd; }
+/* The grip is DRAWN, not hover-revealed: reordering is a first-class act here, not a rare
+   one, and a handle nobody can see teaches nobody it can be dragged. */
+.wfd-r[draggable] { cursor: grab; }
+.wfd-r[draggable]:active { cursor: grabbing; }
+.wfd-grip { color: var(--ink-faint); font-size: 10px; line-height: 1; text-align: center; opacity: .45; }
+.wfd-r:hover .wfd-grip { opacity: 1; }
+/* THE POSITION IS A NUMERAL, NOT A BADGE (16 Sep, second cut — *"more clean and sleek"*).
+   It was a filled accent disc, so three rows carried three saturated blue discs beside
+   three blue switches and three coloured partner marks: nine loud objects for three
+   decisions. The list's own order already says the position — the number only confirms it,
+   and a confirmation is quiet. The one colour left per row is the partner's own mark. */
+.wfd-n {
+  font-size: 10.5px; font-weight: 600; color: var(--ink-faint);
+  font-variant-numeric: tabular-nums; text-align: center; line-height: 1;
+}
+/* The partner mark sets the switch column's left edge, and each row is its own grid — so
+   two marks of different intrinsic width (IMA is 2px narrower than CAN) put two rows'
+   switches on two x's. A floor makes every mark the same box, so the rail is one line. */
+.wfd-p { min-width: 0; }
+.wfd-p .pvd {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 36px;
+}
+.wfd-d { display: flex; justify-content: flex-end; margin-left: 14px; }
+/* WHERE THERE IS NO DEPTH TO DECIDE, THE REASON TAKES THE CONTROL'S SEAT — a greyed seg
+   with its cause on hover is a dead control and a secret. Sits on the seg's own flush-right
+   edge, in the facts' ink, so the column still reads as one. */
+.wfd-why { font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
+.wfd-r.skip .wfd-why { opacity: .6; }
+/* Switched off: dimmed IN PLACE, position given up for a dash, and the depth seg stands
+   down with its reason on it — the row keeps its shape and its seat. */
+.wfd-r.skip .pvd { filter: grayscale(1); opacity: .7; }
+.wfd-r.absent .pvd { border-style: dashed; font-style: italic; }
+/* A switch that is settled rather than broken keeps its paint and gives up the cursor —
+   the same grammar the waterfall's own rules wear. */
+.wfd-r .toggle.tiny.held { cursor: default; opacity: .72; }
+.wfd-r.dragging { opacity: .45; }
+.wfd-r.drop-above { box-shadow: inset 0 2px 0 0 var(--accent); }
+.wfd-r.drop-below { box-shadow: inset 0 -2px 0 0 var(--accent); }
+
+/* A SEG REPEATED DOWN A LIST LOSES ITS TRAY (16 Sep, second cut — *"more clean and sleek"*).
+   One seg standing alone in a row is a control and wears its grey tray to say "these four
+   belong together". FOUR of them stacked is a column of grey boxes: the tray stops
+   separating the options and starts outlining the block, and it was the heaviest ink left
+   here. The tray goes; the geometry does NOT — same four options, same column, same 28px
+   row, so nothing about the target or the alignment moves. The chosen option keeps a pill,
+   so the answer is still the one filled thing on its line.
+   Specificity note: these must out-weigh `:is(.keyform,…) :is(.seg button,…)` in
+   10-surfaces.css, which loads later — hence `.seg.small`, which `accSeg` always emits. */
+.wfd .seg.small { background: transparent; padding: 3px 0; gap: 1px; }
+.wfd .seg.small button {
+  padding: 4px 9px; font-size: 11.5px; color: var(--ink-soft); font-weight: 600;
+}
+.wfd .seg.small button.on {
+  background: var(--accent-soft); color: var(--accent); box-shadow: none; font-weight: 700;
+}
+.wfd .seg.small button:hover:not(.on):not(:disabled) { color: var(--ink); background: #f0f2f7; }
+/* A seg that cannot apply dims WHOLE and keeps no outline of its own — the tray is gone in
+   both states, so an off row differs from a live one by ink, never by a box appearing. */
+.wfd .seg.small.off { background: transparent; box-shadow: none; opacity: .45; }
+.wfd .seg.small.off button.on { background: transparent; color: var(--ink-faint); }
 
 /* THE LADDER IN TWO PIECES (27 Aug) — one primary, then the fall. Until today a stale
    `.slot-edit .rung-n { flex: 0 0 20px }` (left behind by the deleted walk view) clipped

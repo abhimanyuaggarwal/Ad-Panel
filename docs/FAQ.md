@@ -152,7 +152,8 @@ GET /live?key=sak_toi_mweb_…&placement=shorts_feed
 - **Cut on breaks** (pods). Reasoning: a repeating cadence runs until the video ends, and with fixed positions the positions *are* the cap.
 - Sending it for a pod is refused by name: *"Break cap is not a setting any more."*
 - It **survives on out-stream**, wearing the breaks' own words since 8 Sep: **Total Target Impressions**, typed rather than picked from a fixed set, because a rotation runs all session where a break plays 1, 2 or 3.
-- **The out-stream's `hideOnInStream` went with the same call (8 Sep).** An in-stream ad owns the screen while it runs and the player already steps the banner aside, so the switch only ever had one sane answer. Off the row, off the wire, refused by name: *"Hide during in-stream is not a setting any more."*
+- **The out-stream's in-stream switch is BACK (16 Sep), as `hideOnInStreamAd`.** It was cut on 8 Sep on the reasoning that an in-stream ad owns the screen and the player steps the banner aside on its own — true of the players we had then, and not a call the console gets to make for the ones publishers bring now. The row is **Hide during in-stream ads** (Yes/No), the default is `true` (exactly the behaviour the cut assumed), and the answer rides the published payload like every other rotation fact. The **short spelling `hideOnInStream` stays refused by name** — a payload carrying it would otherwise drop on the floor and read as a switch that was set: *"Hide during in-stream is not a setting any more — the switch is back under its full name, 'Hide during in-stream ads'."*
+- **The out-stream also gained a repeat count the same day: `perShow`.** How many banners ONE entry in the Schedule is worth, back to back, each held for `hold` — 1 to 10, defaulting to 1. It is deliberately not the session total: `perShow` × the number of show times is what the schedule asks for, `perSession` is what it is aiming at, and the row counts the first against the second ("9 banners a session") and flags the overshoot rather than blocking it. **Named `perShow`, never `repeat`**, because the ads JSON already spends `repeat` on the out-stream's list of moments (Appendix 3, flag B) — which is this console's `times`. On the wire it is the JSON's `impression`, which the contract has always carried pinned at 1.
 
 ### Q13. `timeout`, `totalTimeout`, `prefetch`: one value in `conf`, or per break?
 
@@ -415,7 +416,6 @@ Everything else on the contract is settled.
 - The page's own standing display units: `adjacent*` stays dead. The console places only banners **it** serves.
 - Banner `sizes`: player-side, per slot (Q14).
 - A mid-way break cap: `totalImpression` on pods (Q12).
-- The out-stream's `hideOnInStream` switch: an in-stream ad owns the screen anyway (Q12).
 - Per-pod quick decisions from the surface: the mid-roll switch covers all pods.
 - Pod duration enforcement (`breakSec`, `overrun`): a pod plays its count, ads run their length.
 - The squeeze-back as its own slot: a banner in a break is a waterfall unit; the idle player is out-stream.
@@ -597,10 +597,10 @@ Seconds ×1000 at the boundary; `tagTimeoutMs` and `waitMs` are already ms and p
 
 | Original key | Console control | Wire rule |
 |---|---|---|
-| `init` + `repeat` | Shows at (list of moments) | flag B: recommend one entry per show time |
-| `impression` | fixed at 1 per moment | `1` |
+| `init` + `repeat` | Shows at (list of moments) | flag B: recommend one entry per show time — this console's `times` |
 | `totalImpression` | **Total Target Impressions** (typed) | `perSession`, as-is |
-| `hideOnInStream` | **Cut 8 Sep** (Q12) — refused by name | never emitted |
+| `impression` | **Repeats per show** (typed, 1–10) | `perShow` — was pinned at `1`, set from 16 Sep (Q12) |
+| `hideOnInStream` | **Hide during in-stream ads** (Yes/No, default Yes) | `hideOnInStreamAd`; the short key is refused by name (Q12) |
 | (no key) | Each holds [n] sec | flag C: recommend emitting as each unit's `hide` |
 
 ## Appendix 4 — The original ads JSON, annotated
@@ -668,10 +668,10 @@ ads: {
   outStream: [
     {
       init: 0,
-      impression: 1,
+      impression: 1,           // Q12 — Repeats per show (`perShow`), no longer pinned at 1
       totalImpression: 2,      // Q12 — Total Target Impressions (survives here)
-      repeat: [30000, 90000],  // Q17 flag B
-                               // hideOnInStream: cut 8 Sep (Q12) — never emitted
+      repeat: [30000, 90000],  // Q17 flag B — the moments list (this console's `times`)
+      hideOnInStream: true,    // Q12 — back 16 Sep as `hideOnInStreamAd`
       units: [
         {
           slot: "PLAYER_BOTTOM",

@@ -232,7 +232,9 @@ export default async function run({ test, req, eq, assert, freshSetup, patchSlot
     eq(meta.slotKind.outstream, 'rotation', 'takes turns');
     const s = (await req('GET', '/panel/setups/as_7')).body.setup;
     const b = s.sections[0].slots.outstream.behaviour;
-    eq(b.hideOnInStream, undefined, 'no in-stream switch since 8 Sep — the player steps it aside on its own');
+    eq(b.hideOnInStreamAd, true, 'it steps aside for an in-stream ad unless the publisher says otherwise');
+    eq(b.perShow, 1, 'and one banner per scheduled show until someone asks for more');
+    eq(b.hideOnInStream, undefined, 'the short spelling is not what is stored — the field is hideOnInStreamAd');
     eq(b.refresh, undefined, 'its show times are its own schedule — no rotation refresh');
     eq(b.walkDepth, undefined, 'and no depth — banners take turns');
     // Nothing to decide beyond its switch.
@@ -313,44 +315,91 @@ export default async function run({ test, req, eq, assert, freshSetup, patchSlot
     eq((await req('DELETE', `/panel/templates/${tpl.id}`)).status, 200, 'and now it deletes');
   });
 
-  await test('the emitted unittpl block is resolved from the tags\' chosen templates', async () => {
+  await test('a template reaches the player only once it is PUBLISHED', async () => {
     const s = (await req('GET', '/panel/setups/as_1')).body.setup;
     const primary = s.sections[0].slots.preroll.rungView[0];
     const tpl = (await req('POST', '/panel/templates', {
       name: 'GAM_2', provider: 'ima', url: 'https://ads.example.com/vast2?cb=[CACHEBUSTER]',
     })).body.template;
+    eq(tpl.live, false, 'born as a draft — nothing is on air until it is published');
     await req('PATCH', `/panel/tags/${primary.tagId}`, { tplId: tpl.id });
-    // No republish needed: a walk names tags, and tags resolve live — the same rule
-    // that lets ops repoint a tag's value without touching fifty setups.
     const k = (await req('GET', '/panel/keys/key_1')).body.key;
+
+    // The pick on the tag stands, but the template is a draft, so the unit asks through
+    // its provider's standard and the map never names it.
+    const draft = (await req('GET', `/panel/live/${k.key}`)).body;
+    eq(draft.sections[0].slots.preroll.walk[0].tpl, undefined, 'a draft template carries nothing');
+    eq(draft.unittpl.GAM_2, undefined, 'and the unittpl map never names it');
+
+    // Publish the TEMPLATE alone — no setup and no integration republish.
+    const pub = await req('POST', `/panel/templates/${tpl.id}/publish`);
+    eq(pub.status, 200, 'published on its own plane');
     const live = (await req('GET', `/panel/live/${k.key}`)).body;
     eq(live.unittpl.GAM_2, 'https://ads.example.com/vast2?cb=[CACHEBUSTER]', 'the template rides by name');
     eq(live.sections[0].slots.preroll.walk[0].tpl, 'GAM_2', 'and the unit names which one carries it');
   });
 
-  await test('a template switch is live (4 Sep): off, its units request through the standard — no republish', async () => {
+  await test('editing a published template changes NOTHING until it is published again', async () => {
+    // THE HOLE THIS CLOSED (16 Sep, user call). A template edit used to reach every ad
+    // setup pointing at it the instant it was saved, while each of those setups still
+    // swore — on its page and in its version history — that nothing had changed.
     const s = (await req('GET', '/panel/setups/as_1')).body.setup;
     const primary = s.sections[0].slots.preroll.rungView[0];
     const tpl = (await req('POST', '/panel/templates', {
-      name: 'GAM_3', provider: 'ima', url: 'https://ads.example.com/vast3?cb=[CACHEBUSTER]',
+      name: 'GAM_3', provider: 'ima', url: 'https://ads.example.com/v1?cb=[CACHEBUSTER]',
     })).body.template;
-    eq(tpl.on, true, 'born on — absence is on, like a rung');
     await req('PATCH', `/panel/tags/${primary.tagId}`, { tplId: tpl.id });
+    await req('POST', `/panel/templates/${tpl.id}/publish`);
     const k = (await req('GET', '/panel/keys/key_1')).body.key;
-    eq((await req('GET', `/panel/live/${k.key}`)).body.sections[0].slots.preroll.walk[0].tpl, 'GAM_3', 'carried while on');
+    eq((await req('GET', `/panel/live/${k.key}`)).body.unittpl.GAM_3,
+      'https://ads.example.com/v1?cb=[CACHEBUSTER]', 'v1 is what serves');
 
-    const off = await req('PATCH', `/panel/templates/${tpl.id}`, { on: false });
-    eq(off.status, 200, 'switched off — the pick on the tag stands');
+    // Save a new URL. The player must not move.
+    await req('PATCH', `/panel/templates/${tpl.id}`, { url: 'https://ads.example.com/v2?cb=[CACHEBUSTER]' });
+    eq((await req('GET', `/panel/live/${k.key}`)).body.unittpl.GAM_3,
+      'https://ads.example.com/v1?cb=[CACHEBUSTER]', 'the draft is invisible to the player');
+    const mid = (await req('GET', '/panel/templates')).body.templates.find(t => t.id === tpl.id);
+    eq([mid.live, mid.liveVersion, mid.unpublishedCount], [true, 1, 1], 'live v1, one change waiting');
+
+    // Publish it, and every unit pointing at it moves in one act.
+    const pub = await req('POST', `/panel/templates/${tpl.id}/publish`);
+    eq(pub.body.version.v, 2, 'v2');
+    eq((await req('GET', `/panel/live/${k.key}`)).body.unittpl.GAM_3,
+      'https://ads.example.com/v2?cb=[CACHEBUSTER]', 'now it serves');
+  });
+
+  await test('taking a template off air drops its units to the provider’s standard', async () => {
+    const s = (await req('GET', '/panel/setups/as_1')).body.setup;
+    const primary = s.sections[0].slots.preroll.rungView[0];
+    const tpl = (await req('POST', '/panel/templates', {
+      name: 'GAM_4', provider: 'ima', url: 'https://ads.example.com/v4?cb=[CACHEBUSTER]',
+    })).body.template;
+    await req('PATCH', `/panel/tags/${primary.tagId}`, { tplId: tpl.id });
+    await req('POST', `/panel/templates/${tpl.id}/publish`);
+    const k = (await req('GET', '/panel/keys/key_1')).body.key;
+    eq((await req('GET', `/panel/live/${k.key}`)).body.sections[0].slots.preroll.walk[0].tpl, 'GAM_4', 'carried while on air');
+
+    // No holder refusal: whatever a template does, its units always have somewhere to ask.
+    eq((await req('POST', `/panel/templates/${tpl.id}/unpublish`)).status, 200, 'taken off air');
     const live = (await req('GET', `/panel/live/${k.key}`)).body;
     eq(live.sections[0].slots.preroll.walk[0].tpl, undefined, 'the unit falls back to its provider’s standard');
-    eq(live.unittpl.GAM_3, undefined, 'and the unittpl map never names it');
+    eq(live.unittpl.GAM_4, undefined, 'and the unittpl map never names it');
 
-    await req('PATCH', `/panel/templates/${tpl.id}`, { on: true });
-    eq((await req('GET', `/panel/live/${k.key}`)).body.sections[0].slots.preroll.walk[0].tpl, 'GAM_3', 'on again — carried again, next request');
+    // The seeded world shows both states on day one.
+    const list = (await req('GET', '/panel/templates')).body.templates;
+    eq(list.find(t => t.name === 'GAM standard').live, true, 'the seeded shared template is on air');
+    eq(list.find(t => t.name === 'GAM low-latency').live, false, 'and the seeded draft never went up');
+  });
 
-    // The seeded world shows the state on day one.
-    const seeded = (await req('GET', '/panel/templates')).body.templates.find(t => t.name === 'GAM low-latency');
-    eq(seeded.on, false, 'the seeded off template holds its switch');
+  await test('the `on` switch is gone — refused by name, pointing at where the answer lives', async () => {
+    const tpl = (await req('POST', '/panel/templates', {
+      name: 'GAM_5', provider: 'ima', url: 'https://ads.example.com/v5?cb=[CACHEBUSTER]',
+    })).body.template;
+    eq(tpl.on, undefined, 'the field is not on the wire at all');
+    const dead = await req('PATCH', `/panel/templates/${tpl.id}`, { on: false });
+    eq(dead.status, 400, 'refused');
+    assert(dead.body.errors.some(e => e.field === 'on' && /Take off air/.test(e.message)),
+      `says where the answer lives now (got ${JSON.stringify(dead.body.errors)})`);
   });
 
   await test('break pacing lives on the BREAK: the pre-roll\'s head start, prefetch on coming breaks', async () => {

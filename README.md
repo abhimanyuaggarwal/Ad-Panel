@@ -1,15 +1,20 @@
 # Player Console — the Integrations Panel
 
-A config panel for **how a publisher's video player asks for ads**. Two teams share it:
+A config panel for **how a publisher's video player asks for ads**. Two teams share it, across
+three rooms:
 
 - **Product** manage *integrations* — one per property × platform. Which ad breaks are switched
   on, how the player starts, and a few per-break quick decisions.
 - **Ad ops** manage *ad setups* — the ad units (ladders of ad tags) behind each break, and how
-  each break behaves.
+  each break behaves — and *templates*, the named request URLs those units point at, each
+  visible to one or more properties and shared by every ad setup that points at it.
 
 Nothing reaches a real player until it is **published**. The player then reads one JSON document
 per integration key from `GET /panel/live/:apiKey`. Drafts are invisible to it no matter how many
-times they were saved — that separation is the point of the whole thing.
+times they were saved — that separation is the point of the whole thing. **A template publishes on its own
+plane**: Save parks a draft and moves nothing, and one Publish moves every ad unit pointing at it —
+so the reason to share a template survives, without any of its ad setups having to republish. Those
+setups are *told* it happened rather than versioned by it, since they did not change.
 
 > **Prototype.** Everything is in memory, so a restart is a reset. There is a front door and a
 > session (`/login.html`), but **nothing authenticates anybody**: no password, no token, and
@@ -29,7 +34,7 @@ npm start          # http://localhost:4200 — serves the API and the web app to
 | Command | What it does |
 | --- | --- |
 | `npm start` | the API and web app on :4200 (`PANEL_PORT` to change it) |
-| `npm test` | the rule suite — 183 cases over HTTP, ~1 s |
+| `npm test` | the rule suite — 218 cases over HTTP, ~1 s |
 | `npm run check` | every JS file parses |
 | `npm run demo` | rebuild the seeded demo world (same ids every time) |
 | `npm run scale` | rebuild it at the `scale` scenario |

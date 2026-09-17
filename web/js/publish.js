@@ -164,18 +164,27 @@ async function pubVersionClicked(n) {
   if (res === 'act') restoreClicked(n);
 }
 
-function pubRailHtml() {
+// The rail's CONTENTS, without the column it usually owns. Split out on 16 Sep for the
+// template page's short-lived two-section rail; that rail is gone (the rail is Version
+// history on every editor, and Connected became a card), but the split is kept because it
+// is the honest shape — `pubRailHtml` is the column, this is what goes in it.
+function pubRailBodyHtml() {
   if (!PUB) return '';
   // Published hides the one thing that is NOT on air — the saved-but-unpublished block.
   const body = `${PUB_FILTER === 'published' ? '' : pubPendingHtml()}${pubVersionsHtml()}`;
   return `
-    <aside class="rail">
+    <section class="pub-sec">
       <div class="rail-head">
         <div class="fieldset-title">Version history</div>
         ${pubFilterHtml()}
       </div>
       ${body || '<div class="tl-empty">No versions yet.</div>'}
-    </aside>`;
+    </section>`;
+}
+
+function pubRailHtml() {
+  if (!PUB) return '';
+  return `<aside class="rail">${pubRailBodyHtml()}</aside>`;
 }
 
 // ---------- the acts ----------

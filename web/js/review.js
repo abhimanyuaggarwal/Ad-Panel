@@ -84,7 +84,7 @@ function reviewGroups(changes, keepOrder) {
 // review speaks it rather than printing the payload, and speaks it the same whether the
 // change arrived from a save, a publish, or a queued cohort write. A caller that already
 // holds the words (the bulk queue does) passes `fromText`/`toText` and skips this.
-const REVIEW_DRIVE_FIELDS = ['direct', 'ask', 'tries', 'start', 'deferSec', 'podAds', 'headerBidding'];
+const REVIEW_DRIVE_FIELDS = ['direct', 'ask', 'depth', 'tries', 'start', 'deferSec', 'podAds', 'headerBidding'];
 
 function reviewValue(field, v) {
   if (REVIEW_DRIVE_FIELDS.includes(field)) {

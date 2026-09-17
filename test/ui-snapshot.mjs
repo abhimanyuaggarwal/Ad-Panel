@@ -186,8 +186,15 @@ async function capture(label) {
   await click('.brk-tabs .stab', 1); await snap('key-midroll');
   await click('.brk-tabs .stab', 3); await snap('key-outstream');
   await click('.brk-tabs .stab', 0);
-  await click('.pchip.on', 1); await snap('key-ask-toggled');
-  await click('.drive-reset'); await snap('key-drive-reset');
+  // STEP ONE, THEN THE LEVERS (16 Sep): a break opens following the ad setup and states its
+  // answers; the levers only exist once Custom is taken, and BOTH directions of that seg
+  // confirm in the ad setup's own dialog — so each one is a click through the confirm.
+  // (`.pchip` here was stale — the partner strip became the `.wfd-r` ladder on 16 Sep.)
+  await click('.dmode .seg button', 1); await snap('key-to-custom-ask');
+  await click('.dlg [data-act=yes]'); await snap('key-custom-levers');
+  await click('.wfd-r.on .toggle', 1); await snap('key-ask-toggled');
+  await click('.dmode .seg button', 0); await snap('key-back-to-setup-ask');
+  await click('.dlg [data-act=yes]'); await snap('key-back-to-setup');
   // Player behaviour (15 Sep, sixth cut): the DEFAULT is set on the page, all of it — three
   // full-width bands, three settings to a line, no switch and no modal — and the custom configs
   // are CARDS carrying what they override, each opening the one sheet left here ("pick a

@@ -139,6 +139,78 @@ export default async function run({ test, req, eq, assert, freshSetup, patchSlot
     eq(k.sections[0].slots.preroll.rungCount, 8, 'back to the setup\'s full walk');
   });
 
+  // ---------- THE DRIVE: how deep each partner goes (16 Sep, user call) ----------
+  // `depth` is a map, partner → the most of THAT partner's own sources this break tries.
+  // key_1's Default pre-roll walks IMA(primary), CAN, GPT, then five more IMA.
+
+  await test('a cap cuts ONE partner\u2019s own sources and nobody else\u2019s', async () => {
+    const r = await patchDrive('key_1', 'preroll', { depth: { ima: 2 } });
+    eq(r.status, 200, 'saved');
+    const k = (await req('GET', '/panel/keys/key_1')).body.key;
+    eq(k.drive.preroll.depth, { ima: 2 }, 'stored sparse — only the partner that was capped');
+    const w = k.sections[0].slots.preroll.walk;
+    eq(w.map(x => x.provider), ['ima', 'can', 'gpt', 'ima'], 'two IMA tried, CAN and GPT untouched');
+    eq(k.sections[0].slots.preroll.rungCountConfigured, 10, 'the ladder itself never moved');
+  });
+
+  await test('the PRIMARY survives every cap — a position is never cut by a preference', async () => {
+    await patchDrive('key_1', 'preroll', { depth: { ima: 1 } });
+    const w = (await req('GET', '/panel/keys/key_1')).body.key.sections[0].slots.preroll.walk;
+    eq(w[0].provider, 'ima', 'the primary keeps its seat, though IMA is capped at one');
+    eq(w.map(x => x.provider), ['ima', 'can', 'gpt'], 'and its own tail is what the cap took');
+  });
+
+  await test('caps ride the order: rearranged first, then each partner walked its own depth', async () => {
+    await patchDrive('key_1', 'preroll', { ask: ['gpt', 'ima', 'can'], depth: { ima: 3 } });
+    const w = (await req('GET', '/panel/keys/key_1')).body.key.sections[0].slots.preroll.walk;
+    eq(w.map(x => x.provider), ['ima', 'gpt', 'ima', 'ima', 'can'],
+      'GPT first among the fallbacks, IMA three deep in all, CAN last');
+  });
+
+  await test('one decision, every section — and a partner left out is walked all the way down', async () => {
+    await patchDrive('key_1', 'preroll', { depth: { ima: 1 } });
+    const k = (await req('GET', '/panel/keys/key_1')).body.key;
+    eq(k.sections[0].slots.preroll.rungCount, 3, 'Default: one IMA, then CAN and GPT in full');
+    // Shorts feed walks IMA, CAN, GPT, CAN, IMA — one IMA left, both CANs and the GPT.
+    eq(k.sections[1].slots.preroll.walk.map(x => x.provider), ['ima', 'can', 'gpt', 'can'],
+      'Shorts feed answers the same decision on its OWN ladder — the cap is intent, not a number of rungs');
+  });
+
+  await test('a cap of ZERO is refused by name — that decision is the waterfall order\u2019s', async () => {
+    const zero = await patchDrive('key_1', 'preroll', { depth: { ima: 0 } });
+    eq(zero.status, 400, 'refused, never stored as a second way to switch a partner off');
+    assert(zero.body.errors.some(e => e.message.includes('switched off')),
+      `says where that decision lives (got ${JSON.stringify(zero.body.errors)})`);
+    const bad = await patchDrive('key_1', 'preroll', { depth: { acme: 2 } });
+    eq(bad.status, 400, 'an unknown partner refused');
+    assert(bad.body.errors.some(e => e.message.includes('is not an ad partner')), 'named, with the list');
+    const deep = await patchDrive('key_1', 'preroll', { depth: { ima: 44 } });
+    eq(deep.status, 400, 'and the bound holds');
+    assert(deep.body.errors.some(e => e.message.includes('between 1 and 10')), 'with the numbers');
+  });
+
+  await test('`setup` clears the caps — the break follows its ad setup again', async () => {
+    await patchDrive('key_1', 'preroll', { depth: { ima: 2 } });
+    const r = await req('PATCH', '/panel/keys/key_1', { drive: { preroll: { depth: 'setup' } } });
+    eq(r.status, 200, 'cleared');
+    const k = (await req('GET', '/panel/keys/key_1')).body.key;
+    eq(k.drive?.preroll?.depth, undefined, 'absence is how the drive says "follow the setup"');
+    eq(k.sections[0].slots.preroll.rungCount, 8, 'the whole ladder again');
+  });
+
+  await test('a cohort caps every partner in one act, and the player is handed the cut walk', async () => {
+    const r = await req('POST', '/panel/keys/bulk',
+      { ids: ['key_1'], action: 'driveFields', value: { slot: 'preroll', fields: { depth: { ima: 2 } } } });
+    eq(r.status, 200, 'the cohort write lands');
+    const k = (await req('GET', '/panel/keys/key_1')).body.key;
+    eq(k.drive.preroll.depth, { ima: 2 }, 'written to the integration\'s own drive');
+    eq(k.sections[0].slots.preroll.rungCount, 4, 'and the counted walk is the capped one');
+    await req('POST', '/panel/keys/key_1/publish');
+    const live = (await req('GET', `/panel/live/${k.key}`)).body;
+    eq(live.sections[0].slots.preroll.walk.map(x => x.provider), ['ima', 'can', 'gpt', 'ima'],
+      'the player is handed the CUT walk — the number on screen is the number that serves');
+  });
+
   // ---------- THE DRIVE: tries, start, ads in a row ----------
 
   await test('tries is a COUNT of real tries — it stops the walk, every section, sparse', async () => {

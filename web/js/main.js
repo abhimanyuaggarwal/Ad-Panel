@@ -1,4 +1,5 @@
-// main.js — hash router + nav counts. Two rooms: #keys (product), #setups (ops).
+// main.js — hash router + nav counts. Three rooms: #keys (product), #setups and
+// #templates (ops — a setup's demand, and the request URLs its units point at).
 
 let META_CACHE = null;
 async function getMeta() {
@@ -43,6 +44,11 @@ async function route() {
       // exists — and the editor itself is where it takes shape. No wizard.
       else if (arg === 'new') { await viewSetupsList(); newSetupChooser(); }
       else await viewSetupForm(arg);
+    } else if (root === 'templates') {
+      // A TEMPLATE HAS NO CHOOSER (16 Sep): a copy of one is a second name for the same
+      // URL, which is the thing this room exists to stop. New goes straight to the page.
+      if (!arg) await viewTemplatesList();
+      else await viewTemplateForm(arg === 'new' ? null : arg);
     } else {
       location.hash = '#keys';
       return;
@@ -60,9 +66,11 @@ async function route() {
 
 async function refreshCounts() {
   try {
-    const [{ keys }, { setups }] = await Promise.all([API.listKeys(), API.listSetups()]);
+    const [{ keys }, { setups }, { templates }] = await Promise.all([
+      API.listKeys(), API.listSetups(), API.listTemplates()]);
     document.getElementById('count-keys').textContent = keys.filter(k => inScope(k.property)).length;
     document.getElementById('count-setups').textContent = setups.filter(o => inScope(o.property)).length;
+    document.getElementById('count-templates').textContent = templates.length;
   } catch { /* API down — the view already shows the banner */ }
 }
 

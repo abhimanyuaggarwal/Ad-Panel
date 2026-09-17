@@ -172,17 +172,40 @@ export function resetWorld(opts = {}) {
   setAccounts(ACCOUNTS, WORK_DOMAIN, ACCESS_OWNER);
 
   // --- Ad tags: every tag is a video tag or a display tag ------------------
-  const tag = (name, type, value, property, provider) => createTag({ name, type, value, property, provider }).id;
+  const tag = (name, type, value, property, provider, tplId) => createTag({ name, type, value, property, provider, tplId }).id;
+
+  // --- Ad unit templates (né request templates; 31 Aug) -----------------------------
+  // Named macro URLs, authored here since the JSON's unittpl names several and a
+  // unit's tpl picks between them. Standard is absence — no tag has to choose.
+  // They are seeded BEFORE the tags now (16 Sep) because tags point AT them: the room
+  // that owns them has a Connected zone, and a demo world where nothing is connected
+  // would show that zone empty on every row it has.
+  // VISIBLE TO (16 Sep): `properties: []` is every property. One shared, one narrowed
+  // and connected (so narrowing it further refuses, by name), one narrowed and free.
+  const tplStandard = createTemplate({ name: 'GAM standard', provider: 'ima',
+    url: 'https://ads.slike.example/vast?cb=[CACHEBUSTER]&ref=[REFERRER_URL]' }).id;
+  // Seeded but NEVER PUBLISHED (16 Sep — it was `on: false` until templates joined the
+  // publish plane): it stands in the room as a draft, and the units picking it request
+  // through IMA's standard until somebody puts it on air. Off air is the whole of what
+  // "off" used to mean, so the demo world still shows that state on day one.
+  const tplFast = createTemplate({ name: 'GAM low-latency', provider: 'ima',
+    url: 'https://ads-fast.slike.example/vast?cb=[CACHEBUSTER]&url=[PAGE_URL]',
+    properties: ['TOI'] }).id;
+  // Narrowed and connected to nothing — the room's third state, and the one a person
+  // meets first when they make a template of their own.
+  const tplDisplay = createTemplate({ name: 'TOI display cache-bust', provider: 'gpt',
+    url: 'https://securepubads.example/gampad/ads?cb=[CACHEBUSTER]&url=[PAGE_URL]&descr=[DESCRIPTION_URL]',
+    properties: ['TOI'] }).id;
 
   const tVideo = {
-    toiMwebVsPre: tag('TOI Mweb VideoShow Pre-roll', 'video', '/7176/toi/mweb/videoshow/preroll', 'TOI'),
+    toiMwebVsPre: tag('TOI Mweb VideoShow Pre-roll', 'video', '/7176/toi/mweb/videoshow/preroll', 'TOI', 'ima', tplStandard),
     toiMwebVsMid: tag('TOI Mweb VideoShow Mid-roll', 'video', '/7176/toi/mweb/videoshow/midroll', 'TOI'),
     toiMwebVsPost: tag('TOI Mweb VideoShow Post-roll', 'video', '/7176/toi/mweb/videoshow/postroll', 'TOI'),
     toiMwebAsPre: tag('TOI Mweb ArticleShow Pre-roll', 'video', '/7176/toi/mweb/articleshow/preroll', 'TOI'),
-    toiWebVsPre: tag('TOI Desktop VideoShow Pre-roll', 'video', '/7176/toi/web/videoshow/preroll', 'TOI'),
+    toiWebVsPre: tag('TOI Desktop VideoShow Pre-roll', 'video', '/7176/toi/web/videoshow/preroll', 'TOI', 'ima', tplStandard),
     toiWebVsMid: tag('TOI Desktop VideoShow Mid-roll', 'video', '/7176/toi/web/videoshow/midroll', 'TOI'),
-    toiShortsPre: tag('TOI Shorts Pre-roll', 'video', '/7176/toi/mweb/shorts/preroll', 'TOI'),
-    etMiniPre: tag('ET MiniTV Pre-roll', 'video', '/7176/et/app/minitv/preroll', 'ET'),
+    toiShortsPre: tag('TOI Shorts Pre-roll', 'video', '/7176/toi/mweb/shorts/preroll', 'TOI', 'ima', tplFast),
+    etMiniPre: tag('ET MiniTV Pre-roll', 'video', '/7176/et/app/minitv/preroll', 'ET', 'ima', tplStandard),
     etMiniMid: tag('ET MiniTV Mid-roll', 'video', '/7176/et/app/minitv/midroll', 'ET'),
     etWebAsPre: tag('ET Desktop ArticleShow Pre-roll', 'video', '/7176/et/web/articleshow/preroll', 'ET'),
     nbtMwebVsPre: tag('NBT Mweb VideoShow Pre-roll', 'video', '/7176/nbt/mweb/videoshow/preroll', 'NBT'),
@@ -208,16 +231,6 @@ export function resetWorld(opts = {}) {
     etWebAsDisp: tag('ET Desktop ArticleShow Display', 'display', '/7176/et/web/articleshow/display', 'ET'),
     toiDispBackfill: tag('TOI Display Backfill', 'display', 'https://ads.toi.example/display/backfill', 'TOI', 'can'),
   };
-
-  // --- Ad unit templates (né request templates; 31 Aug) -------------------------------------------
-  // Named macro URLs, authored here since the JSON's unittpl names several and a
-  // unit's tpl picks between them. Standard is absence — no tag has to choose.
-  createTemplate({ name: 'GAM standard', provider: 'ima',
-    url: 'https://ads.slike.example/vast?cb=[CACHEBUSTER]&ref=[REFERRER_URL]' });
-  // Seeded OFF (4 Sep) so the row switch is visible on day one: it stands, dimmed;
-  // units picking it would request through IMA's standard until it is on again.
-  createTemplate({ name: 'GAM low-latency', provider: 'ima',
-    url: 'https://ads-fast.slike.example/vast?cb=[CACHEBUSTER]&url=[PAGE_URL]', on: false });
 
   // --- Ad setups (the ops room's objects) -----------------------------------
   // The setup carries its PLACEMENTS (25 Aug): sections + their ladders, one document
@@ -546,6 +559,13 @@ export function resetWorld(opts = {}) {
   for (const [id, secondsAgo] of [['as_8', 3], ['as_9', 6], ['as_10', 9]]) {
     getSetup(id).updatedAt = new Date(Date.now() - secondsAgo * 1000).toISOString();
   }
+
+  // Templates go up FIRST (16 Sep): a unit's template only reaches the player once the
+  // template itself is on air, so the seeded world publishes the two that are meant to be
+  // serving. `tplFast` is deliberately left as a draft — the room needs one of each state,
+  // and "never published" is what "off" used to mean.
+  seedPublish('template', tplStandard, { actor: 'Priya (ad ops)', hoursAgo: 120 });
+  seedPublish('template', tplDisplay, { actor: 'Priya (ad ops)', hoursAgo: 118 });
 
   // --- ON AIR (27 Aug). `status` is gone: a surface serves because it was PUBLISHED.
   // Setups go up first — an integration cannot publish a break with no published demand

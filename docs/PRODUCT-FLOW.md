@@ -12,9 +12,9 @@ rebuild one of these journeys somewhere else.
 ## The whole thing in one diagram
 
 ```
-   THE FRONT DOOR  ── sign in ──▶  the console  ── two rooms, one gate ──┐
-                                                                        │
-     ┌──────────────────────────────────────────────────────────────────┘
+   THE FRONT DOOR  ── sign in ──▶  the console  ── three rooms, one gate ──┐
+                                                                          │
+     ┌────────────────────────────────────────────────────────────────────┘
      ▼                                                   ▼
   INTEGRATIONS  (product team)                     AD SETUPS  (ad ops)
   one player surface — TOI · Mweb · VideoShow      the demand behind it
@@ -22,16 +22,18 @@ rebuild one of these journeys somewhere else.
    · the default player + its custom configs        · four breaks in each
    · which breaks are switched on                   · a ladder of ad units per break
    · per-break quick decisions (the drive)          · delivery settings, header bidding
-     │                                                   │
-     │──────── asks from exactly ONE setup ─────────────▶│
-     │         (and one setup may fill MANY surfaces)    │
-     │                                                   │
-   Save → a draft                                    Save → a draft
-   Publish → an immutable, numbered version          Publish → …
-     └─────────────────────────┬─────────────────────────┘
-                               ▼
+     │                                                   │            ▲
+     │──────── asks from exactly ONE setup ─────────────▶│            │ a unit points at
+     │         (and one setup may fill MANY surfaces)    │            │ a template
+     │                                                   │      TEMPLATES  (ad ops)
+     │                                                   │      the request URL a unit fires
+   Save → a draft                                    Save → a draft   · visible to 1…n properties
+   Publish → an immutable, numbered version          Publish → …      · connected, counted
+     └─────────────────────────┬─────────────────────────┘            · NO publish plane —
+                               ▼                                        Save is on air
                   GET /panel/live/:apiKey  ──▶  the publisher's player
                   live integration + live setup, resolved into one walk
+                  (+ every template its served units point at, by name)
 ```
 
 Three sentences carry the rest of this document:
@@ -53,6 +55,7 @@ Three sentences carry the rest of this document:
 | --- | --- | --- |
 | **Integrations** | Product | identity · the default player and its custom configs · which breaks run · the per-break quick decisions · publish this surface |
 | **Ad Setups** | Ad ops | placements · the ladder behind each break · pods and direct deals · the global waterfall · header bidding · timings · publish this demand |
+| **Templates** | Ad ops | the request URL an ad unit fires · which properties may point at it · what it is already connected to · publish it, take it off air, roll it back. Its own plane: one publish moves every connected ad unit, and no ad setup republishes |
 | *(no room)* | the player | reads one JSON document per key and does what it says |
 
 The split is a **convention today, not a permission**: there are no roles yet, so either team
@@ -284,7 +287,7 @@ have to work out for itself:
 
 - the drive is resolved over the ladders, so the answer is the **walk** — who is asked, in
   what order, how deep;
-- request templates resolve live, with their fixed list of five macros left for the player
+- request templates come from their own published snapshot, with their fixed list of five macros left for the player
   to fill;
 - header bidding is handed over **resolved**, per break and per unit — the player is never
   given `auto`;
@@ -302,7 +305,18 @@ point of the whole product.
 ## Flow 8 — Housekeeping
 
 - **Ad tags** are the units and endpoints themselves: IMA and GPT tags point at GAM ad-unit
-  paths, CAN tags at a URL. **Request templates** are named request URLs shared account-wide.
+  paths, CAN tags at a URL.
+- **Templates** are the third room (16 Sep): named request URLs an ad unit points at, each
+  saying which properties' ad setups may pick it (**Visible to** — no property named is every
+  property) and shown where it already lands (**Connected**, grouped by property, counted).
+  They have **their own publish plane** (16 Sep): Save parks a draft and moves nothing, Publish
+  moves every connected ad unit in one act and names the count it is about to move, and an
+  unpublished template's units ask their provider's standard. The ad setups under it are told
+  that it went out — at the head of their card, with the version and who — but are not
+  versioned by it, because they did not change. Visibility
+  governs the PICK, never the serving: narrowing it away from a connected ad setup is refused
+  by name, and in a ladder an out-of-scope template greys in place with its reason rather than
+  disappearing.
 - **Sync GAM units** pulls newly trafficked units into the console's directory — one
   directory, one sync, one CTA, on the setup editor.
 - **Copies are photocopies.** Duplicating an integration or a setup copies everything and

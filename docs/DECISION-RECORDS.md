@@ -1936,6 +1936,38 @@ sane answer and no decision in it. Removed, not hidden: out of `SLOT_BEHAVIOUR_F
 `normalizeSlotBehaviour`, out of `/panel/meta` and the wire, and into `DEAD_BEHAVIOUR_FIELDS`
 where a payload still carrying it is refused by name.
 
+*Amended again 16 Sep (user call): the delivery rows are six, and the switch is back.*
+
+    DELIVERY      Header bidding            [ Auto | Off | Custom ]  Off
+                  Schedule                  [ 0:30, 5:00, 10:00 ]
+                  Display duration          [ 20 ] sec
+                  Repeats per show          [ 3 ]    9 banners a session
+                  Total Target Impressions  [ 2 ]
+                  Hide during in-stream ads [ Yes | No ]
+                  Request timeout           [ 2.5 ] sec   2 × 2.5s
+
+**Hide during in-stream ads (`hideOnInStreamAd`)** reverses the 8 Sep cut. That call reasoned
+from the players we had — they step the banner aside on their own — and turned a publisher's
+answer into the console's assumption. The default is `true`, which *is* that assumption, so
+nothing already live moves; `false` is a publisher saying their player leaves the banner up,
+which is not ours to overrule. The **short key `hideOnInStream` stays in `DEAD_BEHAVIOUR_FIELDS`**
+and still refuses — pointing at the new name, because a dropped key reads as a switch that was
+set. Fail closed over a spelling, exactly as over a cut field.
+
+**Repeats per show (`perShow`)** is the second new row: how many banners ONE entry in the
+Schedule is worth, back to back, each held for `hold`. 1–10, default 1 — today's behaviour.
+It is not the session total, and the two are on screen together on purpose: `perShow` × the
+number of show times is what the schedule *asks for*, `perSession` is what it is *aiming at*,
+and the repeat row counts the first ("9 banners a session") so the overshoot against the
+target is visible where both numbers are. Over the target it warns — `9 shows, target 4` —
+and never blocks: a lever, not a wall.
+
+**Why `perShow` and not `repeat`.** The ads JSON already spends `repeat` on the out-stream's
+**list of moments** (Appendix 3, flag B) — this console's `times`. A field named `repeat`
+meaning a count would have read as that list to the one team implementing both sides. On the
+wire this is the JSON's `impression`, which the contract has always carried and always pinned
+at 1. `perShow` / `perSession` also says the pair out loud.
+
 The tabs already carry state dots and the whole grammar. Five tabs is one more tab, not one more
 idea. **Direct does not reach out-stream** — Direct is break demand; out-stream is not a break.
 
@@ -2672,3 +2704,204 @@ config — several in a single `innerHTML` string, none of them in the document 
 one asks for its markup — so the sweep unwired every picker but the last, and every picker but
 the last silently stopped opening. The sweep is now deferred to the next frame: same stale
 entries collected, no fresh ones.
+
+---
+
+## WATERFALL-DEPTH — how deep each partner goes, in the control that already orders them (16 Sep 2026)
+
+> *"In the Ad behaviour section in Integration edit and bulk edit in Integration Waterfall order
+> needs to be rescoped wherein I should be able to define the waterfall depth for each IMA GPT and
+> CAN as well apart from rearranging them and disabling a few of them — the UI should be very clean
+> intuitive to a very layman user without making it cluttered."*
+
+### What was there
+
+Two rows, one under the other, in every ladder break's delivery controls:
+
+| Row | Control | Meaning |
+| --- | --- | --- |
+| `Waterfall order` | a one-line strip of draggable partner chips, each a switch | who is asked, in what order |
+| `Waterfall depth` | a seg — `1 / 2 / 3 / Full` | how many tries **in all**, over the whole walk |
+
+The depth row knew nothing about the order row above it. `IMA, GPT, CAN` with a depth of 3 meant
+"stop after three rungs, whoever they belong to" — a latency budget, not a demand decision. The
+question everyone actually asks about a waterfall is per partner: *how far down do we go with IMA
+before we give up on IMA?* Neither row could answer it.
+
+### The decision: two grains, one block
+
+`drive[t].depth` is a sparse map, partner → the most of **that partner's** sources this break
+tries. `{ima: 2}` says "two IMA, then move on"; a partner absent from the map is walked all the
+way down, which is why `All` writes nothing — dropping a cap is not "setting it back to full".
+
+**The overall cap stays** (user call, same day — *"waterfall depth a global one will stay"*). The
+first cut retired it, reasoning that one concept answerable at two grains is unanswerable:
+*IMA 2 and GPT 2, but 3 in all* has no reading a layman can hold. Overruled, and rightly: a
+latency ceiling over the whole walk is a real thing to want, independent of the demand mix.
+
+**It is its own row, directly under the ladder** — and this took two tries. The first attempt drew
+it *inside* the block as a foot, under a hairline, with the resolved total counted beside it, on the
+theory that drawing the two grains together would explain their relationship. It did the opposite
+(*"dont mingle the overall in the existing one it is getting confusing"*): a ceiling sitting in a
+list of partners reads as a fourth partner with a strange name, and the block stopped being one
+question. The partners are `Waterfall`; the ceiling over all of them is `Waterfall depth`, the row
+beneath. The walk is still cut by the caps first and the ceiling last, and the resolved column —
+per placement, where it always was — counts what actually serves.
+
+One consequence worth keeping: the two controls are deliberately drawn **differently** (the ladder's
+segs are trayless, the depth row's wears the card's standard tray). They are not the same knob, and
+the round that mingled them proved how fast that gets confusing — so looking different is doing
+work here, not breaking consistency.
+
+### Why the chips became a ladder
+
+The 1 Sep call was **ONE LINE, ALWAYS**: the strip must not wrap, and a switched-off partner dims
+*in place* rather than being re-homed under an "excluded" shelf. That call was protecting against
+reflow and against things moving under the cursor — not defending horizontality for its own sake.
+Three decisions × three partners on one line is nine controls in a row, which is the clutter the
+same call existed to prevent.
+
+So the chips stood up into a list — one partner per line:
+
+```
+Waterfall         ⠿  1  IMA   ●on     1 [2] 3  All
+                  ⠿  2  GPT   ●on     1  2  3 [All]
+                     –  CAN   ○off    1  2  3  All
+
+Waterfall depth   [1] 2  3  All
+```
+
+Every guarantee the strip made still holds (fixed anatomy, dimmed in place, nothing re-homed,
+nothing changing width), and the list adds the one a strip cannot: **a waterfall drawn top to
+bottom is its own order**, so the position number confirms what the eye already read instead of
+teaching it. The block is `max-content` wide, not full width — stretched across the 550px control
+column it left a hand's gap between a partner and its own switch, two ends of one sentence read as
+two columns.
+
+### The three refusals, each where it sits
+
+- An option deeper than the partner has sources **greys in place** with the count (`CAN has 2
+  sources in this break`) — the house rule, never a vanishing control.
+- A partner with **one** source greys its whole seg: `1` and `All` are the same answer there.
+- A partner **switched off** greys its seg and says so; switching it off also **drops its cap**, because a
+  number counting a partner nobody asks is a number counting nothing.
+- Server-side, a cap of **zero** is refused by name: *"IMA asked zero times is IMA switched off —
+  switch it off in the waterfall order instead."* One decision, one control — never a magic zero.
+
+### The counted fact
+
+Each row ends in its own resolved answer — `2 of 6`, `all 6`, `1 tag`, `not asked` — rather than a
+bare denominator. The seg's selected option and the count sit at opposite ends of the row, so
+`2 … of 6` was a sum the eye had to do; the fact says the whole thing. Every number in it is a
+count of live sources behind that break, taken from the deepest placement any picked section holds:
+a cap below it bites everywhere, and a number above it would be the one figure on the page
+promising what no section has.
+
+### The primary is never cut
+
+Caps are counted **down the walk**, so the primary — being the first rung of its own partner —
+survives any cap of 1 or more. The 31 Aug tier rule ("the primary is a position, not a preference")
+needed no exception written for it; it falls out of the counting order.
+
+### Bulk
+
+The same ladder, minus the denominators: five integrations hold five different numbers of IMA
+sources, and printing one of them would be the sheet's one invented figure. The cap still means the
+same thing in all of them — *at most this many of that partner* — which is exactly why a
+per-partner cap travels across a cohort where a flat count could not.
+
+`depth` has no row of its own there: it rides the `Waterfall` lever the way `deferSec` rides
+`Start offset` (`def.also`), so the row opens, queues and clears as one thing. Setting a cap
+queues the **order alongside it** — the caps were read against an arrangement, and a cohort write
+that sent them without one would land them on five different ladders.
+
+### The seams
+
+| Where | What |
+| --- | --- |
+| `store/ladders.js` | `driveDepth` (normalize), `depthWord`, `walkWithinDepth`, applied in `driveWalkRungs` **before** `tries`; `depth` added to `DRIVE_FIELDS` for the three ladder breaks |
+| `store/keys.js` | one `DRIVE_WRITERS.depth` entry — the map, the partner names, the zero refusal, the bounds |
+| `store/version-changes.js` | `FLAT_LEAVES` stops `flat()` at a map-valued field, so a cap change is **one** diff line and not one per partner |
+| `web/js/views-keys-editor-ad-behaviour.js` | `wfLadderHtml` + `depthSet` + `depthFactWord`, and `clientWalkWithinDepth` mirroring the server exactly |
+| `web/js/views-keys-bulk-ads.js` | `bulkWfLadderHtml` + `bulkDepthSet`, `def.also`, `bulkLeverFields` |
+| `test/cases/03-drive.spec.js` | seven cases: the cut, the surviving primary, caps over a reorder, one decision across sections, the three refusals, the clear, and a cohort write reaching the player |
+
+### Second cut the same day — the block takes the top seat, and sheds its chrome
+
+Two more calls landed on it within the hour (*"can we move this waterfall Config on top and move
+special beneath it"*, *"can the UI be made more clean and sleek"*).
+
+**Order.** Special is tried *before* the waterfall when a break actually runs, so the old row order
+was the serve order — but it put one switch above the card's whole subject, and a reader met the
+exception before the rule. The Waterfall block is first now, on both the integration page and the
+bulk sheet; Special keeps its fixed place directly beneath it.
+
+**What was taken away, and why each was safe:**
+
+| Removed | Reason |
+| --- | --- |
+| the filled accent disc behind each position | three saturated discs beside three blue switches and three coloured partner marks — nine loud objects for three decisions. The list's own order already states the position; the numeral only confirms it, and a confirmation is quiet. It is a faint tabular numeral now, and the partner mark is the one colour left on the line |
+| the grey tray around every depth seg | one seg alone in a row wears its tray to say "these four belong together". Stacked, they are a column of grey boxes: the tray stops separating options and starts outlining the block. Gone inside `.wfd` only — geometry untouched, so targets and alignment do not move, and the chosen option keeps a pill so the answer is still the one filled thing on its line |
+| the counted phrase at the end of every row (`2 of 6`, `all 6`, `1 tag`, `not asked`) | third cut, user call — *"the values on the right side 3 of 6 1 tag etc remove it it is making it look cluttered"*. Three rows each ending in a small grey phrase was a **second column of text** beside the column of controls, and it repeated what the control already showed: an option deeper than a partner has sources is greyed, with the count in its reason. The denominator lives on the thing it limits now, and what actually serves stays counted in the resolved column |
+| 2px of row height, 1px of row gap | density without a new grammar |
+
+An unselected option deliberately kept **body-ish ink** (`--ink-soft`, not `--ink-faint`): with the
+tray gone, a *refused* option is told from an *available* one by ink alone, so the two must not
+start from the same value.
+
+With the trailing phrase gone the seg is the row's last element, so the columns size to their own
+content and the block is `max-content` wide — no fixed widths to keep in step, and every seg's right
+edge lands on the same x because the rows are identical in structure. Measured: all three at 503px.
+
+### Third and fourth cuts the same day — standardisation, in four fixes
+
+**The overall cap came back out of the block.** It rode the ladder's foot for one round on the
+theory that drawing the two grains together would explain their relationship. It did the opposite
+(*"dont mingle the overall in the existing one it is getting confusing"*) — a ceiling inside a list
+of partners reads as a fourth partner with a strange name. `Waterfall` is the partners; `Waterfall
+depth` is the row beneath. They are drawn **differently on purpose** (the ladder's segs are
+trayless, the depth row wears the card's standard tray): they are not the same knob, and the round
+that mingled them proved how fast that gets confusing.
+
+**The trailing counts went.** `2 of 6`, `all 6`, `1 tag`, `not asked` — three rows each ending in a
+grey phrase was a second column of text beside the column of controls, saying what the control
+already showed.
+
+**`As set up` was standardised against the levers it stands in for.** It arrived from a concurrent
+session with two faults, one cause:
+
+- **Type.** `.lr-ctl` carries no font-size, because until these rows every value in it was a
+  *control* — seg button, input, toggle, badge — and controls size themselves. Bare text was the
+  first thing put there that does not, so it fell through to the panel's 15px container size and
+  stood a size and a half above the 12.5px label beside it. The size is set on the row's **value
+  column**, not on one value class, so whatever a future fact row holds lands on the card's scale.
+- **Rhythm and roster.** Rows were 32px against the levers' 38, and the list opened on `Special`
+  while the lever list opens on `Waterfall` — so switching modes re-laid the card instead of
+  swapping its contents. Same height, same rows, same order now: the switch moves nothing.
+
+The waterfall's fact line is the setup's **partner order**, a different grain from the resolved
+walk in the right-hand column (per placement, per pod, repeating a partner as often as the ladder
+does) — the decision on the left, its consequence on the right, the arrangement Custom already uses.
+
+**A dead control stopped being a secret.** A partner with ONE source has no depth question — `1` and
+`All` are the same answer — and the seg greyed itself with the cause on hover: four numbers you
+cannot press and no reason given (*"that is not getting communicated properly in the UI since the
+depth is disabled"*). The seg no longer stands there: the cell says `only 1 source` (or `no sources
+yet`), which is the reason and the fact at once, where the control would have been. Safe from the
+"nothing appears or vanishes" rule precisely because it does **not** move — a partner's source count
+is fixed while the page is open. A switched-off partner keeps its greyed seg for the same rule read
+the other way: that one would flip on every toggle, and the row already reads as off.
+
+**Both directions of the mode switch confirm**, in the ad setup's own `src-cfm` dialog (*"use the
+same that is being used in the ad setup"*). The first cut confirmed only the destructive way back,
+reasoning that taking Custom loses nothing. But `suSrcPick` confirms every change, and one control
+learned once must behave the same in both rooms — a seg that sometimes asks and sometimes does not
+is two controls wearing one shape. The body is the move (`where`, then `from → to`); going back adds
+the count of what it drops and wears the danger weight.
+
+**One alignment bug this surfaced.** Every `.wfd-r` is its own grid, and the block is `max-content`
+wide with rows stretched to it — so a row whose last cell is narrower than the widest (`only 1
+source` where others hold a seg) had spare width to hand out, and `auto` columns took it, shunting
+that row's mark and switch right. Two fixes: the last column is `1fr` so slack always lands behind a
+flush-right cell, and the partner mark has a `36px` floor (CAN's intrinsic 33.06px beat a 32px one)
+so the switch rail is one line. Measured: mark at 292, switch at 336, value edge at 506, every row.

@@ -6,18 +6,21 @@ behind decisions are in `PRODUCT-LOG.md` (the running log) and `docs/DECISION-RE
 dated scope documents); `docs/PRODUCT-SCOPE.md` describes the product for any reader. This
 file stays current and short.
 
-> Last verified: 16 Sep 2026 against branch `Ui/UX_Changes` @ `318e49d`, **working tree dirty**
-> (8 files — the player-config UI round, still in progress; `web/js/` was moving while this pass ran).
-> Verified by reading the code, plus `npm test` (183 passed) and `npm run check` (syntax ok).
+> Last verified: 16 Sep 2026 against branch `Ui/UX_Changes`, **working tree dirty** — the
+> TEMPLATES round: ad unit templates left the ad setup page, became the third room, and then
+> joined the PUBLISH PLANE as a third publishable kind.
+> Verified by reading the code, plus `npm test` (218 passed) and `npm run check` (syntax ok).
 > Re-checked this pass: every path and symbol this file names resolves; §5's file table matches
-> `web/js/` exactly (22 of 22); the nine routers in §4 match `api/server.js`; §11's gaps all still
-> hold. Corrected: the case count (was 171), the screen-walk count (was 73), `docs/` in §2, and
-> §9's claim about `process.env`.
+> `web/js/` exactly; the nine routers in §4 match `api/server.js`; §11's gaps all still hold.
+> Changed this pass: three rooms (§1, §5), `properties` and the template's own plane (§3, §6),
+> the two new view files and `css/12` (§2, §5), the visibility invariant (§7), and the removal
+> of the template `on` field in favour of on-air / off-air.
 
 ## At a glance
 
-- **What** — a config panel for how a publisher's video player asks for ads. Two rooms:
-  integrations (product) and ad setups (ad ops). Nothing serves until it is **published**.
+- **What** — a config panel for how a publisher's video player asks for ads. Three rooms:
+  integrations (product), ad setups and templates (ad ops). **Nothing serves until it is
+  published** — all three kinds, no exception (templates joined the plane 16 Sep).
 - **Stack** — Node ≥ 20, Express 4, in-memory state, no database. No build step, no
   bundler, no framework: the web app is plain `<script>` tags and globals.
 - **Processes** — one. `node api/server.js` serves both the API and `web/` on :4200.
@@ -34,10 +37,14 @@ The Player Console lets two teams configure how a publisher's video player asks 
 - **Product** manages *integrations* (one per property × platform): which ad breaks are
   switched on, how the player starts, and a few per-break "quick decisions".
 - **Ad ops** manage *ad setups*: the ad units (ladders of ad tags) behind each break and
-  how each break behaves.
+  how each break behaves — and, in its own room since 16 Sep, *ad unit templates*: the named
+  request URLs those units point at, each visible to one or more properties.
 
-Nothing reaches a real player until it is **published**. The player reads one JSON
-document per integration key from `GET /panel/live/:apiKey`.
+Nothing reaches a real player until it is **published** — integrations, ad setups and ad
+unit templates alike. The player reads one JSON document per integration key from
+`GET /panel/live/:apiKey`. A template publishes on its own plane, so ONE publish moves every
+ad unit pointing at it and no ad setup has to republish; the setups are *told*, not
+versioned (§6).
 
 One process serves the API *and* the web app; the suite hosts its own. No build step:
 
@@ -87,8 +94,9 @@ panel/
 ├── web/
 │   ├── index.html         the shell + the script tags, in dependency order
 │   ├── login.html         THE FRONT DOOR — its own page: the whole cascade + 11, three scripts
-│   ├── css/01–11-*.css    the stylesheet, split by subject; load order is the cascade
-│   │                      (11 is the door's plate, loaded by login.html only)
+│   ├── css/01–12-*.css    the stylesheet, split by subject; load order is the cascade
+│   │                      (11 is the door's plate, loaded by login.html only; 12 is the
+│   │                       templates room, loaded by index.html only)
 │   └── js/                see §5
 ├── test/
 │   ├── run.js             boots the API on :4299, runs every cases/*.spec.js, prints totals
@@ -125,12 +133,15 @@ Four kinds of object live in `state` (see `api/store/state.js`):
  ├─ domains | packageName            ├─ waterfall (shared ladder)   ├─ provider ima|gpt|can
  ├─ key   "sak_toi_mweb_xxxxxx"      ├─ headerBidding (one answer)  ├─ value  ad unit path | URL
  ├─ player {autoplay, passiveVolume, ├─ sections[] = placements     └─ tplId ─▶ ad unit template (tpl_N)
+ │                                   │                                          ├─ name, provider, url
+ │                                   │                                          ├─ properties[] (visible to)
+ │                                   │                                          └─ on (serving)
  │          playbackMode, playback,  │   ├─ name, isDefault
  │          expandInMini, …}         │   └─ slots{preroll,midroll,postroll,outstream}
  ├─ playerConfigs[] (named forks)    │        ├─ rungs[]   {tagId, on, pause, mute, displaySlot, …}
  ├─ sections[] overlays, by name     │        ├─ behaviour {start, podAds, headerBidding, …}
  │   └─ slots{t: {on}}               │        ├─ direct    {rungs:[one deal]}
- └─ drive {t: {ask, tries, start,    │        ├─ waterfallSource own|setup|none, ownRungs
+ └─ drive {t: {ask, depth, start,    │        ├─ waterfallSource own|setup|none, ownRungs
             deferSec, podAds, …}}    │        └─ groups[]  (mid-roll pods: each a slot anatomy)
                                      └─ (an integration asks from ONE setup;
                                            a setup may fill MANY integrations)
@@ -142,9 +153,13 @@ Vocabulary, so the code reads the same as the UI:
 | --- | --- |
 | **integration / key** | one publisher surface (TOI · Mweb · VideoShow) and its API key string |
 | **ad setup** | the demand behind an integration: placements, ladders, behaviour. One setup may fill several integrations; an edit there moves all of them |
+| **ad unit template** | a named request URL an ad unit points at (`tag.tplId`), shared by every ad setup whose unit picks it. Its own room since 16 Sep (`#templates`) — a section at the head of the ad setup page until then, which said it belonged to the setup you happened to open — and its own **publish plane** since the same day: Save parks a draft, Publish moves every connected unit in one act, and an unpublished template is absent from `unittpl` so its units ask their provider's standard |
+| **visible to** (`properties[]`) | which properties' ad setups may PICK a template. `[]` is every property — the answer said by absence, so a payload written when this was a single `property` string still reads as it did, and naming every property collapses back to `[]` (one shape per meaning). Visibility governs the pick, never the serving: a unit already pointing at a template keeps requesting through it, which is why narrowing that would strand a connected ad setup is refused by name (`strandedByVisibility`, store/tags.js) rather than silently applied |
+| **the reach** | where a template actually lands — one hop past `usedBy`, and reported UNIT-FIRST (`units[]`: a row per ad unit, with the ad setups it sits in) so the rows and the head count are the same number. `usedBy` counts the TAGS that point at it (what the delete refusal counts); `setups` / `setupCount` / `propertiesInUse` count the AD SETUPS those tags sit in, walked from the real documents by `setupsUsingTemplate` → `setupTagIds`. The template page's Connected rail is drawn from exactly this |
 | **placement / section** | a named area inside a surface (Default, Shorts feed). The setup defines them; the integration overlays a switch per break |
 | **slot / break** | pre-roll, mid-roll, post-roll (ladders) and out-stream (a rotation of banners) |
-| **rung / ad unit** | one tag in a ladder, with its own switch and banner facts |
+| **rung / ad unit** | one tag in a ladder, with its own switch and its own facts — `RUNG_FACTS` in `store/state.js`, the ONE list every plane copies (the response shape, the publish snapshot, the player's JSON, the version diff, and — through `meta.rungFacts` since 16 Sep — the ad setup editor's save payload, which had hand-copied its own five and silently dropped `mute` and `headerBidding` for five days) |
+| **`adProvider`** | whose demand fills the unit: `gam` · `taboola` · `colombia` · `slike` (`AD_PROVIDERS`), the ops team's own note on each unit (16 Sep). NOT the tag's `provider`, which says how the unit is *requested* (IMA/GPT/CAN) and is knowable from the config — who the demand comes *from* is not, so it is stated or it is absent. **Empty by default and sparse**: absence means nobody has said, `Not set` in the control clears back to it, and an unknown vendor is refused by name on the unit. It rides the player's JSON only where someone set it |
 | **ladder / waterfall** | rung 1 is the primary — the break's own first ask, asked before anything else and never replaced by a source answer; rungs 2…10 are the fall, tried in order |
 | **pod / break group** | a mid-roll may run up to three pods, each with its own cadence, ladder and direct deal |
 | **direct** | the one sold deal a break tries before its primary |
@@ -153,6 +168,7 @@ Vocabulary, so the code reads the same as the UI:
 | **`waterfallSource`** | where a ladder break's **fall** comes from: `own` (rungs 2…N of its own), `setup` (the global waterfall's served units), `none` (no fall). **The primary — rung 1 — is the break's own in every answer and always serves**, so served `rungs` are `own`, `[primary, …global]`, or `[primary]`. All three keep every own unit in `ownRungs`, so every answer is reversible. `own` is the answer said by absence, so payloads and snapshots written before each answer existed still read as they always did |
 | **header bidding** | who else bids for a slot before the ad server is asked: `off` · `amazon_prebid` · `amazon` · `prebid`, answered ONCE at the setup's head (`headerBidding`). Not a ladder — no order, no depth, no rung — so it is the setup's own field beside the waterfall, not a lever inside it (10 Sep) |
 | **`behaviour.headerBidding`** | one slot's answer, on every slot including the out-stream: `auto` (the answer said by absence — borrow the setup's, so moving the global moves the slot) or one of the four above, `off` included. A LINK, never a copy: `auto` is stored, never resolved into the slot. `servedHeaderBidding(slot, global)` (store/setups.js, mirrored as `suHbServed` web-side) resolves it at the live boundary, so the player is never handed `auto`. `auto` is refused AT the global — the thing being borrowed cannot borrow |
+| **waterfall depth** | how many of ONE partner's sources a break tries, `drive[t].depth` — a sparse map (`{ima: 2}`), so a partner left out is walked all the way down and `All` writes nothing. Counted down the resolved walk, which is why the **primary always survives**: it is the first rung of its own partner, so any cap of 1 or more keeps it. It sits beside `drive[t].tries`, a flat count over the **whole** walk, cut last, which keeps its own `Waterfall depth` row directly under the ladder — they were tried as one block for a round and read as one confusing control, so the partners are one row and the ceiling over all of them is the next. The GLOBAL waterfall's own `depth` is a different field on a different object — one flat number for one shared ladder |
 | **drive** | the integration's per-break quick decisions, stored sparse as intent and resolved against the setup at read time. Since 11 Sep it carries `headerBidding` too (`As set up` = absence; the out-stream's only drive field), and `setup` as a value CLEARS any lever back to the ad setup |
 | **player config** | a named fork of an integration's player settings (`playerConfigs[]`). The model is **default + sparse overrides**: a config stores ONLY the fields it changes and inherits the rest live, so moving the default moves every config that did not dissent. Since 13 Sep **any** player field may be overridden — `CONFIG_FORKABLE = PLAYER_FIELDS` in `store/state.js`, reversing the 11 Sep six-field rule — so what a fork may not do is no longer a refusal list but a visible one: every override is named on the row, in the editor and in the change review |
 | **the seam** | the check, in both rooms, that never lets a switched-on break end up with nothing to ask |
@@ -241,12 +257,14 @@ cross-file call happens later, at runtime, after all scripts have loaded.
 | `publish.js` | the version rail, publish / restore flows (`PUB`) |
 | `review.js` | THE CHANGE REVIEW — the one dialog every write (save, publish, bulk, restore) confirms on. Rows are `WHAT · WAS → NOW`, except under `noFrom` (the two cohort sheets, 15 Sep user call), where a row is `FIELD · ANSWER`: forty surfaces have no single previous value, so there is no was-side to print, and the field and the answer are told apart by treatment — the field light and grey, the answer dark and heavy. As STEP 2 of a cohort act it is pixel-identical to step 1 by construction (16 Sep): the journey names one `--frame` both screens read (`steady-ads`/`steady-player` 480, `steady-configs` 620 — fixed rather than floored, because step 1 is), both wear the dialog family's 22px head inset, both carry the same title (17/650/-.3) and both end on the same foot bar (full-bleed top rule, `13px 24px 17px`, on the frame's bottom edge) |
 | `views-tag-lookup.js` | the ad-tag lookup control and its search |
-| `views-setups-list.js` | Ad Setups list, the new-setup chooser, ad unit templates UI |
+| `views-setups-list.js` | Ad Setups list and the new-setup chooser |
 | `views-setups-waterfall.js` | the waterfall's zone of Global settings and its glimpse, the Apply-on-ad-slots grid, the per-break **source band** (its three states: no waterfall · custom waterfall · connected), and a connected break's shared levers |
 | `views-setups-headerbidding.js` | header bidding's zone of Global settings and its glimpse, and its Apply-on-ad-slots grid; each slot's own row (`Auto │ Off │ Custom`, then the partners) is the first row `behaviourRowsHtml` draws in that slot's delivery settings |
 | `views-setups-rungs.js` | one ad-unit block: the rung writers, walk positions, its head row, its facts tier, its settings tier, its collapsed off line |
 | `views-setups-placements.js` | placement tabs, mid-roll pods, Clear, the closed row's glimpse |
-| `views-setups-editor.js` | the ad setup editor itself: load, the head sections' fold and the **Global settings** head (`suGlobalsHtml`), slot addressing, delivery settings, the slot row, save |
+| `views-setups-editor.js` | the ad setup editor itself: load, the head sections' fold and the **Global settings** head (`suGlobalsHtml`), slot addressing, delivery settings, the slot row, save, and the READ-ONLY TEMPLATE SHELF (`suTplRefHtml`, 16 Sep) — the templates visible to this setup's property, folded beside the other head sections, every row a door into `#templates` and nothing on it editable |
+| `views-templates-list.js` | **Templates list** — the third room's table, wearing the other two lists' grammar (one search, filter pills, one pager). FIVE columns, one fact each: what it is (name + `Request URL`), who MAY point at it (`Visible to`), who DOES (`Connected` — the ad setups, one number, the units on its hover), and who last moved it — plus a 44px acts column carrying the one act a row has, **Turn on / Turn off** (`tplToggleActive`), which writes immediately (there is no draft plane to save into) and asks first whenever anything is connected, naming the count it moves. **No Status column**: it would have read `Live` on nearly every row, and templates have no version for it to name — off is the news, so off is what shows, on the name. Two filter pills (Properties, Use); provider is read off the badge |
+| `views-templates-editor.js` | **One template's page**, in the INTEGRATION PAGE'S OWN SHAPE (16 Sep, user call): `.ehead.with-rail` → `.detail` → **two `.form.keyform` cards on the left, `.rail` on the right**. `keyform` is the class the console's ONE TYPE SCALE is scoped to, so the fields are the same objects as an integration's, not lookalikes at a fourth scale. Card one is `Details` in two rows — Name · Provider · Visible to (the `Name · Property · Platform` rhythm next door), then the Request URL with its macro chips. Card two is `Connected`, **unit-first**: one row per ad unit (what `usedBy` counts and what actually fires the URL), with the ad setups it sits in as chip-doors beside it. Setup-first could not reconcile — a unit in three setups made the rows exceed the head count. The rail is **Version history and nothing else**, exactly as on the other two editors — Connected shared it for one round, which made this the only page whose right column meant two things. Provider wears `.pvd`, the chip every ladder and list marks a provider with (one chip + `fixed` where units already request through it). Visible to is the house `pickerHtml` checklist — `[]` is every row ticked and the section box IS the All control; the connected-property lock is NOT an `off` row (the picker draws those greyed *and unticked*) but a refusal on the click that would drop it. Macros insert at the remembered caret and APPEND when the field has not been touched — `selectionStart` is `0`, not null, on an unfocused input, which is what put the first macro at position zero. The page carries the shared publish plane whole: `pubStateChipHtml`, Save, Publish, `pubRailHtml`, and `Take off air` in its ⋯ beside Delete, where `Deactivate integration` sits |
 | `views-keys-list.js` | Integrations list, filters, paging, selection, bulk bar (**Ad behaviour · Player behaviour** — two acts, 15 Sep user call: the `Custom configs` button came off the bar, and with it the imperative greying it needed. Both remaining acts write one answer every integration has exactly one of; a config is keyed and per-surface, so it is edited on its own page) |
 | `views-keys-bulk-ads.js` | the bulk AD BEHAVIOUR sheet: levers per break on the left, CHANGES TO APPLY on the right, review, apply. A row at rest prints a value only when the cohort has one — "as set up" is the absence of an answer, so it prints nothing |
 | `views-keys-bulk-player.js` | **Player behaviour** — the one cohort player act, PICKED not printed (15 Sep): one `Change a setting` strip over the server's own catalogue — its face takes the queue card's own column (`--bqp-w`, stated once on `.dlg.bulk`) so the two stand on one pair of edges — (`KL_META.bulkPlayerFields`, with `bulkNever` greyed in the menu carrying its reason), each option a plain checklist row (the cohort's today-word came off the strip, then off the review — `pbTodayWord`/`pbRowTodayWord` are retired, 15 Sep); a picked row is the ad sheet's row drawn with the page's `cfgCtlHtml()` and this sheet's receiver, and MUST be answered — Apply refuses in place, by name. A value they all already hold reads `already this everywhere` and never reaches the review. A custom config belongs to the surface that owns it and is edited on the integration page (see COHORT-SHORTLIST, 14 Sep) |
@@ -256,7 +274,7 @@ cross-file call happens later, at runtime, after all scripts have loaded.
 | `views-keys-editor-player.js` | its **Player behaviour** card: the whole default set IN PLACE on the page (`pcDefaultHtml` + `pcColHtml` — three columns, one per section, no box/divider/row rules, `PG_H` writing straight to `FORM.data.player`; no view switch, no modal), custom configs as **cards** carrying their first four overrides (`pcCardHtml` — key left, on/off switch alone on the right; the ⋯ moved into the sheet 15 Sep, so a card offers the one act it can honestly support at a glance). The ceiling is **20** (was 6), so the block grew what a shelf never needed: `pcGridHtml` shows `PCC_SHOW` (8) with a counted `Show all N configs` door, and the head carries a key filter once five or more exist (`pcFindHtml`/`pcFind` — the grid repaints, never the field), and the one sheet left — a config's "tick it, then answer it" body, now **two panes** (`shCfgBodyHtml`, 15 Sep user call): the catalogue standing open down a 206px left rail (`.sh-rail` — the search field IS its head, a filled well with no border at rest, its 6px inset and full width matched to the list beneath so field and rows start and end on the same two lines, then `pickerHtml`'s `inline` shell + `SH_PICK_H`, section heads pinned at 10.5/700 with their box the SAME 14px as the options' (it was smaller, so a parent read smaller than its children), **no counts and no eyebrow**) and the config's own rows filling `.sh-pane`. LEFT because a catalogue is a SOURCE — the version rail and the changes card earn the right by being outcomes — and because the sheet reads *these settings* → *these values*. `shSearch`/`shRailSync` rewrite the list alone, never the sheet, so typing keeps the caret; a live query sets `flat` on each group, which suspends the section boxes ("all of Playback" over a filtered view is a trap). Each pane scrolls on its own; the frame is 700. Head acts sit BESIDE THE KEY (`shHeadActsHtml`, 16 Sep): an **Active │ Inactive** segment (`accSeg`, working copy, counted by `shChangeCount`) rather than a bare toggle in the far corner — two labelled positions say what either end means without being hovered, and standing next to the name they read as the state of the thing that is named. The key field is measured to the 24-character cap (272px). A **vertical** ⋮ carrying **Delete config** is the LAST thing in the act row, right of the primary, opening upward and right-aligned (`shFootMenuHtml`, `.rmenu.up`); it shuts the sheet to hand off to the page's own `pcRemove`. An empty pane draws `.sh-blank` — mark, heading, one line — not a statement of fact about the default. Every ticked setting arrives EMPTY — ALL of them since 15 Sep (`shNeedsSeed` retired): the four kinds with no drawable empty state get an explicit slate from `shRowEff` (nothing lit, no colour), `shCur` hands the first click that same slate so screen and click cannot disagree, `.sh-row.unset` dims until touched, and `shPut` clears `SH.pending` BY ROW so the two composite rows answer from any of their fields. `shDone` refuses by name over anything still waiting. Rows follow the PAGE's grammar — `SH_STACK` is `['look']`, so the nine controls draw as the page's 24px strip on their label's line and only the three colours stack (`.sh-row.cfg` is `150px 1fr auto`, measured against strip 232 + tail ~161). A row fills its pane on a `170px 1fr auto` grid: label lane fixed so the question and its answer read together, the two acts on the right edge, the slack between them (capping the row, and letting the label take the slack, were both tried and reverted — see the log). The tail holds one width whether or not it draws a switch (`.toggle.void` holds the slot on an unanswered row), so the ×, the switch and every control's right edge each stand on a true lane. The tail carries **only its two controls** (15 Sep: `DEFAULT x` / `same as default` / `following the default` all retired — three sentences about the default in the place a row's own acts live). Each row's tail carries a **park switch** and the `×`: off parks the override (row and value kept, control inert, tail reads `following the default`) and `shDone` drops parked fields, the same absence an untick leaves; `×` takes the setting off the sheet. `cfgCtlHtml`'s `compact` option is the page's cut of the two controls taller than a line |
 | `views-keys-editor-frame.js` | its frame: header, payload, save / create / duplicate / delete, the chooser The form carries `keyform`, the class the page's ONE type scale is scoped to (10-surfaces.css, end of file): label 12.5/500 · value 12.5 · box 30px · seg 12 · chip 11.5, covering all three cards and the config sheet |
 | `login.js` | THE FRONT DOOR (`login.html`): the remembered-account row and its picker (the primary act), the address field under it, which of the two carries the accent, the three refusals painted in place, Request access |
-| `main.js` | THE GATE (the session, read once before anything paints — no session lands on `login.html`), the hash router (`#keys`, `#keys/:id`, `#setups`, `#setups/:id`), nav counts, `getMeta()` |
+| `main.js` | THE GATE (the session, read once before anything paints — no session lands on `login.html`), the hash router (`#keys`, `#keys/:id`, `#setups`, `#setups/:id`, `#templates`, `#templates/:id`), nav counts, `getMeta()`. A template has no chooser — a copy of one is a second name for the same URL, which is the thing the room exists to stop — so `#templates/new` goes straight to the page |
 
 ### Conventions that keep the UI stable
 
@@ -324,8 +342,20 @@ once published, an immutable **snapshot** on air. Only snapshots reach the playe
 - `restoreVersion` writes an old snapshot back onto the draft *through the ordinary update
   path* (so every rule still applies) and publishes it as a **new** version. History is
   append-only.
+- **A template is the third publishable kind** (16 Sep). Same plane, same routes, same rail.
+  `liveConfig` reads its SNAPSHOT, so a draft template is absent from `unittpl` and its units
+  ask their provider's standard — which is the whole of what the old `on: false` meant, and
+  why that field went rather than becoming a second way to say "off air". Publishing one
+  refuses nothing: whatever it does, its units always have somewhere to ask.
+- **A template publishing does NOT version the ad setups under it.** They did not change. But
+  they are told: `templateNewsFor(setupId)` lists every template beneath a setup that has gone
+  on air since that setup last published — version, person, moment — drawn at the head of the
+  setup's card. Silence there was the one hole in the plane's promise; a version bump would
+  have been a second bug (ten publishes for one typo, ten histories full of a change nobody
+  made in them).
 - `liveConfig(apiKey)` joins the live integration with its live setup, resolves the drive
-  over the ladders and returns the walk the player should make. Templates resolve live.
+  over the ladders and returns the walk the player should make. Templates are read from
+  their own published SNAPSHOT, so a draft one is simply absent from `unittpl`.
   Header bidding is handed over **resolved** — per break and per unit — so the player is
   never given `auto` to work out for itself. A break whose demand is not published is
   simply absent from the answer.
@@ -358,7 +388,14 @@ a state machine.
   written over the SET of holders, and deleting a setup is refused naming every one of them.
 - **Deterministic mock.** `resetWorld()` reissues the same ids and key strings (seeded RNG).
 - **Anything in use cannot be deleted.** Tags in ladders, templates on tags, setups on keys,
-  live integrations.
+  live integrations. "In use" is ONE walk — `setupTagIds(setup)` (`store/tags.js`) — and it
+  counts the global waterfall at the setup's head and the units a break PARKED in `ownRungs`
+  as well as what is serving today. It did neither before 16 Sep, so a tag that lived only in
+  a global waterfall, or only in a parked ladder, could be deleted out from under it.
+- **Everything connected stays visible** (16 Sep). A template's `properties` may always
+  widen; it may narrow only where nothing is stranded, so no ad setup ever holds a template
+  its own room can no longer show. Refused by name, naming the property, the count of ad
+  setups on it, and the two ways out (`updateTemplate` → `strandedByVisibility`).
 
 ## 8. How to…
 
@@ -380,7 +417,12 @@ a state machine.
    (that is how `direct` says "absence is on"). A field with no writer is ignored.
 3. Bounds shared with the ad setup's own answer go in `store/state.js`, not at both sites —
    see §9.
-4. `web/js/util.js` → `FIELD_NAMES`, and a case in `test/cases/03-drive.spec.js`.
+4. `web/js/util.js` → `FIELD_NAMES`, `store/state.js` → `FIELD_WORDS` (the words a REFUSAL
+   uses — a refusal must never print a JSON key), and a case in `test/cases/03-drive.spec.js`.
+5. If it lands on a screen, mirror any walk arithmetic client-side too — `clientDriveWalk` in
+   `views-keys-editor-ad-behaviour.js` must resolve exactly as `driveWalkRungs` does, or the
+   number on screen is not the number that serves. A field whose VALUE IS A MAP also needs its
+   own name in `FLAT_LEAVES` (`store/version-changes.js`), or a diff prints one line per key.
 
 **Add a route**: a function in the owning `store/` module, a thin handler in the matching
 `api/routes/*.js`, a shape in `api/response-shapes.js` if the answer is a new object, a named

@@ -26,8 +26,9 @@ export default async function run({ test, req, eq, assert, freshSetup, patchSlot
     const b = as1.sections[0].slots.outstream.behaviour;
     eq(b.podAds, undefined, 'no pod');
     eq(b.walkDepth, undefined, 'no depth — never had one, never will');
-    eq(b.hideOnInStream, undefined, 'and no in-stream switch — an in-stream ad owns the screen anyway');
     eq(b.perSession, 2, 'what it has is a total target impressions count');
+    eq(b.perShow, 1, 'a repeat count — how many banners one scheduled show is worth');
+    eq(b.hideOnInStreamAd, true, 'and an in-stream switch, defaulting to what every player already did');
   });
 
   // ---------- ad setup ladder rules (the ops room's grammar) ----------

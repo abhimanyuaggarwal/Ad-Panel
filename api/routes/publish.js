@@ -1,4 +1,5 @@
-// api/routes/publish.js — THE PUBLISH PLANE for both kinds of object (integration and ad setup):
+// api/routes/publish.js — THE PUBLISH PLANE for all three kinds of object (integration,
+// ad setup and ad unit template):
 // publish, unpublish, versions, restore preview, restore — and /panel/live/:apiKey,
 // the only door the player reads from.
 import express from 'express';
@@ -12,7 +13,7 @@ const r = express.Router();
 // Save writes the draft; these put it on air. An integration and its ad setup publish
 // SEPARATELY (user call), so each publish answers the darkness question against what is
 // actually live — see `publishObject`.
-for (const [kind, seg] of [['key', 'keys'], ['setup', 'setups']]) {
+for (const [kind, seg] of [['key', 'keys'], ['setup', 'setups'], ['template', 'templates']]) {
   r.post(`/panel/${seg}/:id/publish`, handle((req, res) => {
     const { version, warnings } = store.publishObject(kind, req.params.id, store.ACTOR, req.body?.note);
     res.json({ version: publicVersion(version), live: true, warnings });

@@ -2,11 +2,13 @@
 
 The Player Console is the self-serve panel for ad delivery inside Slike's video players.
 Today this work is spread across GAM screens, config files and requests to engineering;
-the console puts it in one place, split into two rooms so two teams can work without
-stepping on each other. The **product team** owns Integrations — one per player surface
-(TOI Mweb VideoShow, NBT iOS MiniTV), holding the player's identity and behaviour and the
-switches that say which ad breaks run. **Ad ops** own Ad Setups — the demand: which ad
-units fill each break, in what order, on what schedule.
+the console puts it in one place, split into rooms so two teams can work without stepping
+on each other. The **product team** owns Integrations — one per player surface (TOI Mweb
+VideoShow, NBT iOS MiniTV), holding the player's identity and behaviour and the switches
+that say which ad breaks run. **Ad ops** own Ad Setups — the demand: which ad units fill
+each break, in what order, on what schedule — and Templates, the named request URLs those
+units point at, each visible to one or more properties and shared by every setup that
+points at it.
 
 Everything here runs against an in-memory mock API, so the whole world can be rebuilt in
 milliseconds and every number on screen is counted from real state, never estimated. It
@@ -21,7 +23,7 @@ is a working prototype of the product, not yet wired to production systems.
 | **Integration** | Product | One player surface: name, property, platform, domains or package, the player fields, custom player configs, and per-break switches and quick decisions |
 | **Ad setup** | Ad ops | The demand for one integration: placements, each with four breaks (pre-roll, mid-roll, post-roll, out-stream), each break a ladder of ad units |
 | **Ad tag** | Ad ops | One ad unit or endpoint: IMA and GPT tags point at GAM ad-unit paths, CAN tags at a URL |
-| **Request template** | Ad ops | A named request URL shared account-wide; its macros are a fixed list of five the player fills |
+| **Ad unit template** | Ad ops | A named request URL an ad unit points at, shared by every ad setup whose unit picks it; its macros are a fixed list of five the player fills. Its own room since 16 Sep, where it says which properties may pick it (**Visible to**) and is told where it already lands (**Connected**) |
 | **Custom player config** | Product | A named set of overrides a page asks for by key (`shorts`) — any of the player's fields, carried sparse, inheriting the rest live |
 
 The rule that shapes everything: **one integration asks from exactly one ad setup** — a
@@ -236,7 +238,14 @@ drag to reorder; the word covers a break's own units and the shared waterfall al
 beside it), `Off`, or `Custom` with `Amazon+Prebid │ Amazon │ Prebid` under it; then the
 timings. Each ad unit is ONE BLOCK — the unit, its counted fact line and its
 settings as three tiers of one soft shape; the caret at the block's end opens and closes
-the settings, and so does putting the caret in the unit's field. Every break can be cleared with a
+the settings, and so does putting the caret in the unit's field. Its settings are led by
+**Ad provider** — whose demand fills this unit: `GAM`, `Taboola`, `Colombia`, `Slike`, or
+`Not set`, which is where every unit starts and the way back from a wrong pick. It is the
+ops team's own note, not a derived fact: the badge on the row already says how the unit is
+requested (IMA / GPT / CAN), and a GAM request may still be carrying somebody else's demand
+— so nothing is written here until a person writes it, and a blank unit reads as unanswered
+rather than as counted. The glance line stays fixed at four facts, so a named provider rides
+the `+N more` cue with its exact value on hover. Every break can be cleared with a
 counted confirmation, and the whole setup at once from the ⋯ menu — demand only,
 delivery settings stay.
 

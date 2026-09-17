@@ -231,6 +231,18 @@ function suRungPause(t, r, isDisplay) {
   return gov || r.pause || (isDisplay ? 'no' : 'yes');
 }
 
+// AD PROVIDER CLEARS BY DELETING, not by storing an empty string (16 Sep). Absence is the
+// answer "nobody has said", so `Not set` has to leave the unit in exactly the state it was
+// in before anyone touched it — otherwise picking a vendor and picking Not set again would
+// leave a unit that reads clean but diffs dirty on the next save.
+function suRungProviderSet(t, n, v) {
+  const r = suSlot(t).rungs[n];
+  if (v) r.adProvider = v; else delete r.adProvider;
+  clearErr('sections');
+  clearErr('direct');
+  FORM.rerender();
+}
+
 function suRungFact(t, n, f, v) {
   suSlot(t).rungs[n][f] = v;
   clearErr('sections');
@@ -259,6 +271,19 @@ async function suRungTplSet(t, n, tplId) {
   } catch (e) {
     toast((e.errors && e.errors[0]?.message) || e.message, 'bad');
   }
+}
+
+// Whether this ad setup's property is one the template's room named. An empty list is
+// every property — the answer said by absence, on this side of HTTP as on the other.
+function suTplVisibleHere(tpl) {
+  const ps = tpl.properties || [];
+  return !ps.length || ps.includes(FORM.data.property);
+}
+
+function suTplWhyNotHere(tpl) {
+  if (suTplVisibleHere(tpl)) return '';
+  const ps = tpl.properties || [];
+  return `Visible to ${ps.join(', ')} only — this ad setup is on ${FORM.data.property}`;
 }
 
 function suRungFactNum(el, t, n, f) {
@@ -443,19 +468,40 @@ function suRungPanelHtml(t, n, r) {
       </div>`;
   const slots = (KL_META.displaySlots || []).map(v => ({ v, label: label('displaySlot', v) }));
   const tag = SU_TAGS.find(x => x.id === r.tagId);
-  const provTpls = tag ? SU_TPLS.filter(x => x.provider === tag.provider && inScope(x.property)) : [];
+  // WHOSE DEMAND FILLS THIS UNIT (16 Sep, user call — *"under each ad unit give an option
+  // of meta where user can configure the Ad Provider"*). It leads the unit's settings
+  // because it is the only one of them that answers WHO: everything under it is how the
+  // ad behaves once it arrives. It is also the only fact here nobody can derive — the
+  // badge on the row already says how the unit is requested (IMA/GPT/CAN), and a GAM
+  // request may still be carrying Taboola demand — so it is stated, never guessed.
+  // `Not set` is the first option rather than a placeholder: it is a real answer (nobody
+  // has said), it is where every unit starts, and it is the way back from a wrong pick.
+  const provider = row('Ad provider', selectHtml(r.adProvider || '',
+    [{ v: '', label: 'Not set' }, ...adProviders().map(v => ({ v, label: label('adProvider', v) }))],
+    v => { suRungProviderSet(t, n, v); }));
+  const provTpls = tag ? SU_TPLS.filter(x => x.provider === tag.provider) : [];
   const placement = row('Ad placement',
     selectHtml(r.displaySlot || (KL_META.displaySlots || [])[0], slots, v => { suRungFact(t, n, 'displaySlot', v); }), '', false, !rot);
   const template = tag ? row('Ad unit template',
     // A switched-off template stays pickable — the pick is legal, just inert — and
     // wears the fact as a micro-suffix where the decision is made.
-    selectHtml(tag.tplId || '', [{ v: '', label: 'Standard' }, ...provTpls.map(x => ({ v: x.id, label: x.on === false ? `${x.name} · off` : x.name }))],
-      v => { suRungTplSet(t, n, v); }),
+    // VISIBILITY GREYS, IT DOES NOT HIDE (16 Sep, the Templates room). A template names
+    // the properties whose ad setups may point at it; one this setup is not on stands in
+    // the menu, greyed, wearing the reason — a name a person can go and act on, where a
+    // missing row would just look like the template had been deleted. The tag's CURRENT
+    // pick is never greyed: it is already serving, and the menu says what is, not what
+    // could have been chosen today.
+    selectHtml(tag.tplId || '', [{ v: '', label: 'Standard' }, ...provTpls.map(x => ({
+      v: x.id,
+      label: x.on === false ? `${x.name} · off` : x.name,
+      off: x.id !== tag.tplId && !suTplVisibleHere(x),
+      why: suTplWhyNotHere(x),
+    }))], v => { suRungTplSet(t, n, v); }),
     (tag.usedBy || 1) > 1 ? `A tag fact — changes ${tag.usedBy} setups` : '') : '';
   const bidding = suRungHbRowHtml(t, n, r, tag, row);
   // A rotation has no pause question — an idle player has no content playing — so its
   // facts simply stand on the same sides as a break unit's.
-  if (rot) return `<div class="ad-unit-panel"><div class="up-col">${template}${bidding}</div><div class="up-col">${placement}</div></div>`;
+  if (rot) return `<div class="ad-unit-panel"><div class="up-col">${provider}${template}${bidding}</div><div class="up-col">${placement}</div></div>`;
   // ONE PAUSE ANSWER FOR THE WHOLE WATERFALL (5 Sep): while the waterfall's own
   // switch is on, every unit's Content pause dims in place wearing the one answer — the
   // unit's own answer is kept underneath and returns the moment the switch goes off.
@@ -476,6 +522,7 @@ function suRungPanelHtml(t, n, r) {
   return `
     <div class="ad-unit-panel">
       <div class="up-col">
+        ${provider}
         ${row('Request delay', clock('showAfterSec', 'now'))}
         ${template}
         ${bidding}
@@ -530,6 +577,13 @@ function suRungFactsHtml(t, n, r) {
   const facts = [];
   const folded = [];
   let more = '';
+  // WHO FILLS IT, FOLDED — AND ONLY WHEN SOMEONE HAS SAID (16 Sep). It joins the fold
+  // rather than the glance because the glance is FIXED AT FOUR (11 Sep, user call) and a
+  // fifth fact on every row would undo that call. It is only listed when it is SET: an
+  // unset provider is nobody having said anything, and `Ad provider Not set` in the cue
+  // would be a row spending a count to report silence. Leading the fold because, of
+  // everything in there, it is the one that says WHO.
+  if (r.adProvider) folded.push(['Ad provider', label('adProvider', r.adProvider)]);
   if (rot) {
     if (tag) facts.push(template());
     facts.push(placement());

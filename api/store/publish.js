@@ -5,6 +5,7 @@ import { versionChanges } from './version-changes.js';
 import { listKeys, updateKey } from './keys.js';
 import { driveWalkRungs, effectiveBehaviour, liveRungs, slotGroupDefs } from './ladders.js';
 import { keysUsingSetup, servedHeaderBidding, servedUnitHeaderBidding, updateSetup } from './setups.js';
+import { setupTagIds, setupsUsingTemplate, tagsUsingTemplate, updateTemplate } from './tags.js';
 import { ACTOR, RUNG_FACTS, Refusal, SLOT_TYPES, SLOT_WORD, deepCopy, state } from './state.js';
 import { mustGet } from './validate.js';
 
@@ -35,6 +36,12 @@ const PUBLISHABLE = {
       slots: Object.fromEntries(SLOT_TYPES.map(t => [t, { on: !!s.slots[t].on }])),
     })),
     drive: k.drive ? deepCopy(k.drive) : null,
+  }),
+  // A TEMPLATE IS A THIRD PUBLISHABLE KIND (16 Sep, user call). Everything it holds is
+  // what the player is handed, so the snapshot is the object: change any of it and the
+  // diff says which field moved, in the rail, in the same words the page uses.
+  template: t => ({
+    name: t.name, provider: t.provider, url: t.url, properties: [...(t.properties || [])],
   }),
   setup: s => ({
     name: s.name, property: s.property,
@@ -101,7 +108,9 @@ function snapRung(r) {
 }
 
 export function objectOf(kind, id) {
-  return kind === 'key' ? mustGet(state.keys, id, 'integration') : mustGet(state.setups, id, 'ad setup');
+  if (kind === 'key') return mustGet(state.keys, id, 'integration');
+  if (kind === 'template') return mustGet(state.templates, id, 'ad unit template');
+  return mustGet(state.setups, id, 'ad setup');
 }
 
 export function draftSnapshot(kind, obj) { return PUBLISHABLE[kind](obj); }
@@ -203,8 +212,11 @@ export function publishObject(kind, id, actor = ACTOR, note) {
   const before = liveSnapshot(id);
   const warnings = [];
 
+  // A TEMPLATE HAS NO DARKNESS QUESTION. Whatever it does, the units pointing at it have
+  // somewhere to ask: their provider's standard. That is the whole reason it can be taken
+  // off air without warning anyone, and why publishing one refuses nothing.
   if (kind === 'key') refuseIfSurfaceWouldGoDark(obj, snapshot);
-  else refuseIfHoldersWouldGoDark(id, snapshot);
+  else if (kind === 'setup') refuseIfHoldersWouldGoDark(id, snapshot);
 
   const changes = versionChanges(kind, before, snapshot);
   if (!changes.length) throw new Refusal(409, 'nothing_to_publish', `“${obj.name}” is already live, exactly as it is`);
@@ -216,6 +228,16 @@ export function publishObject(kind, id, actor = ACTOR, note) {
     // One setup may fill several integrations (8 Sep), so the warning counts them all
     // and agrees with itself: “A” picks this up · “A”, “B” pick this up.
     if (onAir.length) warnings.push(`${onAir.map(k => `“${k.name}”`).join(', ')} pick${onAir.length === 1 ? 's' : ''} this up`);
+  }
+  // A template's blast radius is the point of the object, so it is counted here too — one
+  // publish moves every ad unit pointing at it, which is what makes it worth sharing and
+  // what makes the moment worth naming.
+  if (kind === 'template') {
+    const units = tagsUsingTemplate(id).length;
+    const setups = setupsUsingTemplate(id).length;
+    if (units) {
+      warnings.push(`${units} ad unit${units === 1 ? '' : 's'} in ${setups} ad setup${setups === 1 ? '' : 's'} pick${units === 1 ? 's' : ''} this up`);
+    }
   }
 
   const list = state.versions.get(id) || [];
@@ -268,6 +290,10 @@ export function restoreVersion(kind, id, v, actor = ACTOR, note) {
 // is no longer legal (a tag since deleted, a placement a live surface now stands on)
 // refuses by name instead of landing broken.
 function applySnapshot(kind, obj, snap) {
+  if (kind === 'template') {
+    updateTemplate(obj.id, { name: snap.name, provider: snap.provider, url: snap.url, properties: snap.properties });
+    return;
+  }
   if (kind === 'setup') {
     // `?? null` clears the waterfall when restoring a version from before it existed;
     // and a snapshot says "own units" by ABSENCE, which a merge cannot see — made
@@ -383,11 +409,19 @@ export function liveConfig(apiKey) {
     if (!tag) return null;
     const out = { provider: tag.provider, type: tag.type, value: tag.value };
     if (tag.tplId) {
-      // A switched-off template (4 Sep) is simply not in the answer — its units request
-      // through their provider's standard, and the unittpl map never names it. Templates
-      // resolve live, so the switch reaches players on their next request, no republish.
-      const tpl = state.templates.get(tag.tplId);
-      if (tpl && tpl.on !== false) { out.tpl = tpl.name; unittpl[tpl.name] = tpl.url; }
+      // THE TEMPLATE COMES FROM THE PUBLISH PLANE LIKE EVERYTHING ELSE (16 Sep, user call).
+      // It used to be read LIVE off the draft — so editing one silently moved every ad setup
+      // pointing at it while each of them still swore, on its own page and in its own version
+      // history, that nothing had changed. That was the one hole in the plane's promise, and
+      // this closes it: a template reaches a player when it is PUBLISHED, and not before.
+      //
+      // A template with no published version is simply not in the answer, exactly as a
+      // switched-off one used to be: its units request through their provider's standard,
+      // and the unittpl map never names it. So "off air" is the whole of what "off" meant,
+      // which is why the `on` field went with this change rather than living beside it as a
+      // second way to say the same thing (the 27 Aug `status` lesson, one room over).
+      const snap = liveSnapshot(tag.tplId);
+      if (snap) { out.tpl = snap.name; unittpl[snap.name] = snap.url; }
     }
     for (const f of RUNG_FACTS) {
       if (x[f] !== undefined) out[f] = x[f];
@@ -476,6 +510,39 @@ export function seedPublish(kind, id, { actor = 'Priya (ad ops)', hoursAgo = 0, 
   const { version } = publishObject(kind, id, actor, note);
   version.ts = new Date(Date.now() - hoursAgo * 3600 * 1000).toISOString();
   return version;
+}
+
+// ---------- WHAT MOVED UNDERNEATH AN AD SETUP (16 Sep, user call) ----------
+// An ad setup's version history is about the setup's own content, so a template publishing
+// does not bump it — the setup did not change, and filling ten histories with a change
+// nobody made in them is what makes a history unreadable. But silence was the actual bug
+// the user found: the setup swore nothing had moved while the URL its units fired had.
+//
+// So the setup is TOLD, not versioned. Every template its units point at that has gone on
+// air since this setup last published, newest first, each with the version, the person and
+// the moment. Counted, named, and never a number the rows cannot account for.
+export function templateNewsFor(setupId) {
+  const setup = state.setups.get(setupId);
+  if (!setup) return [];
+  const since = state.versions.get(setupId)?.filter(v => v.snapshot).pop()?.ts || null;
+  const ids = setupTagIds(setup);
+  const seen = new Set();
+  const out = [];
+  for (const tagId of ids) {
+    const tag = state.tags.get(tagId);
+    if (!tag?.tplId || seen.has(tag.tplId)) continue;
+    seen.add(tag.tplId);
+    const tpl = state.templates.get(tag.tplId);
+    if (!tpl) continue;
+    // The template's own publishes, after this setup's last one. A template that has never
+    // been published has nothing to report — its units are asking the standard either way.
+    for (const v of versionsOf(tag.tplId)) {
+      if (!v.snapshot) continue;
+      if (since && v.ts <= since) continue;
+      out.push({ id: tpl.id, name: tpl.name, v: v.v, ts: v.ts, actor: v.actor });
+    }
+  }
+  return out.sort((a, b) => b.ts.localeCompare(a.ts));
 }
 
 // ---------- the gap between draft and air ----------
